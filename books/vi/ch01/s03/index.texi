@@ -1,0 +1,34 @@
+@node	1.3, Chapter 2, 1.2, Chapter 1
+@section Xây Dựng Các Trừu Tượng với Các Thủ Tục Bậc Cao
+
+Chúng ta đã thấy rằng các thủ tục, thực chất là các trừu tượng mô tả các phép toán phức hợp trên số độc lập với các số cụ thể.  Chẳng hạn, khi ta
+
+@lisp
+(define (cube x) (* x x x))
+@end lisp
+
+@noindent
+ta không nói về lập phương của một số cụ thể, mà nói về một phương pháp để tính lập phương của bất kỳ số nào.  Dĩ nhiên ta có thể làm được mà không cần định nghĩa thủ tục này, bằng cách luôn viết các biểu thức như
+
+@lisp
+(* 3 3 3)
+(* x x x)
+(* y y y)
+@end lisp
+
+@noindent
+và không bao giờ đề cập rõ đến @code{cube}.  Điều này sẽ đặt chúng ta vào thế bất lợi nghiêm trọng, buộc ta phải luôn làm việc ở mức các phép toán cụ thể xảy ra là các thứ nguyên thủy trong ngôn ngữ (phép nhân, trong trường hợp này) thay vì theo các phép toán bậc cao hơn.  Các chương trình của ta có thể tính lập phương, nhưng ngôn ngữ của ta sẽ thiếu khả năng diễn đạt khái niệm lập phương hóa.  Một trong những điều ta nên đòi hỏi từ một ngôn ngữ lập trình mạnh là khả năng xây dựng các trừu tượng bằng cách gán tên cho các mẫu phổ biến và sau đó làm việc trực tiếp theo các trừu tượng đó.  Các thủ tục cung cấp khả năng này.  Đây là lý do tại sao tất cả ngôn ngữ lập trình trừ những ngôn ngữ nguyên thủy nhất đều có cơ chế để định nghĩa thủ tục.
+
+Tuy nhiên, ngay cả trong xử lý số học, ta sẽ bị hạn chế nghiêm trọng trong khả năng tạo ra các trừu tượng nếu ta bị giới hạn vào các thủ tục mà tham số của chúng phải là số.  Thường cùng một mẫu lập trình sẽ được dùng với một số thủ tục khác nhau.  Để biểu diễn những mẫu như vậy như các khái niệm, ta cần xây dựng các thủ tục có thể chấp nhận các thủ tục làm đối số hoặc trả về các thủ tục làm giá trị.  Các thủ tục thao tác thủ tục được gọi là @newterm{thủ tục bậc cao}.  Phần này trình bày cách các thủ tục bậc cao có thể phục vụ như những cơ chế trừu tượng hóa mạnh mẽ, làm tăng đáng kể sức mạnh biểu đạt của ngôn ngữ.
+
+@menu
+* 1.3.1::            Thủ Tục như Đối Số
+* 1.3.2::            Xây Dựng Thủ Tục Dùng @code{Lambda}
+* 1.3.3::            Thủ Tục như Các Phương Pháp Tổng Quát
+* 1.3.4::            Thủ Tục như Giá Trị Trả Về
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi
+@include ss04.texi

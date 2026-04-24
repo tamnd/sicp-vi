@@ -1,0 +1,197 @@
+@node	5.3.2, 5.4, 5.2, 5.3
+@subsection Duy Trì Ảo Giác về Bộ Nhớ Vô Hạn
+
+Phương pháp biểu diễn được phác thảo trong @ref{5.3.1} giải quyết vấn đề hiện thực hóa cấu trúc danh sách, với điều kiện ta có lượng bộ nhớ vô hạn. Với một máy tính thực tế, cuối cùng ta sẽ hết không gian tự do để xây dựng các cặp mới.@footnote{Điều này có thể không đúng mãi mãi, vì các bộ nhớ có thể đủ lớn để không thể hết bộ nhớ tự do trong tuổi thọ của máy tính. Ví dụ, có khoảng @math{{3\cdot10^{13}}} micro giây trong một năm, vì vậy nếu ta thực hiện @code{cons} mỗi micro giây thì ta sẽ cần khoảng @math{10^{15}} ô nhớ để xây dựng một máy có thể hoạt động 30 năm mà không hết bộ nhớ. Lượng bộ nhớ đó có vẻ lớn một cách vô lý theo tiêu chuẩn ngày nay, nhưng về mặt vật lý không phải là không thể. Mặt khác, các bộ xử lý đang trở nên nhanh hơn và một máy tính trong tương lai có thể có số lượng lớn các bộ xử lý hoạt động song song trên một bộ nhớ duy nhất, vì vậy có thể sử dụng bộ nhớ nhanh hơn nhiều so với ta đã giả định.} Tuy nhiên, hầu hết các cặp được tạo ra trong một phép tính thông thường chỉ được sử dụng để giữ các kết quả trung gian. Sau khi các kết quả này được truy cập, các cặp không còn cần thiết nữa---chúng là @newterm{rác}. Ví dụ, phép tính
+
+@lisp
+(accumulate
+ +
+ 0
+ (filter odd? (enumerate-interval 0 n)))
+@end lisp
+
+@noindent
+xây dựng hai danh sách: bảng liệt kê và kết quả của việc lọc bảng liệt kê. Khi quá trình tích lũy hoàn tất, các danh sách này không còn cần thiết nữa, và bộ nhớ được cấp phát có thể được thu hồi. Nếu ta có thể sắp xếp để thu gom tất cả rác định kỳ, và nếu điều này hóa ra tái sử dụng bộ nhớ với tốc độ xấp xỉ tốc độ ta xây dựng các cặp mới, ta sẽ duy trì được ảo giác rằng có lượng bộ nhớ vô hạn.
+
+Để tái sử dụng các cặp, ta phải có cách xác định các cặp được cấp phát nào không cần thiết (theo nghĩa là nội dung của chúng không còn có thể ảnh hưởng đến tương lai của phép tính). Phương pháp ta sẽ xem xét để thực hiện điều này được gọi là @newterm{thu gom rác}. Thu gom rác dựa trên quan sát rằng, tại bất kỳ thời điểm nào trong quá trình thông dịch Lisp, các đối tượng duy nhất có thể ảnh hưởng đến tương lai của phép tính là những đối tượng có thể đạt đến được bằng một số chuỗi phép toán @code{car} và @code{cdr} bắt đầu từ các con trỏ hiện đang có trong các thanh ghi máy.@footnote{Ta giả sử ở đây rằng ngăn xếp được biểu diễn như một danh sách như được mô tả trong @ref{5.3.1}, để các mục trên ngăn xếp có thể truy cập được qua con trỏ trong thanh ghi ngăn xếp.} Bất kỳ ô nhớ nào không thể đạt đến được như vậy đều có thể được tái sử dụng.
+
+Có nhiều cách để thực hiện thu gom rác. Phương pháp ta sẽ xem xét ở đây được gọi là @newterm{dừng-và-sao-chép}. Ý tưởng cơ bản là chia bộ nhớ thành hai nửa: ``bộ nhớ làm việc'' và ``bộ nhớ tự do''. Khi @code{cons} xây dựng các cặp, nó cấp phát chúng trong bộ nhớ làm việc. Khi bộ nhớ làm việc đầy, ta thực hiện thu gom rác bằng cách định vị tất cả các cặp hữu ích trong bộ nhớ làm việc và sao chép chúng vào các vị trí liên tiếp trong bộ nhớ tự do. (Các cặp hữu ích được định vị bằng cách theo dõi tất cả các con trỏ @code{car} và @code{cdr}, bắt đầu từ các thanh ghi máy.) Vì ta không sao chép rác, sẽ có thêm bộ nhớ tự do mà ta có thể sử dụng để cấp phát các cặp mới. Ngoài ra, không có gì trong bộ nhớ làm việc là cần thiết, vì tất cả các cặp hữu ích trong đó đã được sao chép. Do đó, nếu ta hoán đổi vai trò của bộ nhớ làm việc và bộ nhớ tự do, ta có thể tiếp tục xử lý; các cặp mới sẽ được cấp phát trong bộ nhớ làm việc mới (là bộ nhớ tự do cũ). Khi bộ nhớ này đầy, ta có thể sao chép các cặp hữu ích vào bộ nhớ tự do mới (là bộ nhớ làm việc cũ).@footnote{Ý tưởng này được phát minh và lần đầu tiên được hiện thực hóa bởi Minsky, như một phần của việc hiện thực hóa Lisp cho PDP-1 tại Phòng thí nghiệm Điện tử Nghiên cứu @abbr{MIT}. Nó được phát triển thêm bởi @ref{Fenichel and Yochelson (1969)} để sử dụng trong hiện thực hóa Lisp cho hệ thống chia sẻ thời gian Multics. Sau đó, @ref{Baker (1978)} đã phát triển một phiên bản ``thời gian thực'' của phương pháp, không yêu cầu dừng phép tính trong khi thu gom rác. Ý tưởng của Baker được mở rộng bởi Hewitt, Lieberman, và Moon (xem @ref{Lieberman and Hewitt 1983}) để tận dụng thực tế là một số cấu trúc dễ thay đổi hơn và một số cấu trúc bền vững hơn.
+
+Một kỹ thuật thu gom rác thường được sử dụng thay thế là phương pháp @newterm{đánh dấu-quét}. Điều này bao gồm việc theo dõi tất cả cấu trúc có thể đạt đến được từ các thanh ghi máy và đánh dấu mỗi cặp ta đến. Sau đó ta quét tất cả bộ nhớ, và bất kỳ vị trí nào không được đánh dấu sẽ được ``quét đi'' như rác và cho phép tái sử dụng. Thảo luận đầy đủ về phương pháp đánh dấu-quét có thể được tìm thấy trong @ref{Allen 1978}.
+
+Thuật toán Minsky-Fenichel-Yochelson là thuật toán chủ đạo được sử dụng cho các hệ thống bộ nhớ lớn vì nó chỉ xem xét phần hữu ích của bộ nhớ. Điều này trái với đánh dấu-quét, trong đó pha quét phải kiểm tra tất cả bộ nhớ. Ưu điểm thứ hai của dừng-và-sao-chép là nó là một bộ thu gom rác @newterm{nén}. Tức là, ở cuối pha thu gom rác, dữ liệu hữu ích sẽ được chuyển đến các vị trí bộ nhớ liên tiếp, với tất cả các cặp rác được nén ra. Đây có thể là một cân nhắc hiệu suất cực kỳ quan trọng trong các máy với bộ nhớ ảo, trong đó các truy cập đến các địa chỉ bộ nhớ cách xa nhau có thể yêu cầu các phép toán phân trang thêm.}
+
+@subsubheading Hiện thực hóa bộ thu gom rác dừng-và-sao-chép
+
+Bây giờ ta sử dụng ngôn ngữ máy thanh ghi của mình để mô tả thuật toán dừng-và-sao-chép chi tiết hơn. Ta sẽ giả sử rằng có một thanh ghi gọi là @code{root} chứa con trỏ đến một cấu trúc cuối cùng chỉ đến tất cả dữ liệu có thể truy cập. Điều này có thể được sắp xếp bằng cách lưu trữ nội dung của tất cả các thanh ghi máy trong một danh sách được cấp phát trước được trỏ đến bởi @code{root} ngay trước khi bắt đầu thu gom rác.@footnote{Danh sách thanh ghi này không bao gồm các thanh ghi được sử dụng bởi hệ thống cấp phát bộ nhớ---@code{root}, @code{the-cars}, @code{the-cdrs}, và các thanh ghi khác sẽ được giới thiệu trong phần này.} Ta cũng giả sử rằng, ngoài bộ nhớ làm việc hiện tại, có bộ nhớ tự do có sẵn mà ta có thể sao chép dữ liệu hữu ích vào. Bộ nhớ làm việc hiện tại bao gồm các vectơ có địa chỉ cơ sở trong các thanh ghi gọi là @code{the-cars} và @code{the-cdrs}, và bộ nhớ tự do nằm trong các thanh ghi gọi là @code{new-cars} và @code{new-cdrs}.
+
+Thu gom rác được kích hoạt khi ta cạn kiệt các ô tự do trong bộ nhớ làm việc hiện tại, tức là khi một phép toán @code{cons} cố gắng tăng con trỏ @code{free} vượt quá cuối vectơ bộ nhớ. Khi quá trình thu gom rác hoàn tất, con trỏ @code{root} sẽ trỏ vào bộ nhớ mới, tất cả các đối tượng có thể truy cập từ @code{root} sẽ được chuyển đến bộ nhớ mới, và con trỏ @code{free} sẽ chỉ ra vị trí tiếp theo trong bộ nhớ mới nơi một cặp mới có thể được cấp phát. Ngoài ra, vai trò của bộ nhớ làm việc và bộ nhớ mới sẽ được hoán đổi---các cặp mới sẽ được xây dựng trong bộ nhớ mới, bắt đầu từ vị trí được chỉ ra bởi @code{free}, và bộ nhớ làm việc (trước đó) sẽ có sẵn như bộ nhớ mới cho lần thu gom rác tiếp theo. @ref{Figure 5.15} thể hiện sắp xếp của bộ nhớ ngay trước và ngay sau khi thu gom rác.
+
+@float
+@anchor{Figure 5.15}
+@ifinfo
+@strong{Figure 5.15:} Reconfiguration of memory by the garbage-collection process.
+
+@example
+             Just before garbage collection
+
+         +------------------------------------+
+the-cars |                                    | working
+         | mixture of useful data and garbage | memory
+the-cdrs |                                    |
+         +------------------------------------+
+                                            ^
+                                            | free
+
+         +------------------------------------+
+new-cars |                                    | free
+         |            free memory             | memory
+new-cdrs |                                    |
+         +------------------------------------+
+
+             Just after garbage collection
+
+         +------------------------------------+
+new-cars |                                    | new
+         |          discarded memory          | free
+new-cdrs |                                    | memory
+         +------------------------------------+
+
+         +------------------+-----------------+
+the-cars |                  |                 | new
+         |   useful data    |    free area    | working
+the-cdrs |                  |                 | memory
+         +------------------+-----------------+
+                              ^
+                              | free
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.15c,142mm,,,.std.svg}
+@caption{@strong{Figure 5.15:} Reconfiguration of memory by the garbage-collection process.}
+@end iftex
+@end float
+
+@noindent
+Trạng thái của quá trình thu gom rác được kiểm soát bằng cách duy trì hai con trỏ: @code{free} và @code{scan}. Chúng được khởi tạo để trỏ đến đầu bộ nhớ mới. Thuật toán bắt đầu bằng cách di chuyển cặp được trỏ đến bởi @code{root} đến đầu bộ nhớ mới. Cặp được sao chép, con trỏ @code{root} được điều chỉnh để trỏ đến vị trí mới, và con trỏ @code{free} được tăng dần. Ngoài ra, vị trí cũ của cặp được đánh dấu để cho thấy nội dung của nó đã được di chuyển. Việc đánh dấu này được thực hiện như sau: Trong vị trí @code{car}, ta đặt một thẻ đặc biệt báo hiệu rằng đây là một đối tượng đã được di chuyển. (Đối tượng như vậy theo truyền thống được gọi là @newterm{trái tim vỡ}.)@footnote{Thuật ngữ @emph{trái tim vỡ} được đặt ra bởi David Cressey, người đã viết một bộ thu gom rác cho MDL, một phương ngữ của Lisp được phát triển tại @abbr{MIT} vào đầu những năm 1970.} Trong vị trí @code{cdr} ta đặt một @newterm{địa chỉ chuyển tiếp} trỏ đến vị trí mà đối tượng đã được di chuyển đến.
+
+Sau khi di chuyển root, bộ thu gom rác vào chu kỳ cơ bản của nó. Tại mỗi bước trong thuật toán, con trỏ @code{scan} (ban đầu trỏ đến root đã được di chuyển) trỏ đến một cặp đã được chuyển đến bộ nhớ mới nhưng các con trỏ @code{car} và @code{cdr} của nó vẫn tham chiếu đến các đối tượng trong bộ nhớ cũ. Các đối tượng này đều được di chuyển, và con trỏ @code{scan} được tăng dần. Để di chuyển một đối tượng (ví dụ, đối tượng được chỉ ra bởi con trỏ @code{car} của cặp ta đang quét) ta kiểm tra xem đối tượng đã được di chuyển chưa (như được chỉ ra bởi sự hiện diện của thẻ trái tim vỡ trong vị trí @code{car} của đối tượng). Nếu đối tượng chưa được di chuyển, ta sao chép nó đến vị trí được chỉ ra bởi @code{free}, cập nhật @code{free}, thiết lập trái tim vỡ tại vị trí cũ của đối tượng, và cập nhật con trỏ đến đối tượng (trong ví dụ này, con trỏ @code{car} của cặp ta đang quét) để trỏ đến vị trí mới. Nếu đối tượng đã được di chuyển, địa chỉ chuyển tiếp của nó (được tìm thấy trong vị trí @code{cdr} của trái tim vỡ) được thay thế cho con trỏ trong cặp đang được quét. Cuối cùng, tất cả các đối tượng có thể truy cập sẽ được di chuyển và quét, tại thời điểm đó con trỏ @code{scan} sẽ vượt qua con trỏ @code{free} và quá trình sẽ kết thúc.
+
+Ta có thể chỉ định thuật toán dừng-và-sao-chép như một chuỗi các lệnh cho một máy thanh ghi. Bước cơ bản di chuyển một đối tượng được thực hiện bởi một chương con gọi là @code{relocate-old-result-in-new}. Chương con này nhận đối số của nó, một con trỏ đến đối tượng cần di chuyển, từ một thanh ghi có tên là @code{old}. Nó di chuyển đối tượng được chỉ định (tăng dần @code{free} trong quá trình), đặt một con trỏ đến đối tượng đã được di chuyển vào một thanh ghi gọi là @code{new}, và trả về bằng cách nhảy đến điểm nhập được lưu trữ trong thanh ghi @code{relocate-continue}. Để bắt đầu thu gom rác, ta gọi chương con này để di chuyển con trỏ @code{root}, sau khi khởi tạo @code{free} và @code{scan}. Khi việc di chuyển @code{root} đã hoàn thành, ta cài đặt con trỏ mới như @code{root} mới và vào vòng lặp chính của bộ thu gom rác.
+
+@lisp
+begin-garbage-collection
+  (assign free (const 0))
+  (assign scan (const 0))
+  (assign old (reg root))
+  (assign relocate-continue
+          (label reassign-root))
+  (goto (label relocate-old-result-in-new))
+reassign-root
+  (assign root (reg new))
+  (goto (label gc-loop))
+@end lisp
+
+@noindent
+Trong vòng lặp chính của bộ thu gom rác ta phải xác định xem có còn đối tượng nào cần quét không. Ta làm điều này bằng cách kiểm tra xem con trỏ @code{scan} có trùng với con trỏ @code{free} không. Nếu các con trỏ bằng nhau, thì tất cả các đối tượng có thể truy cập đã được di chuyển, và ta nhảy đến @code{gc-flip}, dọn dẹp mọi thứ để ta có thể tiếp tục phép tính bị ngắt quãng. Nếu vẫn còn các cặp cần quét, ta gọi chương con di chuyển để di chuyển @code{car} của cặp tiếp theo (bằng cách đặt con trỏ @code{car} vào @code{old}). Thanh ghi @code{relocate-continue} được thiết lập để chương con sẽ trả về cập nhật con trỏ @code{car}.
+
+@lisp
+gc-loop
+  (test (op =) (reg scan) (reg free))
+  (branch (label gc-flip))
+  (assign old
+          (op vector-ref)
+          (reg new-cars)
+          (reg scan))
+  (assign relocate-continue
+          (label update-car))
+  (goto (label relocate-old-result-in-new))
+@end lisp
+
+@noindent
+Tại @code{update-car}, ta sửa đổi con trỏ @code{car} của cặp đang được quét, sau đó tiến hành di chuyển @code{cdr} của cặp. Ta trả về @code{update-cdr} khi việc di chuyển đó đã hoàn thành. Sau khi di chuyển và cập nhật @code{cdr}, ta đã quét xong cặp đó, vì vậy ta tiếp tục với vòng lặp chính.
+
+@lisp
+update-car
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg scan)
+           (reg new))
+  (assign  old
+           (op vector-ref)
+           (reg new-cdrs)
+           (reg scan))
+  (assign  relocate-continue
+           (label update-cdr))
+  (goto (label relocate-old-result-in-new))
+update-cdr
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg scan)
+           (reg new))
+  (assign  scan (op +) (reg scan) (const 1))
+  (goto (label gc-loop))
+@end lisp
+
+@noindent
+Chương con @code{relocate-old-result-in-new} di chuyển các đối tượng như sau: Nếu đối tượng cần di chuyển (được trỏ đến bởi @code{old}) không phải là một cặp, thì ta trả về con trỏ đến đối tượng không thay đổi (trong @code{new}). (Ví dụ, ta có thể đang quét một cặp có @code{car} là số 4. Nếu ta biểu diễn @code{car} bằng @code{n4}, như được mô tả trong @ref{5.3.1}, thì ta muốn con trỏ @code{car} ``đã di chuyển'' vẫn là @code{n4}.) Nếu không, ta phải thực hiện việc di chuyển. Nếu vị trí @code{car} của cặp cần di chuyển chứa thẻ trái tim vỡ, thì cặp đó thực ra đã được di chuyển, vì vậy ta lấy địa chỉ chuyển tiếp (từ vị trí @code{cdr} của trái tim vỡ) và trả về địa chỉ này trong @code{new}. Nếu con trỏ trong @code{old} trỏ đến một cặp chưa được di chuyển, thì ta di chuyển cặp đó đến ô tự do đầu tiên trong bộ nhớ mới (được trỏ đến bởi @code{free}) và thiết lập trái tim vỡ bằng cách lưu trữ thẻ trái tim vỡ và địa chỉ chuyển tiếp tại vị trí cũ. @code{Relocate-old-result-in-new} sử dụng một thanh ghi @code{oldcr} để giữ @code{car} hoặc @code{cdr} của đối tượng được trỏ đến bởi @code{old}.@footnote{Bộ thu gom rác sử dụng vị từ cấp thấp @code{pointer-to-pair?} thay vì phép toán @code{pair?} cấu trúc danh sách vì trong một hệ thống thực sự có thể có nhiều thứ được xử lý như cặp cho mục đích thu gom rác. Ví dụ, trong một hệ thống Scheme tuân thủ tiêu chuẩn @abbr{IEEE}, một đối tượng thủ tục có thể được hiện thực hóa như một loại ``cặp'' đặc biệt không thỏa mãn vị từ @code{pair?}. Cho mục đích mô phỏng, @code{pointer-to-pair?} có thể được hiện thực hóa như @code{pair?}.}
+
+@lisp
+relocate-old-result-in-new
+  (test (op pointer-to-pair?) (reg old))
+  (branch (label pair))
+  (assign new (reg old))
+  (goto (reg relocate-continue))
+pair
+  (assign  oldcr
+           (op vector-ref)
+           (reg the-cars)
+           (reg old))
+  (test (op broken-heart?) (reg oldcr))
+  (branch  (label already-moved))
+  (assign  new (reg free)) @r{; vị trí mới cho cặp}
+  @r{;; Cập nhật con trỏ @code{free}.}
+  (assign free (op +) (reg free) (const 1))
+  @r{;; Sao chép @code{car} và @code{cdr} vào bộ nhớ mới.}
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg new)
+           (reg oldcr))
+  (assign  oldcr
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg new)
+           (reg oldcr))
+  @r{;; Xây dựng trái tim vỡ.}
+  (perform (op vector-set!)
+           (reg the-cars)
+           (reg old)
+           (const broken-heart))
+  (perform (op vector-set!)
+           (reg the-cdrs)
+           (reg old)
+           (reg new))
+  (goto (reg relocate-continue))
+already-moved
+  (assign  new
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (goto (reg relocate-continue))
+@end lisp
+
+@noindent
+Vào cuối quá trình thu gom rác, ta hoán đổi vai trò của bộ nhớ cũ và mới bằng cách hoán đổi các con trỏ: hoán đổi @code{the-cars} với @code{new-cars}, và @code{the-cdrs} với @code{new-cdrs}. Sau đó ta sẵn sàng thực hiện thu gom rác khác vào lần tiếp theo khi bộ nhớ cạn kiệt.
+
+@lisp
+gc-flip
+  (assign temp (reg the-cdrs))
+  (assign the-cdrs (reg new-cdrs))
+  (assign new-cdrs (reg temp))
+  (assign temp (reg the-cars))
+  (assign the-cars (reg new-cars))
+  (assign new-cars (reg temp))
+@end lisp

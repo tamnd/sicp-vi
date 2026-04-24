@@ -1,0 +1,374 @@
+@node	2.3.2, 2.3.3, 2.3.1, 2.3
+@subsection Ví Dụ: Đạo Hàm Ký Hiệu
+
+Như một minh họa về thao tác ký hiệu và thêm một minh họa về trừu tượng dữ
+liệu, hãy xem xét việc thiết kế một thủ tục thực hiện đạo hàm ký hiệu của các
+biểu thức đại số. Chúng ta muốn thủ tục nhận làm đối số một biểu thức đại số
+và một biến và trả về đạo hàm của biểu thức đó theo biến đó. Ví dụ, nếu các đối
+số của thủ tục là @math{{ax^2 + bx + c}} và @math{x}, thủ tục sẽ trả về
+@math{{2ax + b}}. Đạo hàm ký hiệu có ý nghĩa lịch sử đặc biệt trong Lisp. Đây
+là một trong những ví dụ thúc đẩy sự phát triển của ngôn ngữ máy tính dùng để
+thao tác ký hiệu. Hơn nữa, nó đánh dấu sự khởi đầu của dòng nghiên cứu dẫn đến
+sự phát triển các hệ thống mạnh mẽ cho công việc toán học ký hiệu, hiện đang
+được sử dụng bởi ngày càng nhiều các nhà toán học ứng dụng và vật lý học.
+
+Trong việc phát triển chương trình đạo hàm ký hiệu, chúng ta sẽ theo cùng
+chiến lược trừu tượng dữ liệu mà chúng ta đã theo trong việc phát triển hệ
+thống số hữu tỉ của @ref{2.1.1}. Tức là, trước tiên chúng ta sẽ định nghĩa
+một thuật toán vi phân hoạt động trên các đối tượng trừu tượng như ``tổng'',
+``tích'', và ``biến'' mà không lo lắng về cách biểu diễn chúng. Chỉ sau đó
+chúng ta mới giải quyết bài toán biểu diễn.
+
+@subsubheading Chương trình đạo hàm với dữ liệu trừu tượng
+
+Để giữ mọi thứ đơn giản, chúng ta sẽ xem xét một chương trình đạo hàm ký hiệu
+rất đơn giản chỉ xử lý các biểu thức được xây dựng bằng cách dùng các phép toán
+cộng và nhân với hai đối số. Đạo hàm của bất kỳ biểu thức nào như vậy có thể
+được thực hiện bằng cách áp dụng các quy tắc rút gọn sau:
+@ifinfo
+
+@example
+dc
+-- = 0  với c là hằng số, hoặc biến khác x
+dx
+
+dx
+-- = 1
+dx
+
+d(u + v)   du   dv
+-------- = -- + --
+   dx      dx   dx
+
+d(uv)     / dv \     / du \
+----- = u | -- | + v | -- |
+ dx       \ dx /     \ dx /
+@end example
+
+@end ifinfo
+@tex
+\[ % :42:
+{{dc \over dx} \,=\, 0,}
+  \quad {\text{for } c \text{ a constant }} {\text{or a variable }} {\text{different from } x,}
+\]
+@end tex
+@tex
+\[ % :43:
+\begin{eqnarray}
+{dx \over dx}         &=&   1, \\
+{d(u + v) \over dx}   &=&   {du \over dx} + {dv \over dx}, \\
+{d(uv) \over dx}      &=&   u \kern0.1em {dv \over dx} + v \kern0.1em {du \over dx}.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Lưu ý rằng hai quy tắc sau có tính đệ quy. Tức là, để tính đạo hàm của một
+tổng, trước tiên chúng ta tìm đạo hàm của các hạng tử và cộng chúng lại. Mỗi
+hạng tử có thể lại là một biểu thức cần được phân rã. Việc phân rã thành các
+phần ngày càng nhỏ hơn cuối cùng sẽ tạo ra các phần là hằng số hoặc biến, với
+đạo hàm là 0 hoặc 1.
+
+Để thể hiện các quy tắc này trong một thủ tục, chúng ta phó thác một chút vào
+tư duy lạc quan, giống như chúng ta đã làm khi thiết kế cài đặt số hữu tỉ. Nếu
+chúng ta có phương tiện biểu diễn các biểu thức đại số, chúng ta nên có thể biết
+liệu một biểu thức có phải là tổng, tích, hằng số, hay biến không. Chúng ta
+nên có thể trích xuất các phần của một biểu thức. Đối với một tổng, ví dụ chúng
+ta muốn trích xuất số hạng thứ nhất (addend) và số hạng thứ hai (augend). Chúng
+ta cũng nên có thể xây dựng các biểu thức từ các phần. Giả sử rằng chúng ta đã
+có các thủ tục để cài đặt các bộ chọn, bộ tạo, và vị từ sau:
+
+@example
+(variable? e)          @r{@code{e} có phải là biến không?}
+(same-variable? v1 v2) @r{@code{v1} và @code{v2} có phải là cùng biến không?}
+(sum? e)               @r{@code{e} có phải là tổng không?}
+(addend e)             @r{Số hạng thứ nhất của tổng @code{e}.}
+(augend e)             @r{Số hạng thứ hai của tổng @code{e}.}
+(make-sum a1 a2)       @r{Xây dựng tổng của @code{a1} và @code{a2}.}
+(product? e)           @r{@code{e} có phải là tích không?}
+(multiplier e)         @r{Thừa số thứ nhất của tích @code{e}.}
+(multiplicand e)       @r{Thừa số thứ hai của tích @code{e}.}
+(make-product m1 m2)   @r{Xây dựng tích của @code{m1} và @code{m2}.}
+@end example
+
+@noindent
+Sử dụng những thủ tục này, và vị từ nguyên thủy @code{number?}, nhận dạng các
+số, chúng ta có thể biểu diễn các quy tắc vi phân như thủ tục sau:
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+          (make-product
+           (multiplier exp)
+           (deriv (multiplicand exp) var))
+          (make-product
+           (deriv (multiplier exp) var)
+           (multiplicand exp))))
+        (else (error "unknown expression
+                      type: DERIV" exp))))
+@end lisp
+
+@noindent
+Thủ tục @code{deriv} này bao gồm thuật toán vi phân hoàn chỉnh. Vì nó được
+biểu diễn theo dữ liệu trừu tượng, nó sẽ hoạt động bất kể chúng ta chọn biểu
+diễn các biểu thức đại số như thế nào, miễn là chúng ta thiết kế một bộ bộ
+chọn và bộ tạo phù hợp. Đây là vấn đề chúng ta phải giải quyết tiếp theo.
+
+@subsubheading Biểu diễn các biểu thức đại số
+
+Chúng ta có thể hình dung nhiều cách để dùng cấu trúc danh sách biểu diễn các
+biểu thức đại số. Ví dụ, chúng ta có thể dùng danh sách các ký hiệu phản ánh
+ký hiệu đại số thông thường, biểu diễn @math{{ax + b}} như danh sách
+@code{(a * x + b)}. Tuy nhiên, một lựa chọn đặc biệt đơn giản là sử dụng ký
+hiệu tiền tố có dấu ngoặc đơn mà Lisp dùng cho các tổ hợp; tức là, biểu diễn
+@math{{ax + b}} như @code{(+ (* a x) b)}. Khi đó, biểu diễn dữ liệu của chúng
+ta cho bài toán vi phân là như sau:
+
+@itemize @bullet
+
+@item
+Các biến là ký hiệu. Chúng được nhận dạng bởi vị từ nguyên thủy @code{symbol?}:
+
+@lisp
+(define (variable? x) (symbol? x))
+@end lisp
+
+@item
+Hai biến giống nhau nếu các ký hiệu biểu diễn chúng là @code{eq?}:
+
+@lisp
+(define (same-variable? v1 v2)
+  (and (variable? v1)
+       (variable? v2)
+       (eq? v1 v2)))
+@end lisp
+
+@item
+Các tổng và tích được xây dựng như danh sách:
+
+@lisp
+(define (make-sum a1 a2) (list '+ a1 a2))
+(define (make-product m1 m2) (list '* m1 m2))
+@end lisp
+
+@item
+Tổng là danh sách có phần tử đầu tiên là ký hiệu @code{+}:
+
+@lisp
+(define (sum? x)
+  (and (pair? x) (eq? (car x) '+)))
+@end lisp
+
+@item
+Số hạng thứ nhất là mục thứ hai trong danh sách tổng:
+
+@lisp
+(define (addend s) (cadr s))
+@end lisp
+
+@item
+Số hạng thứ hai là mục thứ ba trong danh sách tổng:
+
+@lisp
+(define (augend s) (caddr s))
+@end lisp
+
+@item
+Tích là danh sách có phần tử đầu tiên là ký hiệu @code{*}:
+@lisp
+(define (product? x)
+  (and (pair? x) (eq? (car x) '*)))
+@end lisp
+
+@item
+Thừa số thứ nhất là mục thứ hai trong danh sách tích:
+
+@lisp
+(define (multiplier p) (cadr p))
+@end lisp
+
+@item
+Thừa số thứ hai là mục thứ ba trong danh sách tích:
+
+@lisp
+(define (multiplicand p) (caddr p))
+@end lisp
+
+@end itemize
+
+@noindent
+Vì vậy, chúng ta chỉ cần kết hợp những thứ này với thuật toán được thể hiện
+bởi @code{deriv} để có một chương trình đạo hàm ký hiệu hoạt động được. Hãy
+xem xét một số ví dụ về hành vi của nó:
+
+@lisp
+(deriv '(+ x 3) 'x)
+@i{(+ 1 0)}
+
+(deriv '(* x y) 'x)
+@i{(+ (* x 0) (* 1 y))}
+
+(deriv '(* (* x y) (+ x 3)) 'x)
+@i{(+ (* (* x y) (+ 1 0))}
+   @i{(* (+ (* x 0) (* 1 y))}
+      @i{(+  x 3)))}
+@end lisp
+
+@noindent
+Chương trình tạo ra các câu trả lời đúng; tuy nhiên, chúng chưa được rút gọn.
+Đúng là
+@ifinfo
+
+@example
+d(xy)
+----- = x * 0 + 1 * y
+ dx
+@end example
+
+@end ifinfo
+@tex
+\[ % :44:
+  {d(xy) \over dx} \,=\, {x \cdot 0} + {1 \cdot y,}  \]
+@end tex
+@noindent
+nhưng chúng ta muốn chương trình biết rằng @math{{x \cdot 0 = 0}},
+@math{{1 \cdot y = y}}, và @math{{0 + y = y}}. Câu trả lời cho ví dụ thứ hai
+lẽ ra phải là @code{y}. Như ví dụ thứ ba cho thấy, đây trở thành một vấn đề
+nghiêm trọng khi các biểu thức phức tạp.
+
+Khó khăn của chúng ta giống với những gì chúng ta gặp phải với cài đặt số hữu
+tỉ: chúng ta chưa rút gọn các câu trả lời về dạng đơn giản nhất. Để thực hiện
+rút gọn số hữu tỉ, chúng ta chỉ cần thay đổi các bộ tạo và bộ chọn của cài
+đặt. Chúng ta có thể áp dụng chiến lược tương tự ở đây. Chúng ta sẽ không thay
+đổi @code{deriv} chút nào. Thay vào đó, chúng ta sẽ thay đổi @code{make-sum}
+sao cho nếu cả hai số hạng đều là số, @code{make-sum} sẽ cộng chúng và trả về
+tổng của chúng. Ngoài ra, nếu một trong các số hạng là 0, thì @code{make-sum}
+sẽ trả về số hạng kia:
+
+@lisp
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2))
+         (+ a1 a2))
+        (else (list '+ a1 a2))))
+@end lisp
+
+@noindent
+Điều này sử dụng thủ tục @code{=number?}, kiểm tra xem một biểu thức có bằng
+một số cho trước không:
+
+@lisp
+(define (=number? exp num)
+  (and (number? exp) (= exp num)))
+@end lisp
+
+@noindent
+Tương tự, chúng ta sẽ thay đổi @code{make-product} để tích hợp các quy tắc
+rằng 0 nhân bất cứ thứ gì là 0 và 1 nhân bất cứ thứ gì là chính thứ đó:
+
+@lisp
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0)
+             (=number? m2 0))
+         0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2))
+         (* m1 m2))
+        (else (list '* m1 m2))))
+@end lisp
+
+@noindent
+Đây là cách phiên bản này hoạt động trên ba ví dụ của chúng ta:
+
+@lisp
+(deriv '(+ x 3) 'x)
+@i{1}
+
+(deriv '(* x y) 'x)
+@i{y}
+
+(deriv '(* (* x y) (+ x 3)) 'x)
+@i{(+ (* x y) (* y (+ x 3)))}
+@end lisp
+
+@noindent
+Mặc dù đây là sự cải thiện đáng kể, ví dụ thứ ba cho thấy vẫn còn một chặng
+đường dài trước khi chúng ta có được chương trình đặt các biểu thức vào dạng
+mà chúng ta có thể đồng ý là ``đơn giản nhất.'' Bài toán rút gọn đại số rất
+phức tạp vì, trong số những lý do khác, một dạng có thể đơn giản nhất cho mục
+đích này có thể không phải vậy cho mục đích khác.
+
+@quotation
+@strong{@anchor{Exercise 2.56}Bài tập 2.56:} Hãy chỉ ra cách mở rộng bộ vi
+phân cơ bản để xử lý nhiều loại biểu thức hơn. Ví dụ, hãy cài đặt quy tắc
+vi phân
+@ifinfo
+
+@example
+d(u^n)            du
+------ = nu^(n-1) --
+  dx              dx
+@end example
+
+@end ifinfo
+@tex
+\[ % :45:
+  {d(u^{\kern0.1ex n}) \over dx} \,=\, {nu^{\kern0.1ex n-1} \, {du \over dx}}  \]
+@end tex
+@noindent
+bằng cách thêm một mệnh đề mới vào chương trình @code{deriv} và định nghĩa các
+thủ tục thích hợp @code{exponentiation?}, @code{base}, @code{exponent}, và
+@code{make-exponentiation}. (Bạn có thể dùng ký hiệu @code{**} để biểu thị
+lũy thừa.) Tích hợp các quy tắc rằng bất cứ thứ gì lũy thừa 0 là 1 và bất cứ
+thứ gì lũy thừa 1 là chính nó.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.57}Bài tập 2.57:} Mở rộng chương trình vi phân để
+xử lý các tổng và tích với số lượng hạng tử tùy ý (hai hoặc nhiều hơn). Khi đó
+ví dụ cuối ở trên có thể được biểu diễn như
+
+@lisp
+(deriv '(* x y (+ x 3)) 'x)
+@end lisp
+
+Hãy cố gắng thực hiện điều này bằng cách chỉ thay đổi biểu diễn cho các tổng
+và tích, không thay đổi thủ tục @code{deriv} chút nào. Ví dụ, @code{addend}
+của một tổng sẽ là hạng tử đầu tiên, và @code{augend} sẽ là tổng của các hạng
+tử còn lại.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.58}Bài tập 2.58:} Giả sử chúng ta muốn sửa đổi
+chương trình vi phân để nó hoạt động với ký hiệu toán học thông thường, trong
+đó @code{+} và @code{*} là các toán tử trung tố thay vì tiền tố. Vì chương
+trình vi phân được định nghĩa theo dữ liệu trừu tượng, chúng ta có thể sửa đổi
+nó để làm việc với các biểu diễn khác nhau của biểu thức chỉ bằng cách thay đổi
+các vị từ, bộ chọn, và bộ tạo xác định biểu diễn các biểu thức đại số mà bộ
+vi phân sẽ thao tác.
+
+@enumerate a
+
+@item
+Hãy chỉ ra cách thực hiện điều này để vi phân các biểu thức đại số được trình
+bày theo dạng trung tố, chẳng hạn như @code{(x + (3 * (x + (y + 2))))}. Để
+đơn giản hóa nhiệm vụ, hãy giả sử rằng @code{+} và @code{*} luôn nhận hai đối
+số và các biểu thức được đặt đầy đủ trong ngoặc đơn.
+
+@item
+Bài toán trở nên khó hơn đáng kể nếu chúng ta cho phép ký hiệu đại số tiêu
+chuẩn, chẳng hạn như @code{(x + 3 * (x + y + 2))}, bỏ các dấu ngoặc đơn không
+cần thiết và giả sử rằng phép nhân được thực hiện trước phép cộng. Bạn có thể
+thiết kế các vị từ, bộ chọn, và bộ tạo thích hợp cho ký hiệu này sao cho chương
+trình đạo hàm của chúng ta vẫn hoạt động không?
+
+@end enumerate
+@end quotation

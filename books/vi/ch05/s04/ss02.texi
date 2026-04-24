@@ -1,0 +1,100 @@
+@node	5.4.2, 5.4.3, 5.4.1, 5.4
+@subsection Định Giá Chuỗi và Đệ Quy Đuôi
+
+Phần của trình định giá điều khiển tường minh tại @code{ev-sequence} tương tự như thủ tục @code{eval-sequence} của trình định giá siêu tròn. Nó xử lý các chuỗi biểu thức trong các thân thủ tục hoặc trong các biểu thức @code{begin} tường minh.
+
+Các biểu thức @code{begin} tường minh được định giá bằng cách đặt chuỗi các biểu thức cần định giá vào @code{unev}, lưu @code{continue} trên ngăn xếp, và nhảy đến @code{ev-sequence}.
+
+@lisp
+ev-begin
+  (assign unev
+          (op begin-actions)
+          (reg exp))
+  (save continue)
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+Các chuỗi ngầm trong các thân thủ tục được xử lý bằng cách nhảy đến @code{ev-sequence} từ @code{compound-apply}, tại thời điểm đó @code{continue} đã có trên ngăn xếp, đã được lưu tại @code{ev-application}.
+
+Các mục tại @code{ev-sequence} và @code{ev-sequence-continue} tạo thành một vòng lặp liên tiếp định giá mỗi biểu thức trong một chuỗi. Danh sách các biểu thức chưa được định giá được giữ trong @code{unev}. Trước khi định giá mỗi biểu thức, ta kiểm tra xem có biểu thức bổ sung nào cần được định giá trong chuỗi không. Nếu có, ta lưu phần còn lại của các biểu thức chưa được định giá (được giữ trong @code{unev}) và môi trường mà chúng phải được định giá trong đó (được giữ trong @code{env}) và gọi @code{eval-dispatch} để định giá biểu thức. Hai thanh ghi đã lưu được khôi phục khi trả về từ lần định giá này, tại @code{ev-sequence-continue}.
+
+Biểu thức cuối cùng trong chuỗi được xử lý khác nhau, tại điểm nhập @code{ev-sequence-last-exp}. Vì không còn biểu thức nào cần định giá sau cái này, ta không cần lưu @code{unev} hoặc @code{env} trước khi đến @code{eval-dispatch}. Giá trị của toàn bộ chuỗi là giá trị của biểu thức cuối cùng, vì vậy sau khi định giá biểu thức cuối cùng không có gì còn lại cần làm ngoại trừ tiếp tục tại điểm nhập hiện đang được giữ trên ngăn xếp (đã được lưu bởi @code{ev-application} hoặc @code{ev-begin}). Thay vì thiết lập @code{continue} để sắp xếp cho @code{eval-dispatch} trả về đây và sau đó khôi phục @code{continue} từ ngăn xếp và tiếp tục tại điểm nhập đó, ta khôi phục @code{continue} từ ngăn xếp trước khi đến @code{eval-dispatch}, để @code{eval-dispatch} sẽ tiếp tục tại điểm nhập đó sau khi định giá biểu thức.
+
+@lisp
+ev-sequence
+  (assign exp (op first-exp) (reg unev))
+  (test (op last-exp?) (reg unev))
+  (branch (label ev-sequence-last-exp))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev
+          (op rest-exps)
+          (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-last-exp
+  (restore continue)
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Đệ quy đuôi
+
+Trong @ref{Chapter 1} ta đã nói rằng quá trình được mô tả bởi một thủ tục như
+
+@lisp
+(define (sqrt-iter guess x)
+  (if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x) x)))
+@end lisp
+
+@noindent
+là một quá trình lặp. Mặc dù thủ tục này là đệ quy về mặt cú pháp (được định nghĩa theo chính nó), về mặt logic không cần thiết cho một trình định giá phải lưu thông tin khi chuyển từ lời gọi này của @code{sqrt-iter} sang lời gọi tiếp theo.@footnote{Ta đã thấy trong @ref{5.1} cách hiện thực hóa quá trình như vậy với một máy thanh ghi không có ngăn xếp; trạng thái của quá trình được lưu trữ trong một tập hợp cố định các thanh ghi.} Một trình định giá có thể thực thi một thủ tục như @code{sqrt-iter} mà không yêu cầu lưu trữ tăng dần khi thủ tục tiếp tục gọi chính nó được gọi là trình định giá @newterm{đệ quy đuôi}. Hiện thực hóa siêu tròn của trình định giá trong @ref{Chapter 4} không chỉ định trình định giá có đệ quy đuôi hay không, vì trình định giá đó kế thừa cơ chế lưu trạng thái của nó từ Scheme cơ bản. Tuy nhiên, với trình định giá điều khiển tường minh, ta có thể theo dõi quá trình định giá để xem khi nào các lời gọi thủ tục gây ra sự tích lũy ròng thông tin trên ngăn xếp.
+
+Trình định giá của ta là đệ quy đuôi, vì để định giá biểu thức cuối cùng của một chuỗi ta chuyển trực tiếp đến @code{eval-dispatch} mà không lưu bất kỳ thông tin nào trên ngăn xếp. Do đó, việc định giá biểu thức cuối cùng trong một chuỗi---thậm chí nếu nó là một lời gọi thủ tục (như trong @code{sqrt-iter}, nơi biểu thức @code{if}, là biểu thức cuối cùng trong thân thủ tục, rút gọn thành một lời gọi @code{sqrt-iter})---sẽ không khiến bất kỳ thông tin nào được tích lũy trên ngăn xếp.@footnote{Hiện thực hóa đệ quy đuôi này trong @code{ev-sequence} là một biến thể của kỹ thuật tối ưu hóa nổi tiếng được sử dụng bởi nhiều trình biên dịch. Khi biên dịch một thủ tục kết thúc bằng một lời gọi thủ tục, ta có thể thay thế lời gọi bằng một lệnh nhảy đến điểm nhập của thủ tục được gọi. Việc xây dựng chiến lược này vào trình thông dịch, như ta đã làm trong phần này, cung cấp sự tối ưu hóa đồng nhất trong toàn bộ ngôn ngữ.}
+
+Nếu ta không nghĩ đến việc tận dụng thực tế là không cần lưu thông tin trong trường hợp này, ta có thể đã hiện thực hóa @code{eval-sequence} bằng cách xử lý tất cả các biểu thức trong một chuỗi theo cùng một cách---lưu các thanh ghi, định giá biểu thức, trả về để khôi phục các thanh ghi, và lặp lại điều này cho đến khi tất cả các biểu thức được định giá:@footnote{Ta có thể định nghĩa @code{no-more-exps?} như sau:
+
+@lisp
+(define (no-more-exps? seq) (null? seq))
+@end lisp
+}
+
+@lisp
+ev-sequence
+  (test (op no-more-exps?) (reg unev))
+  (branch (label ev-sequence-end))
+  (assign exp (op first-exp) (reg unev))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-end
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Điều này có vẻ như là một thay đổi nhỏ đối với mã trước đó của ta để định giá một chuỗi: Sự khác biệt duy nhất là ta thực hiện chu kỳ lưu-khôi phục cho biểu thức cuối cùng trong một chuỗi cũng như cho các biểu thức khác. Trình thông dịch vẫn sẽ đưa ra cùng một giá trị cho bất kỳ biểu thức nào. Nhưng sự thay đổi này gây chết cho hiện thực hóa đệ quy đuôi, vì ta phải trả về sau khi định giá biểu thức cuối cùng trong một chuỗi để hoàn tác các lưu thanh ghi (vô ích). Các lưu thêm này sẽ tích lũy trong một tổ gọi thủ tục. Do đó, các quá trình như @code{sqrt-iter} sẽ yêu cầu không gian tỷ lệ thuận với số lần lặp thay vì yêu cầu không gian hằng số. Sự khác biệt này có thể rất đáng kể. Ví dụ, với đệ quy đuôi, một vòng lặp vô hạn có thể được biểu diễn chỉ sử dụng cơ chế gọi thủ tục:
+
+@lisp
+(define (count n)
+  (newline)
+  (display n)
+  (count (+ n 1)))
+@end lisp
+
+@noindent
+Nếu không có đệ quy đuôi, thủ tục như vậy cuối cùng sẽ cạn kiệt không gian ngăn xếp, và việc biểu diễn một lần lặp thực sự sẽ yêu cầu một số cơ chế điều khiển khác ngoài lời gọi thủ tục.

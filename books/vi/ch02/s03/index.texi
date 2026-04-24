@@ -1,0 +1,19 @@
+@node	2.3, 2.4, 2.2, Chapter 2
+@section Dữ Liệu Ký Hiệu
+
+Tất cả các đối tượng dữ liệu phức hợp mà chúng ta đã sử dụng cho đến nay đều
+được xây dựng từ các số. Trong phần này chúng ta mở rộng khả năng biểu diễn của
+ngôn ngữ bằng cách giới thiệu khả năng làm việc với các ký hiệu tùy ý như dữ
+liệu.
+
+@menu
+* 2.3.1::            Trích Dẫn
+* 2.3.2::            Ví Dụ: Đạo Hàm Ký Hiệu
+* 2.3.3::            Ví Dụ: Biểu Diễn Tập Hợp
+* 2.3.4::            Ví Dụ: Cây Mã Huffman
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi
+@include ss04.texi

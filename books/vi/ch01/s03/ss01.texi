@@ -1,0 +1,297 @@
+@node	1.3.1, 1.3.2, 1.3, 1.3
+@subsection Thủ Tục như Đối Số
+
+Hãy xét ba thủ tục sau.  Thủ tục đầu tiên tính tổng các số nguyên từ @code{a} đến @code{b}:
+
+@lisp
+(define (sum-integers a b)
+  (if (> a b)
+      0
+      (+ a (sum-integers (+ a 1) b))))
+@end lisp
+
+@noindent
+Thủ tục thứ hai tính tổng các lập phương của các số nguyên trong phạm vi đã cho:
+
+@lisp
+(define (sum-cubes a b)
+  (if (> a b)
+      0
+      (+ (cube a)
+         (sum-cubes (+ a 1) b))))
+@end lisp
+
+@noindent
+Thủ tục thứ ba tính tổng của một dãy số hạng trong chuỗi
+@ifinfo
+
+@example
+  1       1       1
+----- + ----- + ------ + ...
+1 * 3   5 * 7   9 * 11
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :17:
+
+\frac{1}{1\cdot 3} +  \frac{1}{5\cdot 7} + \frac{1}{9\cdot 11} + {\dots,}
+\]
+
+@end tex
+@noindent
+hội tụ về @math{{\pi / 8}} (rất chậm):@footnote{Chuỗi này, thường được viết dưới dạng tương đương @math{{\pi\over4} = {1 - {1\over3} + {1\over5}} - {{1\over7} + \dots}}, do Leibniz đề xuất.  Ta sẽ thấy cách sử dụng nó làm cơ sở cho một số thủ thuật số học tinh tế trong @ref{3.5.3}.}
+
+@lisp
+(define (pi-sum a b)
+  (if (> a b)
+      0
+      (+ (/ 1.0 (* a (+ a 2)))
+         (pi-sum (+ a 4) b))))
+@end lisp
+
+@noindent
+Ba thủ tục này rõ ràng chia sẻ một mẫu cơ bản chung.  Chúng hầu như giống hệt nhau, chỉ khác ở tên của thủ tục, hàm của @code{a} được dùng để tính số hạng cần cộng, và hàm cung cấp giá trị tiếp theo của @code{a}.  Ta có thể tạo ra từng thủ tục bằng cách điền vào các ô trong cùng một mẫu:
+
+@lisp
+(define (⟨@var{name}⟩ a b)
+  (if (> a b)
+      0
+      (+ (⟨@var{term}⟩ a)
+         (⟨@var{name}⟩ (⟨@var{next}⟩ a) b))))
+@end lisp
+
+@noindent
+Sự hiện diện của mẫu chung như vậy là bằng chứng mạnh mẽ cho thấy có một trừu tượng hữu ích đang chờ được đưa lên bề mặt.  Thật vậy, từ lâu các nhà toán học đã xác định trừu tượng @newterm{tổng của một chuỗi} và phát minh ra ``ký hiệu sigma'', chẳng hạn
+@ifinfo
+
+@example
+  b
+ ---
+ >    f(n) = f(a) + ... + f(b)
+ ---
+ n=a
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :18:
+
+{\sum_{n = a}^b f(n)} \,=\, {f(a)} + \dots + {f(b),}
+\]
+
+@end tex
+@noindent
+để biểu diễn khái niệm này.  Sức mạnh của ký hiệu sigma là nó cho phép các nhà toán học xử lý khái niệm tổng hóa bản thân nó thay vì chỉ các tổng cụ thể---chẳng hạn, để xây dựng các kết quả tổng quát về các tổng độc lập với chuỗi cụ thể đang được lấy tổng.
+
+Tương tự, với tư cách là người thiết kế chương trình, ta muốn ngôn ngữ của ta đủ mạnh để ta có thể viết một thủ tục biểu diễn khái niệm tổng hóa bản thân nó thay vì chỉ các thủ tục tính các tổng cụ thể.  Ta có thể dễ dàng làm điều này trong ngôn ngữ thủ tục của ta bằng cách lấy mẫu chung được trình bày ở trên và biến đổi các ``ô'' thành các tham số hình thức:
+
+@lisp
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+@end lisp
+
+@noindent
+Lưu ý rằng @code{sum} nhận làm đối số của nó các giới hạn dưới và trên @code{a} và @code{b} cùng với các thủ tục @code{term} và @code{next}.  Ta có thể dùng @code{sum} giống như bất kỳ thủ tục nào khác.  Chẳng hạn, ta có thể dùng nó (cùng với thủ tục @code{inc} tăng đối số của nó lên 1) để định nghĩa @code{sum-cubes}:
+
+@lisp
+(define (inc n) (+ n 1))
+
+(define (sum-cubes a b)
+  (sum cube a inc b))
+@end lisp
+
+@noindent
+Dùng điều này, ta có thể tính tổng các lập phương của các số nguyên từ 1 đến 10:
+
+@lisp
+(sum-cubes 1 10)
+@i{3025}
+@end lisp
+
+@noindent
+Với sự trợ giúp của một thủ tục nhận dạng để tính số hạng, ta có thể định nghĩa @code{sum-integers} theo @code{sum}:
+
+@lisp
+(define (identity x) x)
+
+(define (sum-integers a b)
+  (sum identity a inc b))
+@end lisp
+
+@noindent
+Khi đó ta có thể cộng các số nguyên từ 1 đến 10:
+
+@lisp
+(sum-integers 1 10)
+@i{55}
+@end lisp
+
+@noindent
+Ta cũng có thể định nghĩa @code{pi-sum} theo cách tương tự:@footnote{Lưu ý rằng ta đã dùng cấu trúc khối (@ref{1.1.8}) để nhúng các định nghĩa của @code{pi-next} và @code{pi-term} vào trong @code{pi-sum}, vì các thủ tục này khó có thể hữu ích cho bất kỳ mục đích nào khác.  Ta sẽ thấy cách loại bỏ chúng hoàn toàn trong @ref{1.3.2}.}
+
+@lisp
+(define (pi-sum a b)
+  (define (pi-term x)
+    (/ 1.0 (* x (+ x 2))))
+  (define (pi-next x)
+    (+ x 4))
+  (sum pi-term a pi-next b))
+@end lisp
+
+@noindent
+Dùng các thủ tục này, ta có thể tính gần đúng @math{\pi}:
+
+@lisp
+(* 8 (pi-sum 1 1000))
+@i{3.139592655589783}
+@end lisp
+
+@noindent
+Một khi ta có @code{sum}, ta có thể dùng nó như một khối xây dựng để xây dựng các khái niệm tiếp theo.  Chẳng hạn, tích phân xác định của một hàm @math{f} giữa các giới hạn @math{a} và @math{b} có thể được xấp xỉ bằng số theo công thức
+@ifinfo
+
+@example
+/b     /  /     dx \    /          dx \    /           dx \      \
+|  f = | f| a + -- | + f| a + dx + -- | + f| a + 2dx + -- | + ...| dx
+/a     \  \     2  /    \          2  /    \           2  /      /
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :19:
+
+{\int_a^b \kern-0.3em f}
+  \;=\; {\left[\;f\left(a + \frac{d x}{2}\right)\right.}
+  \,+\, {f\left(a + dx + \frac{dx}{2}\right)}
+  \,+\, {\left. f\left(a + 2dx + \frac{dx}{2}\right)
+  \,+\, \dots \;\right] dx}
+\]
+
+@end tex
+@noindent
+với các giá trị @math{{dx}} nhỏ.  Ta có thể biểu diễn điều này trực tiếp thành một thủ tục:
+
+@lisp
+(define (integral f a b dx)
+  (define (add-dx x) (+ x dx))
+  (* (sum f (+ a (/ dx 2.0)) add-dx b)
+     dx))
+
+(integral cube 0 1 0.01)
+@i{.24998750000000042}
+
+(integral cube 0 1 0.001)
+@i{.249999875000001}
+@end lisp
+
+@noindent
+(Giá trị chính xác của tích phân của @code{cube} giữa 0 và 1 là 1/4.)
+
+@quotation
+@strong{@anchor{Exercise 1.29}Bài tập 1.29:} Quy tắc Simpson là một phương pháp tích phân số chính xác hơn phương pháp được minh họa ở trên.  Dùng Quy tắc Simpson, tích phân của một hàm @math{f} giữa @math{a} và @math{b} được xấp xỉ là
+@ifinfo
+
+@example
+h
+- (y_0 + 4y_1 + 2y_2 + 4y_3 + 2y_4 + ... + 2y_(n-2) + 4y_(n-1) + y_n)
+3
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :20:
+
+\frac{h}{3}(y_0 + {4y_1} + {2y_2} + {4y_3} + {2y_4} + \dots + {2y_{n-2}} + {4y_{n-1} + y_n),}
+\]
+
+@end tex
+@noindent
+trong đó @math{{h = (b - a)/n}}, với @math{n} là số nguyên chẵn nào đó, và @math{y_k = {f(a + kh)}}.  (Tăng @math{n} làm tăng độ chính xác của xấp xỉ.)  Định nghĩa một thủ tục nhận đối số là @math{f}, @math{a}, @math{b} và @math{n} rồi trả về giá trị của tích phân, được tính bằng Quy tắc Simpson.  Dùng thủ tục của bạn để tích phân @code{cube} giữa 0 và 1 (với @math{{n = 100}} và @math{{n = 1000}}), và so sánh kết quả với kết quả của thủ tục @code{integral} được trình bày ở trên.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.30}Bài tập 1.30:} Thủ tục @code{sum} ở trên tạo ra một đệ quy tuyến tính.  Thủ tục có thể được viết lại để tổng được thực hiện theo cách lặp.  Hãy chỉ ra cách làm điều này bằng cách điền vào các biểu thức còn thiếu trong định nghĩa sau:
+
+@lisp
+(define (sum term a next b)
+  (define (iter a result)
+    (if ⟨??⟩
+        ⟨??⟩
+        (iter ⟨??⟩ ⟨??⟩)))
+  (iter ⟨??⟩ ⟨??⟩))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.31}Bài tập 1.31:}
+
+@enumerate a
+
+@item
+Thủ tục @code{sum} chỉ là đơn giản nhất trong số vô số các trừu tượng tương tự có thể được nắm bắt như các thủ tục bậc cao.@footnote{Ý định của @ref{Exercise 1.31} đến @ref{Exercise 1.33} là để chứng minh sức mạnh biểu đạt đạt được bằng cách sử dụng một trừu tượng phù hợp để hợp nhất nhiều phép toán có vẻ khác biệt.  Tuy nhiên, mặc dù tích lũy và lọc là những ý tưởng tinh tế, tay chúng ta bị ràng buộc phần nào khi dùng chúng ở điểm này vì chúng ta chưa có cấu trúc dữ liệu để cung cấp các phương tiện kết hợp phù hợp cho các trừu tượng này.  Chúng ta sẽ quay lại những ý tưởng này trong @ref{2.2.3} khi ta trình bày cách dùng @newterm{dãy} như các giao diện để kết hợp các bộ lọc và bộ tích lũy nhằm xây dựng các trừu tượng còn mạnh mẽ hơn.  Ta sẽ thấy ở đó các phương pháp này thực sự trở nên quan trọng như một cách tiếp cận mạnh mẽ và tinh tế để thiết kế chương trình.}  Viết một thủ tục tương tự gọi là @code{product} trả về tích của các giá trị của một hàm tại các điểm trong một phạm vi cho trước.  Chỉ ra cách định nghĩa @code{factorial} theo @code{product}.  Cũng dùng @code{product} để tính gần đúng @math{\pi} bằng công thức@footnote{Công thức này được khám phá bởi nhà toán học người Anh thế kỷ 17 John Wallis.}
+@ifinfo
+
+@example
+pi   2 * 4 * 4 * 6 * 6 * 8 ...
+-- = -------------------------
+ 4   3 * 3 * 5 * 5 * 7 * 7 ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :21:
+
+\frac{\pi}{4} \,=\, {\frac{2\cdot 4\cdot 4\cdot 6\cdot 6\cdot 8\cdot\cdots}
+                     {3\cdot 3\cdot 5\cdot 5\cdot 7\cdot 7\cdot\cdots}.}
+\]
+
+@end tex
+@item
+Nếu thủ tục @code{product} của bạn tạo ra một quá trình đệ quy, hãy viết một thủ tục tạo ra một quá trình lặp.  Nếu nó tạo ra một quá trình lặp, hãy viết một thủ tục tạo ra một quá trình đệ quy.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.32}Bài tập 1.32:}
+
+@enumerate a
+
+@item
+Chứng minh rằng @code{sum} và @code{product} (@ref{Exercise 1.31}) đều là các trường hợp đặc biệt của một khái niệm tổng quát hơn gọi là @code{accumulate} kết hợp một tập hợp các số hạng, dùng một hàm tích lũy tổng quát nào đó:
+
+@lisp
+(accumulate
+ combiner null-value term a next b)
+@end lisp
+
+@code{Accumulate} nhận làm đối số các đặc tả cùng số hạng và phạm vi như @code{sum} và @code{product}, cùng với một thủ tục @code{combiner} (gồm hai đối số) chỉ định cách số hạng hiện tại được kết hợp với tích lũy của các số hạng trước đó và một @code{null-value} chỉ định giá trị cơ sở nào sẽ dùng khi hết số hạng.  Viết @code{accumulate} và chỉ ra cách @code{sum} và @code{product} đều có thể được định nghĩa như các lời gọi đơn giản tới @code{accumulate}.
+
+@item
+Nếu thủ tục @code{accumulate} của bạn tạo ra một quá trình đệ quy, hãy viết một thủ tục tạo ra một quá trình lặp.  Nếu nó tạo ra một quá trình lặp, hãy viết một thủ tục tạo ra một quá trình đệ quy.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.33}Bài tập 1.33:} Bạn có thể có một phiên bản tổng quát hơn của @code{accumulate} (@ref{Exercise 1.32}) bằng cách đưa vào khái niệm @newterm{bộ lọc} trên các số hạng cần kết hợp.  Nghĩa là, chỉ kết hợp những số hạng bắt nguồn từ các giá trị trong phạm vi thỏa mãn một điều kiện được chỉ định.  Trừu tượng @code{filtered-accumulate} kết quả nhận cùng các đối số như accumulate, cùng với một vị từ bổ sung của một đối số chỉ định bộ lọc.  Viết @code{filtered-accumulate} như một thủ tục.  Chỉ ra cách biểu diễn các biểu thức sau bằng @code{filtered-accumulate}:
+
+@enumerate a
+
+@item
+tổng bình phương của các số nguyên tố trong khoảng @math{a} đến @math{b} (giả sử bạn đã có vị từ @code{prime?})
+
+@item
+tích của tất cả các số nguyên dương nhỏ hơn @math{n} nguyên tố cùng nhau với @math{n} (tức là tất cả các số nguyên dương @math{{i < n}} sao cho @math{{\text{GCD}(i, n) = 1}}).
+
+@end enumerate
+@end quotation

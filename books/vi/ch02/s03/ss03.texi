@@ -1,0 +1,548 @@
+@node	2.3.3, 2.3.4, 2.3.2, 2.3
+@subsection Ví Dụ: Biểu Diễn Tập Hợp
+
+Trong các ví dụ trước, chúng ta đã xây dựng biểu diễn cho hai loại đối tượng
+dữ liệu phức hợp: số hữu tỉ và biểu thức đại số. Trong một trong những ví dụ
+đó, chúng ta có thể lựa chọn rút gọn các biểu thức tại thời điểm xây dựng hoặc
+tại thời điểm chọn, nhưng ngoài điều đó, việc lựa chọn biểu diễn cho các cấu
+trúc này dưới dạng danh sách là đơn giản. Khi chúng ta chuyển sang biểu diễn
+tập hợp, việc lựa chọn biểu diễn không còn rõ ràng nữa. Thực vậy, có nhiều
+biểu diễn có thể, và chúng khác nhau đáng kể theo nhiều cách.
+
+Một cách không chính thức, tập hợp đơn giản chỉ là một bộ sưu tập các đối tượng
+phân biệt. Để đưa ra định nghĩa chính xác hơn, chúng ta có thể sử dụng phương
+pháp trừu tượng dữ liệu. Tức là, chúng ta định nghĩa ``tập hợp'' bằng cách chỉ
+định các phép toán được sử dụng trên tập hợp. Đó là @code{union-set},
+@code{intersection-set}, @code{element-of-set?}, và @code{adjoin-set}.
+@code{Element-of-set?} là vị từ xác định xem một phần tử cho trước có thuộc tập
+hợp không. @code{Adjoin-set} nhận một đối tượng và một tập hợp làm đối số và
+trả về một tập hợp chứa các phần tử của tập hợp ban đầu và cả phần tử được thêm
+vào. @code{Union-set} tính hợp của hai tập hợp, là tập hợp chứa mỗi phần tử
+xuất hiện trong bất kỳ đối số nào. @code{Intersection-set} tính giao của hai
+tập hợp, là tập hợp chỉ chứa các phần tử xuất hiện trong cả hai đối số. Từ
+quan điểm trừu tượng dữ liệu, chúng ta tự do thiết kế bất kỳ biểu diễn nào
+cài đặt các phép toán này theo cách nhất quán với các diễn giải nêu ở
+trên.@footnote{Nếu chúng ta muốn chính thức hơn, chúng ta có thể quy định
+``nhất quán với các diễn giải nêu ở trên'' có nghĩa là các phép toán thỏa mãn
+một tập hợp các quy tắc như:
+
+@itemize @bullet
+
+@item
+Với bất kỳ tập hợp @code{S} và đối tượng @code{x} nào,
+@code{(element-of-set? x (adjoin-set x S))}
+là true (không chính thức: ``Thêm một đối tượng vào tập hợp tạo ra tập hợp
+chứa đối tượng đó'').
+
+@item
+Với bất kỳ tập hợp @code{S}, @code{T} và đối tượng @code{x} nào,
+@code{(element-of-set? x (union-set S T))}
+bằng
+@code{(or (element-of-set? x S) (element-of-set? x T))}
+(không chính thức: ``Các phần tử của @code{(union S T)} là các phần tử thuộc
+@code{S} hoặc @code{T}'').
+
+@item
+Với bất kỳ đối tượng @code{x} nào,
+@code{(element-of-set? x '())}
+là false (không chính thức: ``Không có đối tượng nào là phần tử của tập hợp
+rỗng'').
+
+@end itemize
+}
+
+@subsubheading Tập hợp như danh sách không có thứ tự
+
+Một cách biểu diễn tập hợp là như một danh sách các phần tử trong đó không có
+phần tử nào xuất hiện nhiều hơn một lần. Tập hợp rỗng được biểu diễn bởi danh
+sách rỗng. Trong biểu diễn này, @code{element-of-set?} tương tự thủ tục
+@code{memq} của @ref{2.3.1}. Nó dùng @code{equal?} thay vì @code{eq?} để các
+phần tử của tập hợp không nhất thiết phải là ký hiệu:
+
+@lisp
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+@end lisp
+
+@noindent
+Sử dụng điều này, chúng ta có thể viết @code{adjoin-set}. Nếu đối tượng được
+thêm vào đã có trong tập hợp, chúng ta chỉ trả về tập hợp. Nếu không, chúng ta
+dùng @code{cons} để thêm đối tượng vào danh sách biểu diễn tập hợp:
+
+@lisp
+(define (adjoin-set x set)
+  (if (element-of-set? x set)
+      set
+      (cons x set)))
+@end lisp
+
+@noindent
+Với @code{intersection-set}, chúng ta có thể dùng chiến lược đệ quy. Nếu chúng
+ta biết cách tạo giao của @code{set2} và @code{cdr} của @code{set1}, chúng ta
+chỉ cần quyết định có đưa @code{car} của @code{set1} vào hay không. Nhưng điều
+này phụ thuộc vào việc @code{(car set1)} có cũng thuộc @code{set2} không. Đây
+là thủ tục kết quả:
+
+@lisp
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2))
+         '())
+        ((element-of-set? (car set1) set2)
+         (cons (car set1)
+               (intersection-set (cdr set1)
+                                 set2)))
+        (else (intersection-set (cdr set1)
+                                set2))))
+@end lisp
+
+@noindent
+Khi thiết kế biểu diễn, một trong những vấn đề chúng ta cần quan tâm là hiệu
+quả. Hãy xem xét số bước cần thiết bởi các phép toán tập hợp của chúng ta. Vì
+tất cả chúng đều dùng @code{element-of-set?}, tốc độ của phép toán này có tác
+động lớn đến hiệu quả của toàn bộ cài đặt tập hợp. Bây giờ, để kiểm tra xem
+một đối tượng có là thành viên của tập hợp không, @code{element-of-set?} có thể
+phải quét toàn bộ tập hợp. (Trong trường hợp xấu nhất, đối tượng hóa ra không
+có trong tập hợp.) Do đó, nếu tập hợp có @math{n} phần tử, @code{element-of-set?}
+có thể cần tới @math{n} bước. Vì vậy, số bước cần thiết tăng theo @math{{\Theta(n)}}.
+Số bước cần thiết bởi @code{adjoin-set}, sử dụng phép toán này, cũng tăng theo
+@math{{\Theta(n)}}. Với @code{intersection-set}, thực hiện kiểm tra
+@code{element-of-set?} cho mỗi phần tử của @code{set1}, số bước cần thiết tăng
+theo tích của kích thước các tập hợp liên quan, hay @math{{\Theta(n^2)}} với
+hai tập hợp có kích thước @math{n}. Điều tương tự sẽ đúng với @code{union-set}.
+
+@quotation
+@strong{@anchor{Exercise 2.59}Bài tập 2.59:} Cài đặt phép toán @code{union-set}
+cho biểu diễn danh sách không có thứ tự của tập hợp.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.60}Bài tập 2.60:} Chúng ta đã quy định rằng tập hợp
+sẽ được biểu diễn như danh sách không có phần tử trùng lặp. Bây giờ giả sử
+chúng ta cho phép trùng lặp. Ví dụ, tập hợp @math{{\{1, 2, 3\}}} có thể được
+biểu diễn như danh sách @code{(2 3 2 1 3 2 2)}. Thiết kế các thủ tục
+@code{element-of-set?}, @code{adjoin-set}, @code{union-set}, và
+@code{intersection-set} hoạt động trên biểu diễn này. Hiệu quả của mỗi thủ tục
+so với thủ tục tương ứng trong biểu diễn không trùng lặp như thế nào? Có ứng
+dụng nào mà bạn sẽ sử dụng biểu diễn này thay vì biểu diễn không trùng lặp
+không?
+@end quotation
+
+@subsubheading Tập hợp như danh sách có thứ tự
+
+Một cách tăng tốc các phép toán tập hợp là thay đổi biểu diễn sao cho các phần
+tử của tập hợp được liệt kê theo thứ tự tăng dần. Để làm điều này, chúng ta
+cần một cách nào đó để so sánh hai đối tượng để có thể biết cái nào lớn hơn.
+Ví dụ, chúng ta có thể so sánh các ký hiệu theo thứ tự từ điển, hoặc chúng ta
+có thể đồng ý về một phương pháp gán một số duy nhất cho một đối tượng và sau
+đó so sánh các phần tử bằng cách so sánh các số tương ứng. Để giữ thảo luận
+đơn giản, chúng ta sẽ chỉ xem xét trường hợp các phần tử tập hợp là số, để
+chúng ta có thể so sánh các phần tử bằng cách dùng @code{>} và @code{<}. Chúng
+ta sẽ biểu diễn tập hợp các số bằng cách liệt kê các phần tử theo thứ tự tăng
+dần. Trong khi biểu diễn đầu tiên cho phép chúng ta biểu diễn tập hợp
+@math{{\{1, 3, 6, 10\}}} bằng cách liệt kê các phần tử theo bất kỳ thứ tự nào,
+biểu diễn mới chỉ cho phép danh sách @code{(1 3 6 10)}.
+
+Một lợi thế của thứ tự xuất hiện trong @code{element-of-set?}: Khi kiểm tra
+sự có mặt của một phần tử, chúng ta không cần quét toàn bộ tập hợp nữa. Nếu
+chúng ta gặp một phần tử của tập hợp lớn hơn phần tử chúng ta đang tìm, thì
+chúng ta biết rằng phần tử đó không có trong tập hợp:
+
+@lisp
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (car set)) true)
+        ((< x (car set)) false)
+        (else (element-of-set? x (cdr set)))))
+@end lisp
+
+Điều này tiết kiệm bao nhiêu bước? Trong trường hợp xấu nhất, phần tử chúng ta
+đang tìm có thể là phần tử lớn nhất trong tập hợp, nên số bước tương tự như với
+biểu diễn không có thứ tự. Mặt khác, nếu chúng ta tìm kiếm các phần tử có nhiều
+kích thước khác nhau, chúng ta có thể kỳ vọng rằng đôi khi chúng ta sẽ có thể
+dừng tìm kiếm tại điểm gần đầu danh sách và đôi khi chúng ta vẫn cần xét hầu
+hết danh sách. Trung bình, chúng ta nên kỳ vọng phải xét khoảng một nửa số phần
+tử trong tập hợp. Vì vậy, số bước trung bình cần thiết sẽ là khoảng @math{{n / 2}}.
+Đây vẫn là tăng trưởng @math{{\Theta(n)}}, nhưng nó giúp tiết kiệm trung bình
+một hệ số 2 số bước so với cài đặt trước.
+
+Chúng ta đạt được tốc độ tăng ấn tượng hơn với @code{intersection-set}. Trong
+biểu diễn không có thứ tự, phép toán này yêu cầu @math{{\Theta(n^2)}} bước vì
+chúng ta thực hiện quét đầy đủ @code{set2} cho mỗi phần tử của @code{set1}.
+Nhưng với biểu diễn có thứ tự, chúng ta có thể dùng phương pháp thông minh hơn.
+Bắt đầu bằng cách so sánh các phần tử đầu tiên, @code{x1} và @code{x2}, của
+hai tập hợp. Nếu @code{x1} bằng @code{x2}, thì đó là một phần tử của giao, và
+phần còn lại của giao là giao của @code{cdr} của hai tập hợp. Tuy nhiên, giả sử
+@code{x1} nhỏ hơn @code{x2}. Vì @code{x2} là phần tử nhỏ nhất trong @code{set2},
+chúng ta có thể kết luận ngay lập tức rằng @code{x1} không thể xuất hiện bất cứ
+đâu trong @code{set2} và do đó không có trong giao. Vì vậy, giao bằng giao của
+@code{set2} với @code{cdr} của @code{set1}. Tương tự, nếu @code{x2} nhỏ hơn
+@code{x1}, thì giao được cho bởi giao của @code{set1} với @code{cdr} của
+@code{set2}. Đây là thủ tục:
+
+@lisp
+(define (intersection-set set1 set2)
+  (if (or (null? set1) (null? set2))
+      '()
+      (let ((x1 (car set1)) (x2 (car set2)))
+        (cond ((= x1 x2)
+               (cons x1 (intersection-set
+                         (cdr set1)
+                         (cdr set2))))
+              ((< x1 x2) (intersection-set
+                          (cdr set1)
+                          set2))
+              ((< x2 x1) (intersection-set
+                          set1
+                          (cdr set2)))))))
+@end lisp
+
+@noindent
+Để ước tính số bước cần thiết bởi quá trình này, lưu ý rằng ở mỗi bước chúng
+ta rút gọn bài toán giao thành việc tính giao của các tập hợp nhỏ hơn---loại
+bỏ phần tử đầu tiên khỏi @code{set1} hoặc @code{set2} hoặc cả hai. Vì vậy, số
+bước cần thiết nhiều nhất là tổng kích thước của @code{set1} và @code{set2},
+chứ không phải tích kích thước như với biểu diễn không có thứ tự. Đây là tăng
+trưởng @math{{\Theta(n)}} thay vì @math{{\Theta(n^2)}}---một tốc độ tăng đáng
+kể, ngay cả với các tập hợp cỡ vừa.
+
+@quotation
+@strong{@anchor{Exercise 2.61}Bài tập 2.61:} Đưa ra một cài đặt của
+@code{adjoin-set} sử dụng biểu diễn có thứ tự. Theo phép tương tự với
+@code{element-of-set?}, hãy chỉ ra cách tận dụng thứ tự để tạo ra thủ tục
+yêu cầu trung bình khoảng một nửa số bước như với biểu diễn không có thứ tự.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.62}Bài tập 2.62:} Đưa ra cài đặt @math{{\Theta(n)}}
+của @code{union-set} cho các tập hợp được biểu diễn như danh sách có thứ tự.
+@end quotation
+
+@subsubheading Tập hợp như cây nhị phân
+
+Chúng ta có thể làm tốt hơn biểu diễn danh sách có thứ tự bằng cách sắp xếp
+các phần tử tập hợp dưới dạng cây. Mỗi nút của cây giữ một phần tử của tập
+hợp, gọi là ``mục'' tại nút đó, và một liên kết tới mỗi trong hai nút khác (có
+thể rỗng). Liên kết ``trái'' trỏ tới các phần tử nhỏ hơn phần tử tại nút, và
+liên kết ``phải'' trỏ tới các phần tử lớn hơn. @ref{Figure 2.16} cho thấy một
+số cây biểu diễn tập hợp @math{{\{1, 3, 5, 7, 9, 11\}}}. Cùng một tập hợp có
+thể được biểu diễn bởi cây theo nhiều cách khác nhau. Điều duy nhất chúng ta
+yêu cầu cho một biểu diễn hợp lệ là tất cả các phần tử trong cây con bên trái
+nhỏ hơn mục tại nút và tất cả các phần tử trong cây con bên phải lớn hơn.
+
+@float
+@anchor{Figure 2.16}
+@ifinfo
+@quotation
+@strong{Figure 2.16:} Various binary trees that represent the set @math{{\{1, 3, 5, 7, 9, 11\}}}.
+
+@example
+   7          3             5
+   /\         /\            /\
+  3  9       1  7          3  9
+ /\   \         /\        /   /\
+1  5  11       5  9      1   7  11
+                   \
+                   11
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.16c,120mm,,,.std.svg}
+@caption{@strong{Figure 2.16:} Various binary trees that represent the set @math{{\{1, 3, 5, 7, 9, 11\}}}.}
+@end iftex
+@end float
+
+Lợi thế của biểu diễn cây là: Giả sử chúng ta muốn kiểm tra xem số @math{x}
+có thuộc tập hợp không. Chúng ta bắt đầu bằng cách so sánh @math{x} với mục
+tại nút trên cùng. Nếu @math{x} nhỏ hơn, chúng ta biết chỉ cần tìm kiếm trong
+cây con bên trái; nếu @math{x} lớn hơn, chúng ta chỉ cần tìm kiếm trong cây
+con bên phải. Bây giờ, nếu cây ``cân bằng'', mỗi cây con sẽ có khoảng một nửa
+kích thước ban đầu. Vì vậy, trong một bước chúng ta đã rút gọn bài toán tìm
+kiếm cây kích thước @math{n} thành tìm kiếm cây kích thước @math{{n / 2}}. Vì
+kích thước cây bị giảm một nửa ở mỗi bước, chúng ta nên kỳ vọng số bước cần
+thiết để tìm kiếm cây kích thước @math{n} tăng theo
+@math{{\Theta(\log n)}}.@footnote{Giảm một nửa kích thước của bài toán ở mỗi
+bước là đặc trưng phân biệt của tăng trưởng logarithm, như chúng ta đã thấy
+với thuật toán lũy thừa nhanh của @ref{1.2.4} và phương pháp tìm kiếm nửa
+khoảng của @ref{1.3.3}.} Với các tập hợp lớn, đây sẽ là một tốc độ tăng đáng
+kể so với các biểu diễn trước.
+
+Chúng ta có thể biểu diễn các cây bằng cách dùng danh sách. Mỗi nút sẽ là một
+danh sách gồm ba phần tử: mục tại nút, cây con bên trái, và cây con bên phải.
+Cây con bên trái hoặc bên phải là danh sách rỗng sẽ chỉ ra rằng không có cây
+con được kết nối ở đó. Chúng ta có thể mô tả biểu diễn này bằng các thủ tục
+sau:@footnote{Chúng ta đang biểu diễn tập hợp dưới dạng cây, và cây dưới dạng
+danh sách---thực ra là một trừu tượng dữ liệu được xây dựng trên một trừu tượng
+dữ liệu. Chúng ta có thể coi các thủ tục @code{entry}, @code{left-branch},
+@code{right-branch}, và @code{make-tree} là một cách để cô lập trừu tượng của
+``cây nhị phân'' khỏi cách cụ thể chúng ta có thể muốn biểu diễn cây như vậy
+dưới dạng cấu trúc danh sách.}
+
+@lisp
+(define (entry tree) (car tree))
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+@end lisp
+
+@noindent
+Bây giờ chúng ta có thể viết thủ tục @code{element-of-set?} sử dụng chiến lược
+được mô tả ở trên:
+
+@lisp
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set))
+         (element-of-set?
+          x
+          (left-branch set)))
+        ((> x (entry set))
+         (element-of-set?
+          x
+          (right-branch set)))))
+@end lisp
+
+@noindent
+Thêm một phần tử vào tập hợp được cài đặt tương tự và cũng yêu cầu
+@math{{\Theta(\log n)}} bước. Để thêm phần tử @code{x}, chúng ta so sánh
+@code{x} với mục của nút để xác định xem @code{x} nên được thêm vào nhánh phải
+hay nhánh trái, và sau khi thêm @code{x} vào nhánh thích hợp, chúng ta ghép
+nhánh được xây dựng mới này lại với mục ban đầu và nhánh kia. Nếu @code{x}
+bằng với mục, chúng ta chỉ trả về nút. Nếu chúng ta được yêu cầu thêm @code{x}
+vào cây rỗng, chúng ta tạo cây có @code{x} là mục và các nhánh trái và phải
+rỗng. Đây là thủ tục:
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= x (entry set)) set)
+        ((< x (entry set))
+         (make-tree
+          (entry set)
+          (adjoin-set x (left-branch set))
+          (right-branch set)))
+        ((> x (entry set))
+         (make-tree
+          (entry set)
+          (left-branch set)
+          (adjoin-set x (right-branch set))))))
+@end lisp
+
+@noindent
+Tuyên bố ở trên rằng tìm kiếm cây có thể được thực hiện trong số bước logarithm
+dựa trên giả định rằng cây ``cân bằng'', tức là cây con bên trái và bên phải
+của mỗi cây có khoảng cùng số phần tử, để mỗi cây con chứa khoảng một nửa số
+phần tử của cây cha. Nhưng làm thế nào chúng ta có thể chắc chắn rằng các cây
+chúng ta xây dựng sẽ cân bằng? Ngay cả khi chúng ta bắt đầu với cây cân bằng,
+việc thêm phần tử với @code{adjoin-set} có thể tạo ra kết quả mất cân bằng. Vì
+vị trí của phần tử mới thêm phụ thuộc vào cách phần tử so sánh với các phần tử
+đã có trong tập hợp, chúng ta có thể kỳ vọng rằng nếu chúng ta thêm các phần
+tử ``ngẫu nhiên'' thì cây sẽ có xu hướng cân bằng trung bình. Nhưng đây không
+phải là bảo đảm. Ví dụ, nếu chúng ta bắt đầu với tập hợp rỗng và thêm các số
+1 đến 7 theo thứ tự, chúng ta sẽ nhận được cây mất cân bằng nghiêm trọng được
+hiển thị trong @ref{Figure 2.17}. Trong cây này, tất cả các cây con bên trái
+đều rỗng, nên nó không có lợi thế gì so với danh sách có thứ tự đơn giản. Một
+cách giải quyết vấn đề này là định nghĩa một phép toán biến đổi cây tùy ý thành
+cây cân bằng với cùng các phần tử. Sau đó chúng ta có thể thực hiện phép biến
+đổi này sau mỗi vài phép toán @code{adjoin-set} để giữ tập hợp cân bằng. Cũng
+có nhiều cách khác để giải quyết vấn đề này, hầu hết liên quan đến việc thiết
+kế các cấu trúc dữ liệu mới mà cả tìm kiếm và chèn đều có thể được thực hiện
+trong @math{{\Theta(\log n)}} bước.@footnote{Ví dụ về các cấu trúc như vậy bao
+gồm @newterm{cây B} và @newterm{cây đỏ-đen}. Có một lượng lớn tài liệu về cấu
+trúc dữ liệu dành cho vấn đề này. Xem @ref{Cormen et al. 1990}.}
+
+@float
+@anchor{Figure 2.17}
+@ifinfo
+@quotation
+@strong{Figure 2.17:} Unbalanced tree produced by adjoining 1 through 7 in sequence.
+
+@example
+1
+ \
+  2
+   \
+    4
+     \
+      5
+       \
+        6
+         \
+          7
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.17a,68mm,,,.std.svg}
+@caption{@strong{Figure 2.17:} Unbalanced tree produced by adjoining 1 through 7 in sequence.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 2.63}Bài tập 2.63:} Mỗi trong hai thủ tục sau đây
+chuyển đổi cây nhị phân thành danh sách.
+
+@lisp
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append
+       (tree->list-1
+        (left-branch tree))
+       (cons (entry tree)
+             (tree->list-1
+              (right-branch tree))))))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list
+         (left-branch tree)
+         (cons (entry tree)
+               (copy-to-list
+                (right-branch tree)
+                result-list)))))
+  (copy-to-list tree '()))
+@end lisp
+
+@enumerate a
+
+@item
+Hai thủ tục có cho cùng kết quả với mọi cây không? Nếu không, kết quả khác
+nhau như thế nào? Hai thủ tục tạo ra những danh sách nào cho các cây trong
+@ref{Figure 2.16}?
+
+@item
+Hai thủ tục có cùng bậc tăng trưởng về số bước cần thiết để chuyển đổi cây
+cân bằng có @math{n} phần tử thành danh sách không? Nếu không, cái nào tăng
+chậm hơn?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.64}Bài tập 2.64:} Thủ tục @code{list->tree} sau
+đây chuyển đổi danh sách có thứ tự thành cây nhị phân cân bằng. Thủ tục trợ
+giúp @code{partial-tree} nhận làm đối số một số nguyên @math{n} và danh sách
+có ít nhất @math{n} phần tử và xây dựng cây cân bằng chứa @math{n} phần tử
+đầu tiên của danh sách. Kết quả trả về bởi @code{partial-tree} là một cặp
+(được tạo với @code{cons}) có @code{car} là cây được xây dựng và @code{cdr}
+là danh sách các phần tử không được đưa vào cây.
+
+@lisp
+(define (list->tree elements)
+  (car (partial-tree
+        elements (length elements))))
+
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let ((left-size
+             (quotient (- n 1) 2)))
+        (let ((left-result
+               (partial-tree
+                elts left-size)))
+          (let ((left-tree
+                 (car left-result))
+                (non-left-elts
+                 (cdr left-result))
+                (right-size
+                 (- n (+ left-size 1))))
+            (let ((this-entry
+                   (car non-left-elts))
+                  (right-result
+                   (partial-tree
+                    (cdr non-left-elts)
+                    right-size)))
+              (let ((right-tree
+                     (car right-result))
+                    (remaining-elts
+                     (cdr right-result)))
+                (cons (make-tree this-entry
+                                 left-tree
+                                 right-tree)
+                      remaining-elts))))))))
+@end lisp
+
+@enumerate a
+
+@item
+Viết một đoạn ngắn giải thích rõ ràng nhất có thể cách @code{partial-tree}
+hoạt động. Vẽ cây được tạo bởi @code{list->tree} cho danh sách @code{(1 3 5 7 9 11)}.
+
+@item
+Bậc tăng trưởng về số bước cần thiết bởi @code{list->tree} để chuyển đổi danh
+sách có @math{n} phần tử là gì?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.65}Bài tập 2.65:} Sử dụng kết quả của @ref{Exercise 2.63}
+và @ref{Exercise 2.64} để đưa ra các cài đặt @math{{\Theta(n)}} của
+@code{union-set} và @code{intersection-set} cho các tập hợp được cài đặt như
+cây nhị phân (cân bằng).@footnote{@ref{Exercise 2.63} đến @ref{Exercise 2.65}
+là của Paul Hilfinger.}
+@end quotation
+
+@subsubheading Tập hợp và truy xuất thông tin
+
+Chúng ta đã xem xét các lựa chọn sử dụng danh sách để biểu diễn tập hợp và đã
+thấy cách lựa chọn biểu diễn cho một đối tượng dữ liệu có thể có tác động lớn
+đến hiệu suất của các chương trình sử dụng dữ liệu. Một lý do khác để tập trung
+vào tập hợp là các kỹ thuật được thảo luận ở đây xuất hiện ngày càng nhiều trong
+các ứng dụng liên quan đến truy xuất thông tin.
+
+Hãy xem xét cơ sở dữ liệu chứa nhiều bản ghi riêng lẻ, chẳng hạn như các tệp
+nhân sự của một công ty hoặc các giao dịch trong hệ thống kế toán. Một hệ thống
+quản lý dữ liệu điển hình dành nhiều thời gian để truy cập hoặc sửa đổi dữ liệu
+trong các bản ghi và do đó yêu cầu một phương pháp hiệu quả để truy cập bản ghi.
+Điều này được thực hiện bằng cách xác định một phần của mỗi bản ghi để đóng vai
+trò là @newterm{khóa} nhận dạng. Khóa có thể là bất cứ thứ gì xác định duy nhất
+bản ghi. Đối với tệp nhân sự, đó có thể là mã số nhân viên. Đối với hệ thống kế
+toán, đó có thể là mã giao dịch. Dù khóa là gì, khi chúng ta định nghĩa bản ghi
+như một cấu trúc dữ liệu, chúng ta nên bao gồm một thủ tục bộ chọn @code{key}
+lấy khóa liên kết với một bản ghi nhất định.
+
+Bây giờ chúng ta biểu diễn cơ sở dữ liệu như một tập hợp các bản ghi. Để xác
+định bản ghi có một khóa nhất định, chúng ta dùng thủ tục @code{lookup}, nhận
+làm đối số một khóa và cơ sở dữ liệu và trả về bản ghi có khóa đó, hoặc false
+nếu không có bản ghi như vậy. @code{Lookup} được cài đặt gần giống như
+@code{element-of-set?}. Ví dụ, nếu tập hợp các bản ghi được cài đặt như danh
+sách không có thứ tự, chúng ta có thể dùng
+
+@lisp
+(define (lookup given-key set-of-records)
+  (cond ((null? set-of-records) false)
+        ((equal? given-key
+                 (key (car set-of-records)))
+         (car set-of-records))
+        (else
+         (lookup given-key
+                 (cdr set-of-records)))))
+@end lisp
+
+@noindent
+Tất nhiên, có nhiều cách tốt hơn để biểu diễn các tập hợp lớn hơn là danh sách
+không có thứ tự. Các hệ thống truy xuất thông tin trong đó các bản ghi phải
+được ``truy cập ngẫu nhiên'' thường được cài đặt bằng phương pháp dựa trên cây,
+chẳng hạn như biểu diễn cây nhị phân đã thảo luận ở trên. Khi thiết kế hệ thống
+như vậy, phương pháp trừu tượng dữ liệu có thể hữu ích rất nhiều. Người thiết
+kế có thể tạo một cài đặt ban đầu sử dụng biểu diễn đơn giản, trực tiếp như
+danh sách không có thứ tự. Điều này sẽ không thích hợp cho hệ thống cuối cùng,
+nhưng nó có thể hữu ích để cung cấp cơ sở dữ liệu ``nhanh và thô'' để kiểm tra
+phần còn lại của hệ thống. Sau đó, biểu diễn dữ liệu có thể được sửa đổi để
+tinh tế hơn. Nếu cơ sở dữ liệu được truy cập thông qua các bộ chọn và bộ tạo
+trừu tượng, sự thay đổi trong biểu diễn này sẽ không yêu cầu bất kỳ thay đổi
+nào đối với phần còn lại của hệ thống.
+
+@quotation
+@strong{@anchor{Exercise 2.66}Bài tập 2.66:} Cài đặt thủ tục @code{lookup}
+cho trường hợp tập hợp các bản ghi được cấu trúc như cây nhị phân, sắp xếp
+theo giá trị số của các khóa.
+@end quotation

@@ -1,0 +1,287 @@
+@node 3.5.5, Chapter 4, 3.4, 3.5
+@subsection Tính Mô-đun của Các Chương Trình Hàm và Tính Mô-đun của Các Đối Tượng
+
+Như chúng ta đã thấy trong @ref{3.1.2}, một trong những lợi ích chính của
+việc đưa vào phép gán là chúng ta có thể tăng tính mô-đun của các hệ thống
+bằng cách đóng gói, hay ``ẩn,'' các phần của trạng thái của một hệ thống
+lớn trong các biến cục bộ. Các mô hình luồng có thể cung cấp tính mô-đun
+tương đương mà không cần dùng phép gán. Để minh họa, chúng ta có thể hiện
+thực lại ước tính Monte Carlo của @math{\pi}, mà chúng ta đã xem xét trong
+@ref{3.1.2}, từ góc độ xử lý luồng.
+
+Vấn đề mô-đun chính là chúng ta muốn ẩn trạng thái nội bộ của một bộ sinh
+số ngẫu nhiên khỏi các chương trình sử dụng số ngẫu nhiên. Chúng ta đã bắt
+đầu với một thủ tục @code{rand-update}, các giá trị liên tiếp của nó cung
+cấp nguồn số ngẫu nhiên, và dùng điều này để tạo ra một bộ sinh số ngẫu
+nhiên:
+
+@lisp
+(define rand
+  (let ((x random-init))
+    (lambda ()
+      (set! x (rand-update x))
+      x)))
+@end lisp
+
+@noindent
+Trong cách diễn đạt luồng, không có bộ sinh số ngẫu nhiên @emph{per se},
+chỉ là một luồng số ngẫu nhiên được tạo ra bởi các lời gọi liên tiếp đến
+@code{rand-update}:
+
+@lisp
+(define random-numbers
+  (cons-stream random-init
+               (stream-map rand-update
+                           random-numbers)))
+@end lisp
+
+@noindent
+Chúng ta dùng điều này để xây dựng luồng kết quả của thí nghiệm Ces@`aro
+được thực hiện trên các cặp liên tiếp trong luồng @code{random-numbers}:
+
+@lisp
+(define cesaro-stream
+  (map-successive-pairs
+   (lambda (r1 r2) (= (gcd r1 r2) 1))
+   random-numbers))
+
+(define (map-successive-pairs f s)
+  (cons-stream
+   (f (stream-car s)
+      (stream-car (stream-cdr s)))
+   (map-successive-pairs
+    f (stream-cdr (stream-cdr s)))))
+@end lisp
+
+@noindent
+@code{cesaro-stream} bây giờ được đưa vào một thủ tục @code{monte-carlo},
+tạo ra một luồng ước tính xác suất. Kết quả sau đó được chuyển đổi thành
+một luồng ước tính của @math{\pi}. Phiên bản chương trình này không cần một
+tham số cho biết thực hiện bao nhiêu thử nghiệm. Các ước tính tốt hơn của
+@math{\pi} (từ việc thực hiện nhiều thí nghiệm hơn) thu được bằng cách nhìn
+sâu hơn vào luồng @code{pi}:
+
+@lisp
+(define (monte-carlo experiment-stream
+                     passed
+                     failed)
+  (define (next passed failed)
+    (cons-stream
+     (/ passed (+ passed failed))
+     (monte-carlo
+      (stream-cdr experiment-stream)
+      passed
+      failed)))
+  (if (stream-car experiment-stream)
+      (next (+ passed 1) failed)
+      (next passed (+ failed 1))))
+
+(define pi
+  (stream-map
+   (lambda (p) (sqrt (/ 6 p)))
+   (monte-carlo cesaro-stream 0 0)))
+@end lisp
+
+@noindent
+Có tính mô-đun đáng kể trong cách tiếp cận này, vì chúng ta vẫn có thể
+xây dựng một thủ tục @code{monte-carlo} tổng quát có thể xử lý các thí
+nghiệm tùy ý. Tuy nhiên không có phép gán hay trạng thái cục bộ.
+
+@quotation
+@strong{@anchor{Exercise 3.81}Exercise 3.81:} @ref{Exercise 3.6} đã thảo
+luận về việc tổng quát hóa bộ sinh số ngẫu nhiên để cho phép đặt lại dãy
+số ngẫu nhiên nhằm tạo ra các dãy ``ngẫu nhiên'' có thể lặp lại. Tạo ra
+một cách diễn đạt luồng của bộ sinh tương tự hoạt động trên một luồng đầu
+vào các yêu cầu để @code{generate} một số ngẫu nhiên mới hoặc để @code{reset}
+dãy về một giá trị được chỉ định và tạo ra luồng số ngẫu nhiên mong muốn.
+Không dùng phép gán trong giải pháp của bạn.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.82}Exercise 3.82:} Làm lại @ref{Exercise 3.5} về
+tích phân Monte Carlo theo nghĩa của các luồng. Phiên bản luồng của
+@code{estimate-integral} sẽ không có đối số cho biết thực hiện bao nhiêu
+thử nghiệm. Thay vào đó, nó sẽ tạo ra một luồng các ước tính dựa trên ngày
+càng nhiều thử nghiệm hơn.
+@end quotation
+
+@subsubheading Quan điểm lập trình hàm về thời gian
+
+Bây giờ hãy quay lại các vấn đề về đối tượng và trạng thái được nêu ra ở
+đầu chương này và xem xét chúng dưới ánh sáng mới. Chúng ta đã đưa vào phép
+gán và các đối tượng có thể thay đổi để cung cấp một cơ chế xây dựng mô-đun
+các chương trình mô hình hóa các hệ thống có trạng thái. Chúng ta đã xây
+dựng các đối tượng tính toán với các biến trạng thái cục bộ và dùng phép
+gán để sửa đổi các biến này. Chúng ta đã mô hình hóa hành vi thời gian của
+các đối tượng trong thế giới bằng hành vi thời gian của các đối tượng tính
+toán tương ứng.
+
+Bây giờ chúng ta đã thấy rằng các luồng cung cấp một cách thay thế để mô
+hình hóa các đối tượng có trạng thái cục bộ. Chúng ta có thể mô hình hóa
+một đại lượng thay đổi, chẳng hạn như trạng thái cục bộ của một đối tượng
+nào đó, bằng một luồng biểu diễn lịch sử thời gian của các trạng thái liên
+tiếp. Về bản chất, chúng ta biểu diễn thời gian một cách tường minh, sử
+dụng các luồng, để chúng ta tách thời gian trong thế giới mô phỏng khỏi
+dãy các sự kiện diễn ra trong quá trình định giá. Thực vậy, do có mặt của
+@code{delay}, có thể không có nhiều quan hệ giữa thời gian mô phỏng trong
+mô hình và thứ tự các sự kiện trong quá trình định giá.
+
+Để đối chiếu hai cách tiếp cận mô hình hóa này, hãy xem lại hiện thực của
+một ``bộ xử lý rút tiền'' theo dõi số dư trong tài khoản ngân hàng. Trong
+@ref{3.1.3}, chúng ta đã hiện thực một phiên bản đơn giản hóa của bộ xử lý
+như vậy:
+
+@lisp
+(define (make-simplified-withdraw balance)
+  (lambda (amount)
+    (set! balance (- balance amount))
+    balance))
+@end lisp
+
+@noindent
+Các lời gọi đến @code{make-simplified-withdraw} tạo ra các đối tượng tính
+toán, mỗi đối tượng có một biến trạng thái cục bộ @code{balance} bị giảm
+đi bởi các lời gọi liên tiếp đến đối tượng. Đối tượng nhận @code{amount}
+làm đối số và trả về số dư mới. Chúng ta có thể tưởng tượng người dùng tài
+khoản ngân hàng nhập một dãy đầu vào cho đối tượng như vậy và quan sát dãy
+các giá trị trả về được hiển thị trên màn hình.
+
+Ngoài ra, chúng ta có thể mô hình hóa một bộ xử lý rút tiền như một thủ
+tục nhận số dư và một luồng các khoản tiền cần rút làm đầu vào và tạo ra
+luồng các số dư liên tiếp trong tài khoản:
+
+@lisp
+(define (stream-withdraw balance amount-stream)
+  (cons-stream
+   balance
+   (stream-withdraw
+    (- balance (stream-car amount-stream))
+    (stream-cdr amount-stream))))
+@end lisp
+
+@noindent
+@code{Stream-withdraw} hiện thực một hàm toán học được định nghĩa rõ ràng
+có đầu ra được xác định hoàn toàn bởi đầu vào của nó. Tuy nhiên, giả sử
+đầu vào @code{amount-stream} là luồng các giá trị liên tiếp được người dùng
+nhập vào và luồng số dư kết quả được hiển thị. Thì, từ góc độ của người
+dùng đang nhập các giá trị và xem kết quả, quá trình luồng có cùng hành vi
+như đối tượng được tạo bởi @code{make-simplified-withdraw}. Tuy nhiên, với
+phiên bản luồng, không có phép gán, không có biến trạng thái cục bộ, và do
+đó không có các khó khăn lý thuyết mà chúng ta đã gặp trong @ref{3.1.3}.
+Tuy nhiên hệ thống có trạng thái!
+
+Điều này thực sự đáng chú ý. Mặc dù @code{stream-withdraw} hiện thực một
+hàm toán học được định nghĩa rõ ràng có hành vi không thay đổi, nhận thức
+của người dùng ở đây là tương tác với một hệ thống có trạng thái thay đổi.
+Một cách để giải quyết nghịch lý này là nhận ra rằng chính sự tồn tại theo
+thời gian của người dùng áp đặt trạng thái lên hệ thống. Nếu người dùng có
+thể lùi lại khỏi tương tác và suy nghĩ theo nghĩa của các luồng số dư thay
+vì các giao dịch riêng lẻ, hệ thống sẽ có vẻ không có trạng thái.@footnote{Tương
+tự trong vật lý, khi chúng ta quan sát một hạt chuyển động, chúng ta nói
+rằng vị trí (trạng thái) của hạt đang thay đổi. Tuy nhiên, từ góc độ đường
+thế giới của hạt trong không-thời gian thì không có sự thay đổi nào liên
+quan.}
+
+Từ quan điểm của một phần của một quá trình phức tạp, các phần khác có vẻ
+thay đổi theo thời gian. Chúng có trạng thái cục bộ thay đổi theo thời gian
+bị ẩn. Nếu chúng ta muốn viết các chương trình mô hình hóa loại phân rã tự
+nhiên này trong thế giới của chúng ta (như chúng ta thấy từ góc độ của chúng
+ta là một phần của thế giới đó) với các cấu trúc trong máy tính, chúng ta
+tạo ra các đối tượng tính toán không có tính hàm---chúng phải thay đổi theo
+thời gian. Chúng ta mô hình hóa trạng thái bằng các biến trạng thái cục bộ,
+và chúng ta mô hình hóa các thay đổi trạng thái bằng các phép gán cho các
+biến đó. Bằng cách làm này, chúng ta làm cho thời gian thực thi của một
+tính toán mô hình hóa thời gian trong thế giới mà chúng ta là một phần, và
+do đó chúng ta có ``các đối tượng'' trong máy tính.
+
+Mô hình hóa bằng đối tượng là mạnh mẽ và trực quan, phần lớn vì điều này
+phù hợp với nhận thức về tương tác với một thế giới mà chúng ta là một phần.
+Tuy nhiên, như chúng ta đã thấy nhiều lần trong chương này, các mô hình này
+đặt ra các vấn đề gai góc về việc ràng buộc thứ tự của các sự kiện và đồng
+bộ hóa nhiều quá trình. Khả năng tránh các vấn đề này đã thúc đẩy sự phát
+triển của các @newterm{ngôn ngữ lập trình hàm}, không có bất kỳ quy định nào
+cho phép gán hay dữ liệu có thể thay đổi. Trong một ngôn ngữ như vậy, tất
+cả các thủ tục hiện thực các hàm toán học được định nghĩa rõ ràng của các
+đối số, có hành vi không thay đổi. Cách tiếp cận hàm đặc biệt hấp dẫn để
+xử lý các hệ thống đồng thời.@footnote{John Backus, người phát minh ra
+Fortran, đã đưa lập trình hàm lên tầm cao khi ông được trao giải Turing
+của @abbr{ACM} năm 1978. Bài phát biểu nhận giải của ông (@ref{Backus 1978})
+ủng hộ mạnh mẽ cách tiếp cận hàm. Một tổng quan tốt về lập trình hàm được
+đưa ra trong @ref{Henderson 1980} và trong @ref{Darlington et al. 1982}.}
+
+Mặt khác, nếu chúng ta nhìn kỹ, chúng ta có thể thấy các vấn đề liên quan
+đến thời gian cũng xuất hiện trong các mô hình hàm. Một lĩnh vực đặc biệt
+phiền toái nảy sinh khi chúng ta muốn thiết kế các hệ thống tương tác, đặc
+biệt là những hệ thống mô hình hóa các tương tác giữa các thực thể độc lập.
+Ví dụ, hãy xem xét một lần nữa hiện thực của một hệ thống ngân hàng cho
+phép tài khoản ngân hàng chung. Trong một hệ thống thông thường dùng phép
+gán và đối tượng, chúng ta mô hình hóa thực tế là Peter và Paul chia sẻ
+một tài khoản bằng cách để cả Peter và Paul gửi các yêu cầu giao dịch đến
+cùng một đối tượng tài khoản ngân hàng, như chúng ta đã thấy trong
+@ref{3.1.3}. Từ quan điểm luồng, nơi không có ``đối tượng'' @emph{per se},
+chúng ta đã chỉ ra rằng một tài khoản ngân hàng có thể được mô hình hóa
+như một quá trình hoạt động trên một luồng các yêu cầu giao dịch để tạo ra
+một luồng phản hồi. Theo đó, chúng ta có thể mô hình hóa thực tế là Peter
+và Paul có tài khoản ngân hàng chung bằng cách hợp nhất luồng yêu cầu giao
+dịch của Peter với luồng yêu cầu của Paul và đưa kết quả vào quá trình luồng
+tài khoản ngân hàng, như thể hiện trong @ref{Figure 3.38}.
+
+@float
+@anchor{Figure 3.38}
+@ifinfo
+@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.
+
+@example
+Peter's requests   +---------+     +---------+
+------------------>|         |     |         |
+Paul's requests    |  merge  |---->| bank    |---->
+------------------>|         |     | account |
+                   +---------+     +---------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.38a,143mm,,,.std.svg}
+@caption{@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.}
+@end iftex
+@end float
+
+@noindent
+Vấn đề với cách diễn đạt này nằm ở khái niệm @newterm{hợp nhất}. Việc hợp
+nhất hai luồng bằng cách đơn giản lấy luân phiên một yêu cầu từ Peter và
+một yêu cầu từ Paul sẽ không được. Giả sử Paul chỉ truy cập tài khoản rất
+hiếm khi. Chúng ta khó có thể buộc Peter phải chờ Paul truy cập tài khoản
+trước khi anh có thể thực hiện giao dịch thứ hai. Tuy nhiên, bất kể việc
+hợp nhất được hiện thực như thế nào, nó phải xen kẽ hai luồng giao dịch
+theo cách nào đó bị ràng buộc bởi ``thời gian thực'' như Peter và Paul cảm
+nhận, theo nghĩa là, nếu Peter và Paul gặp nhau, họ có thể đồng ý rằng
+một số giao dịch đã được xử lý trước khi gặp, và các giao dịch khác được
+xử lý sau khi gặp.@footnote{Quan sát rằng, với bất kỳ hai luồng nào, nói
+chung có nhiều hơn một thứ tự xen kẽ chấp nhận được. Như vậy, về mặt kỹ
+thuật, ``hợp nhất'' là một quan hệ chứ không phải là một hàm---câu trả lời
+không phải là một hàm xác định của các đầu vào. Chúng ta đã đề cập
+(@ref{Footnote 167}) rằng tính không xác định là thiết yếu khi xử lý đồng
+thời. Quan hệ hợp nhất minh họa cùng tính không xác định thiết yếu, từ
+góc độ hàm. Trong @ref{4.3}, chúng ta sẽ xem xét tính không xác định từ
+một quan điểm khác.} Đây chính xác là ràng buộc tương tự mà chúng ta phải
+xử lý trong @ref{3.4.1}, nơi chúng ta thấy sự cần thiết phải đưa vào đồng
+bộ hóa tường minh để đảm bảo một thứ tự ``đúng'' của các sự kiện trong xử
+lý đồng thời các đối tượng có trạng thái. Như vậy, trong nỗ lực hỗ trợ
+phong cách hàm, sự cần thiết phải hợp nhất các đầu vào từ các tác nhân
+khác nhau tái đưa vào các vấn đề tương tự mà phong cách hàm nhằm loại bỏ.
+
+Chúng ta đã bắt đầu chương này với mục tiêu xây dựng các mô hình tính toán
+có cấu trúc phù hợp với nhận thức của chúng ta về thế giới thực mà chúng
+ta đang cố mô hình hóa. Chúng ta có thể mô hình hóa thế giới như một tập
+hợp các đối tượng riêng biệt, ràng buộc thời gian, tương tác nhau có trạng
+thái, hoặc chúng ta có thể mô hình hóa thế giới như một thể thống nhất duy
+nhất, phi thời gian, không có trạng thái. Mỗi quan điểm có những ưu điểm
+mạnh mẽ, nhưng không có quan điểm nào hoàn toàn thỏa mãn khi đứng một mình.
+Một sự thống nhất toàn diện vẫn chưa xuất hiện.@footnote{Mô hình đối tượng
+xấp xỉ thế giới bằng cách chia nó thành các phần riêng biệt. Mô hình hàm
+không mô-đun hóa dọc theo ranh giới đối tượng. Mô hình đối tượng hữu ích
+khi trạng thái không được chia sẻ của ``các đối tượng'' lớn hơn nhiều so
+với trạng thái mà chúng chia sẻ. Một ví dụ về nơi quan điểm đối tượng thất
+bại là cơ học lượng tử, nơi việc nghĩ về mọi thứ như các hạt riêng lẻ dẫn
+đến các nghịch lý và nhầm lẫn. Việc thống nhất quan điểm đối tượng với quan
+điểm hàm có thể ít liên quan đến lập trình, mà liên quan đến các vấn đề
+nhận thức luận cơ bản.}

@@ -1,0 +1,573 @@
+@node	2.2.1, 2.2.2, 2.2, 2.2
+@subsection Biểu Diễn Dãy
+
+Một trong những cấu trúc hữu ích mà chúng ta có thể xây dựng bằng các cặp là
+một @newterm{dãy}---một tập hợp có thứ tự các đối tượng dữ liệu. Tất nhiên
+có nhiều cách biểu diễn dãy theo cặp. Một biểu diễn đặc biệt đơn giản được
+minh họa trong @ref{Figure 2.4}, trong đó dãy 1, 2, 3, 4 được biểu diễn là
+một chuỗi cặp. @code{Car} của mỗi cặp là phần tử tương ứng trong chuỗi, và
+@code{cdr} của cặp là cặp tiếp theo trong chuỗi. @code{Cdr} của cặp cuối cùng
+đánh hiệu kết thúc dãy bằng cách trỏ đến một giá trị đặc biệt không phải là
+cặp, được biểu diễn trong các sơ đồ hộp-và-con-trỏ như một đường chéo và
+trong các chương trình là giá trị của biến @code{nil}. Toàn bộ dãy được xây
+dựng bằng các phép toán @code{cons} lồng nhau:
+
+@lisp
+(cons 1
+      (cons 2
+            (cons 3
+                  (cons 4 nil))))
+@end lisp
+
+@float
+@anchor{Figure 2.4}
+@ifinfo
+@quotation
+@strong{Figure 2.4:} The sequence 1, 2, 3, 4 represented as a chain of pairs.
+
+@example
+     +---+---+     +---+---+     +---+---+     +---+---+
+---->| * | *-+---->| * | *-+---->| * | *-+---->| * | / |
+     +-|-+---+     +-|-+---+     +-|-+---+     +-|-+---+
+       |             |             |             |
+       V             V             V             V
+     +---+         +---+         +---+         +---+
+     | 1 |         | 2 |         | 3 |         | 4 |
+     +---+         +---+         +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.4e,125mm,,,.std.svg}
+@caption{@strong{Figure 2.4:} The sequence 1, 2, 3, 4 represented as a chain of pairs.}
+@end iftex
+@end float
+
+@noindent
+Một dãy cặp như vậy, được tạo thành bởi các @code{cons} lồng nhau, được gọi
+là một @newterm{danh sách}, và Scheme cung cấp một hàm nguyên thủy gọi là
+@code{list} để hỗ trợ xây dựng danh sách.@footnote{Trong cuốn sách này, chúng
+ta dùng @newterm{danh sách} để chỉ một chuỗi cặp kết thúc bởi dấu kết thúc
+danh sách. Ngược lại, thuật ngữ @newterm{cấu trúc danh sách} đề cập đến bất
+kỳ cấu trúc dữ liệu nào được tạo từ cặp, không chỉ là danh sách.} Dãy trên
+có thể được tạo ra bởi @code{(list 1 2 3 4)}. Nói chung,
+
+@lisp
+(list ⟨@var{a₁}⟩ ⟨@var{a₂}⟩ @r{…} ⟨@var{aₙ}⟩)
+@end lisp
+
+@noindent
+tương đương với
+
+@lisp
+(cons ⟨@var{a₁}⟩
+      (cons ⟨@var{a₂}⟩
+            (cons @r{…}
+                  (cons ⟨@var{aₙ}⟩
+                        nil)@r{…})))
+@end lisp
+
+@noindent
+Các hệ thống Lisp theo quy ước in danh sách bằng cách in dãy các phần tử,
+được bao trong ngoặc đơn. Do đó, đối tượng dữ liệu trong @ref{Figure 2.4}
+được in là @code{(1 2 3 4)}:
+
+@lisp
+(define one-through-four (list 1 2 3 4))
+
+one-through-four
+@i{(1 2 3 4)}
+@end lisp
+
+@noindent
+Cẩn thận đừng nhầm lẫn biểu thức @code{(list 1 2 3 4)} với danh sách
+@code{(1 2 3 4)}, là kết quả thu được khi biểu thức được đánh giá. Cố gắng
+đánh giá biểu thức @code{(1 2 3 4)} sẽ báo lỗi khi trình thông dịch cố gắng
+áp dụng thủ tục @code{1} cho các đối số @code{2}, @code{3}, @code{4}.
+
+Chúng ta có thể coi @code{car} là chọn phần tử đầu tiên trong danh sách, và
+@code{cdr} là chọn danh sách con bao gồm tất cả các phần tử trừ phần tử đầu
+tiên. Các ứng dụng lồng nhau của @code{car} và @code{cdr} có thể được dùng
+để trích xuất phần tử thứ hai, thứ ba và tiếp theo trong danh sách.@footnote{
+Vì các ứng dụng lồng nhau của @code{car} và @code{cdr} rắc rối khi viết, các
+phương ngữ Lisp cung cấp các từ viết tắt cho chúng---ví dụ,
+
+@lisp
+(cadr ⟨@var{arg}⟩) = (car (cdr ⟨@var{arg}⟩))
+@end lisp
+
+Tên của tất cả các thủ tục như vậy bắt đầu bằng @code{c} và kết thúc bằng
+@code{r}. Mỗi @code{a} ở giữa đại diện cho một phép toán @code{car} và mỗi
+@code{d} cho một phép toán @code{cdr}, được áp dụng theo cùng thứ tự chúng
+xuất hiện trong tên. Các tên @code{car} và @code{cdr} tồn tại dai dẳng vì các
+tổ hợp đơn giản như @code{cadr} có thể đọc được.} Bộ khởi tạo @code{cons} tạo
+ra một danh sách như danh sách gốc, nhưng với một phần tử bổ sung ở đầu.
+
+@lisp
+(car one-through-four)
+@i{1}
+
+(cdr one-through-four)
+@i{(2 3 4)}
+
+(car (cdr one-through-four))
+@i{2}
+
+(cons 10 one-through-four)
+@i{(10 1 2 3 4)}
+
+(cons 5 one-through-four)
+@i{(5 1 2 3 4)}
+@end lisp
+
+@noindent
+Giá trị của @code{nil}, dùng để kết thúc chuỗi cặp, có thể được coi là một
+dãy không có phần tử nào, @newterm{danh sách rỗng}. Từ @newterm{nil} là chữ
+viết tắt của từ tiếng Latin @emph{nihil}, có nghĩa là ``không có gì.''@footnote{
+Thật đáng ngạc nhiên về bao nhiêu năng lượng trong việc chuẩn hóa các phương
+ngữ Lisp đã bị tiêu tốn vào các tranh luận theo nghĩa đen là về không có gì:
+@code{nil} có phải là một tên thông thường không? Giá trị của @code{nil} có
+phải là một ký hiệu không? Nó có phải là một danh sách không? Nó có phải là
+một cặp không? Trong Scheme, @code{nil} là một tên thông thường, mà chúng ta
+dùng trong phần này như một biến có giá trị là dấu kết thúc danh sách (giống
+như @code{true} là một biến thông thường có giá trị đúng). Các phương ngữ
+Lisp khác, bao gồm Common Lisp, coi @code{nil} là một ký hiệu đặc biệt. Các
+tác giả của cuốn sách này, những người đã chịu đựng quá nhiều cuộc tranh cãi
+về chuẩn hóa ngôn ngữ, muốn tránh toàn bộ vấn đề. Khi chúng ta đã giới thiệu
+trích dẫn trong @ref{2.3}, chúng ta sẽ ký hiệu danh sách rỗng là @code{'()}
+và hoàn toàn loại bỏ biến @code{nil}.}
+
+@subsubheading Các phép toán danh sách
+
+Việc dùng cặp để biểu diễn dãy các phần tử như danh sách đi kèm với các kỹ
+thuật lập trình thông thường để thao tác danh sách bằng cách liên tiếp
+``@code{cdr} xuống'' danh sách. Ví dụ, thủ tục @code{list-ref} nhận một danh
+sách và một số @math{n} làm đối số và trả về phần tử thứ @math{n^{\text{th}}} của danh sách.
+Thông lệ là đánh số các phần tử của danh sách bắt đầu từ 0. Phương pháp tính
+@code{list-ref} như sau:
+
+@itemize @bullet
+
+@item
+Với @math{{n = 0}}, @code{list-ref} nên trả về @code{car} của danh sách.
+
+@item
+Ngoài ra, @code{list-ref} nên trả về phần tử thứ @math{{(n - 1)}} của
+@code{cdr} của danh sách.
+
+@end itemize
+
+@lisp
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items)
+                (- n 1))))
+
+(define squares
+  (list 1 4 9 16 25))
+
+(list-ref squares 3)
+@i{16}
+@end lisp
+
+@noindent
+Thường chúng ta @code{cdr} xuống toàn bộ danh sách. Để hỗ trợ điều này,
+Scheme bao gồm một vị từ nguyên thủy @code{null?}, kiểm tra xem đối số của
+nó có phải là danh sách rỗng không. Thủ tục @code{length}, trả về số phần tử
+trong một danh sách, minh họa mẫu sử dụng điển hình này:
+
+@lisp
+(define (length items)
+  (if (null? items)
+      0
+      (+ 1 (length (cdr items)))))
+
+(define odds
+  (list 1 3 5 7))
+
+(length odds)
+@i{4}
+@end lisp
+
+@noindent
+Thủ tục @code{length} cài đặt một kế hoạch đệ quy đơn giản. Bước rút gọn là:
+
+@itemize @bullet
+
+@item
+@code{Length} của bất kỳ danh sách nào là 1 cộng @code{length} của @code{cdr}
+của danh sách.
+
+@end itemize
+
+@noindent
+Điều này được áp dụng liên tiếp cho đến khi chúng ta đạt đến trường hợp cơ sở:
+
+@itemize @bullet
+
+@item
+@code{Length} của danh sách rỗng là 0.
+
+@end itemize
+
+@noindent
+Chúng ta cũng có thể tính @code{length} theo kiểu lặp:
+
+@lisp
+(define (length items)
+  (define (length-iter a count)
+    (if (null? a)
+        count
+        (length-iter (cdr a)
+                     (+ 1 count))))
+  (length-iter items 0))
+@end lisp
+
+@noindent
+Một kỹ thuật lập trình thông thường khác là ``@code{cons} lên'' một danh sách
+kết quả trong khi @code{cdr} xuống một danh sách, như trong thủ tục
+@code{append}, nhận hai danh sách làm đối số và kết hợp các phần tử của chúng
+để tạo thành một danh sách mới:
+
+@lisp
+(append squares odds)
+@i{(1 4 9 16 25 1 3 5 7)}
+
+(append odds squares)
+@i{(1 3 5 7 1 4 9 16 25)}
+@end lisp
+
+@noindent
+@code{Append} cũng được cài đặt bằng kế hoạch đệ quy. Để @code{append}
+danh sách @code{list1} và @code{list2}, làm như sau:
+
+@itemize @bullet
+
+@item
+Nếu @code{list1} là danh sách rỗng, thì kết quả chỉ là @code{list2}.
+
+@item
+Ngoài ra, @code{append} @code{cdr} của @code{list1} và @code{list2}, và
+@code{cons} @code{car} của @code{list1} vào kết quả:
+
+@end itemize
+
+@lisp
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1)
+            (append (cdr list1)
+                    list2))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.17}Bài tập 2.17:} Định nghĩa thủ tục @code{last-pair}
+trả về danh sách chỉ chứa phần tử cuối cùng của một danh sách (khác rỗng) đã
+cho:
+
+@lisp
+(last-pair (list 23 72 149 34))
+@i{(34)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.18}Bài tập 2.18:} Định nghĩa thủ tục @code{reverse}
+nhận một danh sách làm đối số và trả về danh sách cùng các phần tử theo thứ
+tự ngược lại:
+
+@lisp
+(reverse (list 1 4 9 16 25))
+@i{(25 16 9 4 1)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.19}Bài tập 2.19:} Hãy xem xét chương trình đếm
+tiền lẻ trong @ref{1.2.2}. Thật hay nếu có thể dễ dàng thay đổi loại tiền
+tệ được sử dụng bởi chương trình, chẳng hạn để tính số cách đổi một đồng bảng
+Anh. Theo cách viết chương trình hiện tại, kiến thức về loại tiền tệ được
+phân tán một phần vào thủ tục @code{first-denomination} và một phần vào thủ
+tục @code{count-change} (biết rằng có năm loại tiền xu Mỹ). Sẽ hay hơn nếu
+có thể cung cấp một danh sách các đồng xu để đổi tiền.
+
+Chúng ta muốn viết lại thủ tục @code{cc} sao cho đối số thứ hai của nó là một
+danh sách các mệnh giá của các đồng xu sẽ dùng thay vì một số nguyên chỉ định
+loại đồng xu nào sẽ dùng. Khi đó chúng ta có thể có các danh sách xác định
+mỗi loại tiền tệ:
+
+@lisp
+(define us-coins
+  (list 50 25 10 5 1))
+
+(define uk-coins
+  (list 100 50 20 10 5 2 1 0.5))
+@end lisp
+
+Chúng ta có thể gọi @code{cc} như sau:
+
+@lisp
+(cc 100 us-coins)
+@i{292}
+@end lisp
+
+Để làm điều này sẽ cần thay đổi chương trình @code{cc} một chút. Nó vẫn có
+cùng dạng, nhưng sẽ truy cập đối số thứ hai khác nhau, như sau:
+
+@lisp
+(define (cc amount coin-values)
+  (cond ((= amount 0)
+         1)
+        ((or (< amount 0)
+             (no-more? coin-values))
+         0)
+        (else
+         (+ (cc
+             amount
+             (except-first-denomination
+              coin-values))
+            (cc
+             (- amount
+                (first-denomination
+                 coin-values))
+             coin-values)))))
+@end lisp
+
+Định nghĩa các thủ tục @code{first-denomination},
+@code{except-first-denomination} và @code{no-more?} theo các phép toán nguyên
+thủy trên cấu trúc danh sách. Thứ tự của danh sách @code{coin-values} có ảnh
+hưởng đến câu trả lời được tạo ra bởi @code{cc} không? Tại sao có hoặc tại
+sao không?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.20}Bài tập 2.20:} Các thủ tục @code{+}, @code{*}
+và @code{list} nhận số lượng đối số tùy ý. Một cách định nghĩa các thủ tục
+như vậy là dùng @code{define} với @newterm{ký hiệu đuôi chấm}. Trong định
+nghĩa thủ tục, một danh sách tham số có dấu chấm trước tên tham số cuối cùng
+chỉ ra rằng, khi thủ tục được gọi, các tham số đầu (nếu có) sẽ có giá trị là
+các đối số đầu như thường lệ, nhưng giá trị của tham số cuối sẽ là một
+@newterm{danh sách} gồm tất cả các đối số còn lại. Ví dụ, cho định nghĩa
+
+@lisp
+(define (f x y . z) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+thủ tục @code{f} có thể được gọi với hai đối số trở lên. Nếu chúng ta đánh
+giá
+
+@lisp
+(f 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+thì trong thân của @code{f}, @code{x} sẽ là 1, @code{y} sẽ là 2, và @code{z}
+sẽ là danh sách @code{(3 4 5 6)}. Cho định nghĩa
+
+@lisp
+(define (g . w) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+thủ tục @code{g} có thể được gọi với không hoặc nhiều đối số. Nếu chúng ta
+đánh giá
+
+@lisp
+(g 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+thì trong thân của @code{g}, @code{w} sẽ là danh sách @code{(1 2 3 4 5
+6)}.@footnote{Để định nghĩa @code{f} và @code{g} bằng @code{lambda} chúng ta
+sẽ viết
+
+@lisp
+(define f (lambda (x y . z) ⟨@var{body}⟩))
+(define g (lambda w ⟨@var{body}⟩))
+@end lisp
+}
+
+Dùng ký hiệu này để viết thủ tục @code{same-parity} nhận một hoặc nhiều số
+nguyên và trả về danh sách tất cả các đối số có cùng tính chẵn lẻ với đối số
+đầu tiên. Ví dụ,
+
+@lisp
+(same-parity 1 2 3 4 5 6 7)
+@i{(1 3 5 7)}
+
+(same-parity 2 3 4 5 6 7)
+@i{(2 4 6)}
+@end lisp
+@end quotation
+
+@subsubheading Ánh xạ trên danh sách
+
+Một phép toán cực kỳ hữu ích là áp dụng một biến đổi nào đó cho mỗi phần tử
+trong danh sách và tạo ra danh sách các kết quả. Chẳng hạn, thủ tục sau đây
+co giãn mỗi số trong một danh sách theo một hệ số cho trước:
+
+@lisp
+(define (scale-list items factor)
+  (if (null? items)
+      nil
+      (cons (* (car items) factor)
+            (scale-list (cdr items)
+                        factor))))
+
+(scale-list (list 1 2 3 4 5) 10)
+@i{(10 20 30 40 50)}
+@end lisp
+
+@noindent
+Chúng ta có thể trừu tượng hóa ý tưởng tổng quát này và nắm bắt nó như một
+mẫu chung được biểu đạt như một thủ tục bậc cao, giống như trong @ref{1.3}.
+Thủ tục bậc cao ở đây được gọi là @code{map}. @code{Map} nhận một thủ tục một
+đối số và một danh sách làm đối số, và trả về danh sách các kết quả thu được
+bằng cách áp dụng thủ tục cho mỗi phần tử trong
+danh sách:@footnote{@anchor{Footnote 78}
+Scheme thông thường cung cấp thủ tục @code{map} tổng quát hơn thủ tục được
+mô tả ở đây. @code{Map} tổng quát hơn này nhận một thủ tục có @math{n} đối số,
+cùng với @math{n} danh sách, và áp dụng thủ tục cho tất cả các phần tử đầu
+tiên của các danh sách, tất cả các phần tử thứ hai, v.v., trả về danh sách
+các kết quả. Ví dụ:
+
+@lisp
+(map +
+     (list 1 2 3)
+     (list 40 50 60)
+     (list 700 800 900))
+@i{(741 852 963)}
+
+(map (lambda (x y) (+ x (* 2 y)))
+     (list 1 2 3)
+     (list 4 5 6))
+@i{(9 12 15)}
+@end lisp
+}
+
+@lisp
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(map abs (list -10 2.5 -11.6 17))
+@i{(10 2.5 11.6 17)}
+
+(map (lambda (x) (* x x)) (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+@noindent
+Bây giờ chúng ta có thể đưa ra một định nghĩa mới của @code{scale-list} theo
+@code{map}:
+
+@lisp
+(define (scale-list items factor)
+  (map (lambda (x) (* x factor))
+       items))
+@end lisp
+
+@noindent
+@code{Map} là một cấu trúc quan trọng, không chỉ vì nó nắm bắt một mẫu chung,
+mà còn vì nó thiết lập một mức độ trừu tượng cao hơn khi làm việc với danh
+sách. Trong định nghĩa gốc của @code{scale-list}, cấu trúc đệ quy của chương
+trình thu hút sự chú ý đến việc xử lý từng phần tử của danh sách. Định nghĩa
+@code{scale-list} theo @code{map} che giấu mức độ chi tiết đó và nhấn mạnh
+rằng co giãn biến đổi một danh sách các phần tử thành một danh sách các kết
+quả. Sự khác biệt giữa hai định nghĩa không phải là máy tính đang thực hiện
+một quá trình khác (nó không) mà là chúng ta suy nghĩ về quá trình đó khác
+nhau. Thực tế, @code{map} giúp thiết lập một rào cản trừu tượng cô lập cài
+đặt của các thủ tục biến đổi danh sách khỏi các chi tiết về cách các phần tử
+của danh sách được trích xuất và kết hợp. Giống như các rào cản được hiển thị
+trong @ref{Figure 2.1}, trừu tượng này cho chúng ta sự linh hoạt để thay đổi
+các chi tiết cấp thấp về cách dãy được cài đặt, trong khi vẫn giữ nguyên khung
+khái niệm của các phép toán biến đổi dãy thành dãy. Phần @ref{2.2.3} mở rộng
+về việc sử dụng dãy như một khuôn khổ để tổ chức chương trình.
+
+@quotation
+@strong{@anchor{Exercise 2.21}Bài tập 2.21:} Thủ tục @code{square-list} nhận
+một danh sách số làm đối số và trả về danh sách các bình phương của các số đó.
+
+@lisp
+(square-list (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+Đây là hai định nghĩa khác nhau của @code{square-list}. Hoàn thành cả hai bằng
+cách điền vào các biểu thức còn thiếu:
+
+@lisp
+(define (square-list items)
+  (if (null? items)
+      nil
+      (cons ⟨??⟩ ⟨??⟩)))
+
+(define (square-list items)
+  (map ⟨??⟩ ⟨??⟩))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.22}Bài tập 2.22:} Louis Reasoner cố gắng viết lại
+thủ tục @code{square-list} đầu tiên của @ref{Exercise 2.21} sao cho nó phát
+triển một quá trình lặp:
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons (square (car things))
+                    answer))))
+  (iter items nil))
+@end lisp
+
+Thật không may, định nghĩa @code{square-list} theo cách này tạo ra danh sách
+kết quả theo thứ tự ngược với thứ tự mong muốn. Tại sao?
+
+Louis sau đó cố gắng sửa lỗi bằng cách hoán đổi các đối số cho @code{cons}:
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square
+                     (car things))))))
+  (iter items nil))
+@end lisp
+
+Cách này cũng không hoạt động. Giải thích tại sao.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.23}Bài tập 2.23:} Thủ tục @code{for-each} tương
+tự @code{map}. Nó nhận một thủ tục và một danh sách các phần tử làm đối số.
+Tuy nhiên, thay vì tạo thành danh sách các kết quả, @code{for-each} chỉ áp
+dụng thủ tục cho mỗi phần tử lần lượt, từ trái sang phải. Các giá trị được
+trả về bởi việc áp dụng thủ tục cho các phần tử hoàn toàn không được dùng---
+@code{for-each} được dùng với các thủ tục thực hiện một hành động, chẳng hạn
+như in. Ví dụ,
+
+@lisp
+(for-each
+ (lambda (x) (newline) (display x))
+ (list 57 321 88))
+
+@i{57}
+@i{321}
+@i{88}
+@end lisp
+
+Giá trị được trả về bởi lời gọi @code{for-each} (không được minh họa ở trên)
+có thể là bất cứ thứ gì tùy ý, chẳng hạn như true. Hãy cho một cài đặt của
+@code{for-each}.
+@end quotation

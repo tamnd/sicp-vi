@@ -1,0 +1,103 @@
+@node       Acknowledgments, Chapter 1, Preface 1e, Top
+@unnumbered Lời Cảm Ơn
+
+Chúng tôi muốn cảm ơn những người đã giúp chúng tôi phát triển cuốn sách và chương
+trình giảng dạy này.
+
+Môn học của chúng tôi rõ ràng là hậu duệ trí tuệ của ``6.231'', một môn học tuyệt
+vời về ngôn ngữ học lập trình và λ-tính được dạy tại @abbr{MIT} vào cuối những năm
+1960 bởi Jack Wozencraft và Arthur Evans, Jr.
+
+Chúng tôi nợ rất nhiều Robert Fano, người đã tổ chức lại chương trình giảng dạy nhập
+môn kỹ thuật điện và khoa học máy tính của @abbr{MIT} để nhấn mạnh các nguyên tắc
+thiết kế kỹ thuật. Ông đã dẫn dắt chúng tôi bắt đầu doanh nghiệp này và viết bộ ghi
+chú môn học đầu tiên từ đó cuốn sách này phát triển.
+
+Phần lớn phong cách và thẩm mỹ của lập trình mà chúng tôi cố gắng truyền đạt đã được
+phát triển cùng với Guy Lewis Steele Jr., người đã cộng tác với Gerald Jay Sussman
+trong quá trình phát triển ban đầu của ngôn ngữ Scheme. Ngoài ra, David Turner, Peter
+Henderson, Dan Friedman, David Wise và Will Clinger đã dạy chúng tôi nhiều kỹ thuật
+của cộng đồng lập trình hàm xuất hiện trong cuốn sách này.
+
+Joel Moses đã dạy chúng tôi về cấu trúc các hệ thống lớn. Kinh nghiệm của ông với
+hệ thống Macsyma cho tính toán ký hiệu đã cung cấp cái nhìn rằng người ta nên tránh
+những phức tạp về điều khiển và tập trung vào việc tổ chức dữ liệu để phản ánh cấu
+trúc thực của thế giới đang được mô hình hóa.
+
+Marvin Minsky và Seymour Papert đã hình thành nhiều quan điểm của chúng tôi về lập
+trình và vị trí của nó trong cuộc sống trí tuệ của chúng tôi. Với họ, chúng tôi hiểu
+được rằng tính toán cung cấp một phương tiện biểu đạt để khám phá các ý tưởng mà
+nếu không như vậy sẽ quá phức tạp để xử lý chính xác. Họ nhấn mạnh rằng khả năng
+viết và sửa đổi chương trình của sinh viên cung cấp một phương tiện mạnh mẽ trong
+đó việc khám phá trở thành hoạt động tự nhiên.
+
+Chúng tôi cũng đồng ý mạnh mẽ với Alan Perlis rằng lập trình rất vui vẻ và chúng
+ta phải cẩn thận để duy trì niềm vui của lập trình. Một phần niềm vui này xuất phát
+từ việc quan sát những bậc thầy vĩ đại khi làm việc. Chúng tôi may mắn được là những
+lập trình viên tập sự dưới chân Bill Gosper và Richard Greenblatt.
+
+Thật khó để liệt kê tất cả những người đã đóng góp vào sự phát triển chương trình
+giảng dạy của chúng tôi. Chúng tôi cảm ơn tất cả các giảng viên, giáo viên hướng
+dẫn và gia sư đã làm việc với chúng tôi trong mười lăm năm qua và đầu tư nhiều giờ
+thêm vào môn học của chúng tôi, đặc biệt là Bill Siebert, Albert Meyer, Joe Stoy,
+Randy Davis, Louis Braida, Eric Grimson, Rod Brooks, Lynn Stein và Peter Szolovits.
+Chúng tôi muốn đặc biệt ghi nhận những đóng góp giảng dạy xuất sắc của Franklyn
+Turbak, hiện tại ở Wellesley; công việc của ông trong giảng dạy đại học đã đặt ra
+một tiêu chuẩn mà tất cả chúng tôi đều có thể hướng tới. Chúng tôi biết ơn Jerry
+Saltzer và Jim Miller vì đã giúp chúng tôi vật lộn với những bí ẩn của tính đồng
+thời, và Peter Szolovits cùng David McAllester vì những đóng góp của họ vào việc
+trình bày đánh giá không xác định trong @ref{Chapter 4,,Chương 4}.
+
+Nhiều người đã nỗ lực đáng kể trong việc trình bày tài liệu này tại các trường đại
+học khác. Một số người mà chúng tôi đã làm việc chặt chẽ là Jacob Katzenelson tại
+Technion, Hardy Mayer tại Đại học California ở Irvine, Joe Stoy tại Oxford, Elisha
+Sacks tại Purdue và Jan Komorowski tại Đại học Khoa học và Công nghệ Na Uy. Chúng
+tôi đặc biệt tự hào về những đồng nghiệp đã nhận được các giải thưởng giảng dạy lớn
+cho các phiên bản chỉnh sửa của môn học này tại các trường đại học khác, bao gồm
+Kenneth Yip tại Yale, Brian Harvey tại Đại học California ở Berkeley và Dan
+Huttenlocher tại Cornell.
+
+Al Moy@'e đã sắp xếp để chúng tôi dạy tài liệu này cho các kỹ sư tại Hewlett-Packard
+và để sản xuất các băng video về các bài giảng này. Chúng tôi muốn cảm ơn các giảng
+viên tài năng---đặc biệt là Jim Miller, Bill Siebert và Mike Eisenberg---những người
+đã thiết kế các khóa học giáo dục liên tục kết hợp những băng này và dạy chúng tại
+các trường đại học và trong ngành công nghiệp trên toàn thế giới.
+
+Nhiều nhà giáo dục ở các quốc gia khác đã nỗ lực đáng kể trong việc dịch ấn bản đầu
+tiên. Michel Briand, Pierre Chamard và Andr@'e Pic đã sản xuất một bản tiếng Pháp;
+Susanne Daniels-Herold đã sản xuất một bản tiếng Đức; và Fumio Motoyoshi đã sản xuất
+một bản tiếng Nhật. Chúng tôi không biết ai đã sản xuất bản tiếng Trung, nhưng chúng
+tôi coi đó là vinh dự khi được chọn làm chủ đề của bản dịch ``không được phép''.
+
+Thật khó để liệt kê tất cả những người đã đóng góp kỹ thuật vào sự phát triển của
+các hệ thống Scheme mà chúng tôi sử dụng cho mục đích giảng dạy. Ngoài Guy Steele,
+các phù thủy chính bao gồm Chris Hanson, Joe Bowbeer, Jim Miller, Guillermo Rozas và
+Stephen Adams. Những người khác đã đóng góp thời gian đáng kể là Richard Stallman,
+Alan Bawden, Kent Pitman, Jon Taft, Neil Mayle, John Lamping, Gwyn Osnos, Tracy
+Larrabee, George Carrette, Soma Chaudhuri, Bill Chiarchiaro, Steven Kirsch, Leigh
+Klotz, Wayne Noss, Todd Cass, Patrick O'Donnell, Kevin Theobald, Daniel Weise,
+Kenneth Sinclair, Anthony Courtemanche, Henry M. Wu, Andrew Berlin và Ruth Shyu.
+
+Ngoài cài đặt @abbr{MIT}, chúng tôi muốn cảm ơn những người đã làm việc trên tiêu
+chuẩn @abbr{IEEE} Scheme, bao gồm William Clinger và Jonathan Rees, người đã biên
+soạn R⁴RS, và Chris Haynes, David Bartley, Chris Hanson và Jim Miller, người đã
+chuẩn bị tiêu chuẩn @abbr{IEEE}.
+
+Dan Friedman là một nhà lãnh đạo lâu năm của cộng đồng Scheme. Công việc rộng lớn
+hơn của cộng đồng vượt ra ngoài các vấn đề thiết kế ngôn ngữ để bao gồm các đổi mới
+giáo dục quan trọng, chẳng hạn như chương trình giảng dạy trung học dựa trên EdScheme
+của Schemer's Inc., và những cuốn sách tuyệt vời của Mike Eisenberg và của Brian
+Harvey cùng Matthew Wright.
+
+Chúng tôi đánh giá cao công việc của những người đã đóng góp vào việc biến đây thành
+một cuốn sách thực sự, đặc biệt là Terry Ehling, Larry Cohen và Paul Bethge tại
+@abbr{MIT} Press. Ella Mazel đã tìm thấy hình ảnh bìa tuyệt vời. Cho ấn bản thứ hai,
+chúng tôi đặc biệt biết ơn Bernard và Ella Mazel về sự giúp đỡ trong thiết kế sách,
+và David Jones, phù thủy @TeX{} phi thường. Chúng tôi cũng mang nợ những độc giả đã
+đưa ra những nhận xét sâu sắc về bản thảo mới: Jacob Katzenelson, Hardy Mayer, Jim
+Miller, và đặc biệt là Brian Harvey, người đã làm với cuốn sách này điều mà Julie đã
+làm với cuốn sách của ông ấy @cite{Simply Scheme}.
+
+Cuối cùng, chúng tôi muốn ghi nhận sự hỗ trợ của các tổ chức đã khuyến khích công
+việc này qua nhiều năm, bao gồm hỗ trợ từ Hewlett-Packard được thực hiện nhờ Ira
+Goldstein và Joel Birnbaum, và hỗ trợ từ @abbr{DARPA} được thực hiện nhờ Bob Kahn.

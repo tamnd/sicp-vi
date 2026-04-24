@@ -1,0 +1,33 @@
+@node	4.2, 4.3, 4.1, Chapter 4
+@section Các Biến Thể trên Scheme --- Định Giá Lười
+
+Bây giờ khi chúng ta có một trình định giá được diễn đạt như một chương trình
+Lisp, chúng ta có thể thử nghiệm các lựa chọn thay thế trong thiết kế ngôn
+ngữ đơn giản bằng cách sửa đổi trình định giá. Thật vậy, các ngôn ngữ mới
+thường được phát minh bằng cách trước tiên viết một trình định giá nhúng ngôn
+ngữ mới trong một ngôn ngữ cấp cao hiện có. Ví dụ, nếu chúng ta muốn thảo
+luận về một khía cạnh nào đó của một sửa đổi đề xuất cho Lisp với một thành
+viên khác của cộng đồng Lisp, chúng ta có thể cung cấp một trình định giá thể
+hiện sự thay đổi đó. Người nhận sau đó có thể thử nghiệm với trình định giá
+mới và gửi lại nhận xét dưới dạng các sửa đổi tiếp theo. Không chỉ nền tảng
+hiện thực cấp cao giúp dễ dàng kiểm tra và gỡ lỗi trình định giá hơn; ngoài
+ra, việc nhúng cho phép người thiết kế snarf@footnote{Snarf: ``Lấy, đặc biệt
+là một tài liệu hoặc tệp lớn với mục đích sử dụng nó có hoặc không có sự
+cho phép của chủ sở hữu.'' Snarf down: ``Để snarf, đôi khi với hàm ý hấp
+thụ, xử lý hoặc hiểu.'' (Các định nghĩa này được snarfed từ @ref{Steele et al. 1983}.
+Xem thêm @ref{Raymond 1993}.)} các tính năng từ ngôn ngữ nền, giống như trình
+định giá Lisp nhúng của chúng ta dùng các nguyên thủy và cấu trúc điều khiển
+từ Lisp nền. Chỉ sau này (nếu có) người thiết kế mới cần bỏ công xây dựng một
+hiện thực hoàn chỉnh trong ngôn ngữ cấp thấp hoặc trong phần cứng. Trong
+phần này và phần tiếp theo, chúng ta khám phá một số biến thể trên Scheme
+cung cấp thêm sức mạnh diễn đạt đáng kể.
+
+@menu
+* 4.2.1::            Thứ Tự Thông Thường và Thứ Tự Áp Dụng
+* 4.2.2::            Một Trình Thông Dịch với Định Giá Lười
+* 4.2.3::            Luồng như Các Danh Sách Lười
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi

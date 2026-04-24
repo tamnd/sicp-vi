@@ -1,0 +1,253 @@
+@node	1.3.4, Chapter 2, 1.2, 1.3
+@subsection Thủ Tục như Giá Trị Trả Về
+
+Các ví dụ trên chứng minh cách khả năng truyền thủ tục làm đối số tăng cường đáng kể sức mạnh biểu đạt của ngôn ngữ lập trình.  Ta có thể đạt được sức mạnh biểu đạt thậm chí cao hơn bằng cách tạo ra các thủ tục mà các giá trị trả về của chúng bản thân là các thủ tục.
+
+Ta có thể minh họa ý tưởng này bằng cách nhìn lại ví dụ điểm cố định được mô tả ở cuối @ref{1.3.3}.  Ta đã xây dựng một phiên bản mới của thủ tục căn bậc hai như một tìm kiếm điểm cố định, bắt đầu bằng nhận xét rằng @math{\sqrt{x}} là điểm cố định của hàm @math{{y \mapsto x / y}}.  Sau đó ta đã dùng giảm chấn trung bình để làm cho các xấp xỉ hội tụ.  Giảm chấn trung bình bản thân nó là một kỹ thuật tổng quát hữu ích.  Cụ thể là, cho một hàm @math{f}, ta xét hàm có giá trị tại @math{x} bằng trung bình của @math{x} và @math{{f(x)}}.
+
+Ta có thể biểu diễn ý tưởng giảm chấn trung bình bằng thủ tục sau:
+
+@lisp
+(define (average-damp f)
+  (lambda (x)
+    (average x (f x))))
+@end lisp
+
+@noindent
+@code{Average-damp} là một thủ tục nhận làm đối số của nó một thủ tục @code{f} và trả về làm giá trị của nó một thủ tục (được tạo ra bởi @code{lambda}) mà, khi áp dụng cho một số @code{x}, tạo ra trung bình của @code{x} và @code{(f x)}.  Chẳng hạn, áp dụng @code{average-damp} cho thủ tục @code{square} tạo ra một thủ tục có giá trị tại một số @math{x} là trung bình của @math{x} và @math{x^2}.  Áp dụng thủ tục kết quả này cho 10 trả về trung bình của 10 và 100, hay 55:@footnote{Quan sát rằng đây là một tổ hợp mà toán tử của nó bản thân là một tổ hợp.  @ref{Exercise 1.4} đã chứng minh khả năng tạo ra các tổ hợp như vậy, nhưng đó chỉ là một ví dụ đồ chơi.  Ở đây ta bắt đầu thấy nhu cầu thực sự cho các tổ hợp như vậy---khi áp dụng một thủ tục thu được như giá trị được trả về bởi một thủ tục bậc cao.}
+
+@lisp
+((average-damp square) 10)
+@i{55}
+@end lisp
+
+@noindent
+Dùng @code{average-damp}, ta có thể tái xây dựng thủ tục căn bậc hai như sau:
+
+@lisp
+(define (sqrt x)
+  (fixed-point
+   (average-damp
+    (lambda (y) (/ x y)))
+   1.0))
+@end lisp
+
+@noindent
+Lưu ý cách công thức này làm rõ ràng ba ý tưởng trong phương pháp: tìm kiếm điểm cố định, giảm chấn trung bình và hàm @math{{y \mapsto x / y}}.  Thật hữu ích khi so sánh công thức của phương pháp căn bậc hai này với phiên bản ban đầu được đưa ra trong @ref{1.1.7}.  Hãy nhớ rằng các thủ tục này biểu diễn cùng một quá trình, và lưu ý ý tưởng trở nên rõ ràng hơn bao nhiêu khi ta biểu diễn quá trình theo các trừu tượng này.  Nói chung, có nhiều cách để xây dựng một quá trình thành một thủ tục.  Các lập trình viên có kinh nghiệm biết cách chọn các công thức thủ tục đặc biệt rõ ràng, và những yếu tố hữu ích của quá trình được thể hiện như các thực thể riêng biệt có thể được tái sử dụng trong các ứng dụng khác.  Như một ví dụ đơn giản về tái sử dụng, hãy lưu ý rằng căn bậc ba của @math{x} là điểm cố định của hàm @math{{y \mapsto x / y^2}}, vì vậy ta có thể ngay lập tức tổng quát hóa thủ tục căn bậc hai của ta thành một thủ tục trích xuất căn bậc ba:@footnote{Xem @ref{Exercise 1.45} để có thêm tổng quát hóa.}
+
+@lisp
+(define (cube-root x)
+  (fixed-point
+   (average-damp
+    (lambda (y)
+      (/ x (square y))))
+   1.0))
+@end lisp
+
+@subsubheading Phương pháp Newton
+
+Khi ta lần đầu giới thiệu thủ tục căn bậc hai, trong @ref{1.1.7}, ta đã đề cập rằng đây là một trường hợp đặc biệt của @newterm{phương pháp Newton}.  Nếu @math{{x \mapsto g(x)}} là một hàm khả vi, thì một nghiệm của phương trình @math{{g(x) = 0}} là điểm cố định của hàm @math{{x \mapsto f(x)}} trong đó
+@ifinfo
+
+@example
+           g(x)
+f(x) = x - -----
+           Dg(x)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :28:
+
+{f(x)} \,=\, x - \frac{g(x)}{D g(x)}
+\]
+
+@end tex
+@noindent
+và @math{{Dg(x)}} là đạo hàm của @math{g} được đánh giá tại @math{x}.  Phương pháp Newton là việc dùng phương pháp điểm cố định ta đã thấy ở trên để xấp xỉ nghiệm của phương trình bằng cách tìm điểm cố định của hàm @math{{f}}.@footnote{Các sách giải tích cơ bản thường mô tả phương pháp Newton theo dãy xấp xỉ @math{x_{n+1} = x_n - {g(x_n)\,/ Dg(x_n)}}.  Có ngôn ngữ để nói về các quá trình và sử dụng ý tưởng điểm cố định giúp đơn giản hóa mô tả của phương pháp.}
+
+Với nhiều hàm @math{g} và với các dự đoán ban đầu đủ tốt cho @math{x}, phương pháp Newton hội tụ rất nhanh đến một nghiệm của @math{{g(x) = 0}}.@footnote{Phương pháp Newton không phải lúc nào cũng hội tụ đến một câu trả lời, nhưng có thể chứng minh rằng trong các trường hợp thuận lợi mỗi lần lặp làm tăng gấp đôi số chữ số độ chính xác của xấp xỉ đến nghiệm.  Trong những trường hợp như vậy, phương pháp Newton sẽ hội tụ nhanh hơn nhiều so với phương pháp nửa khoảng.}
+
+Để triển khai phương pháp Newton như một thủ tục, trước tiên ta phải biểu diễn ý tưởng về đạo hàm.  Lưu ý rằng ``đạo hàm'', như giảm chấn trung bình, là thứ biến đổi một hàm thành hàm khác.  Chẳng hạn, đạo hàm của hàm @math{{x \mapsto x^3}} là hàm @math{{x \mapsto 3x^2}}.  Nói chung, nếu @math{g} là một hàm và @math{{dx}} là một số nhỏ, thì đạo hàm @math{{Dg}} của @math{g} là hàm có giá trị tại bất kỳ số @math{x} nào (trong giới hạn của @math{{dx}} nhỏ) được cho bởi
+@ifinfo
+
+@example
+        g(x + dx) - g(x)
+Dg(x) = ----------------
+               dx
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :29:
+
+Dg(x) \,=\, {\frac{g(x + dx) - g(x)}{dx}.}
+\]
+
+@end tex
+@noindent
+Như vậy, ta có thể biểu diễn ý tưởng về đạo hàm (lấy @math{{dx}} bằng, chẳng hạn, 0,00001) như thủ tục
+
+@lisp
+(define (deriv g)
+  (lambda (x)
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+@end lisp
+
+@noindent
+cùng với định nghĩa
+
+@lisp
+(define dx 0.00001)
+@end lisp
+
+@noindent
+Giống như @code{average-damp}, @code{deriv} là một thủ tục nhận một thủ tục làm đối số và trả về một thủ tục làm giá trị.  Chẳng hạn, để xấp xỉ đạo hàm của @math{{x \mapsto x^3}} tại 5 (giá trị chính xác của nó là 75) ta có thể đánh giá
+
+@lisp
+(define (cube x) (* x x x))
+
+((deriv cube) 5)
+@i{75.00014999664018}
+@end lisp
+
+@noindent
+Với sự trợ giúp của @code{deriv}, ta có thể biểu diễn phương pháp Newton như một quá trình điểm cố định:
+
+@lisp
+(define (newton-transform g)
+  (lambda (x)
+    (- x (/ (g x)
+            ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g)
+               guess))
+@end lisp
+
+@noindent
+Thủ tục @code{newton-transform} biểu diễn công thức ở đầu phần này, và @code{newtons-method} được định nghĩa dễ dàng theo nó.  Nó nhận làm đối số một thủ tục tính hàm mà ta muốn tìm nghiệm không, cùng với một dự đoán ban đầu.  Chẳng hạn, để tìm căn bậc hai của @math{x}, ta có thể dùng phương pháp Newton để tìm nghiệm không của hàm @math{{y \mapsto y^2 - x}} bắt đầu với dự đoán ban đầu là 1.@footnote{Để tìm căn bậc hai, phương pháp Newton hội tụ nhanh đến nghiệm đúng từ bất kỳ điểm xuất phát nào.}
+
+Điều này cung cấp thêm một dạng khác của thủ tục căn bậc hai:
+
+@lisp
+(define (sqrt x)
+  (newtons-method
+   (lambda (y)
+     (- (square y) x))
+   1.0))
+@end lisp
+
+@subsubheading Các trừu tượng và thủ tục hạng nhất
+
+Ta đã thấy hai cách để biểu diễn phép tính căn bậc hai như một thể hiện của một phương pháp tổng quát hơn, một lần là tìm kiếm điểm cố định và một lần dùng phương pháp Newton.  Vì bản thân phương pháp Newton được biểu diễn như một quá trình điểm cố định, ta thực sự đã thấy hai cách để tính căn bậc hai như các điểm cố định.  Mỗi phương pháp bắt đầu với một hàm và tìm điểm cố định của một số phép biến đổi của hàm.  Ta có thể biểu diễn ý tưởng tổng quát này như một thủ tục:
+
+@lisp
+(define (fixed-point-of-transform
+         g transform guess)
+  (fixed-point (transform g) guess))
+@end lisp
+
+@noindent
+Thủ tục tổng quát này nhận làm đối số một thủ tục @code{g} tính một hàm nào đó, một thủ tục biến đổi @code{g}, và một dự đoán ban đầu.  Kết quả trả về là điểm cố định của hàm đã biến đổi.
+
+Dùng trừu tượng này, ta có thể tái xây dựng phép tính căn bậc hai đầu tiên từ phần này (trong đó ta tìm điểm cố định của phiên bản giảm chấn trung bình của @math{{y \mapsto x / y}}) như một thể hiện của phương pháp tổng quát này:
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform
+   (lambda (y) (/ x y))
+   average-damp
+   1.0))
+@end lisp
+
+@noindent
+Tương tự, ta có thể biểu diễn phép tính căn bậc hai thứ hai từ phần này (một thể hiện của phương pháp Newton tìm điểm cố định của phép biến đổi Newton của @math{{y \mapsto y^2 - x}}) là
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform
+   (lambda (y) (- (square y) x))
+   newton-transform
+   1.0))
+@end lisp
+
+@noindent
+Ta bắt đầu phần @ref{1.3} với nhận xét rằng các thủ tục phức hợp là một cơ chế trừu tượng hóa quan trọng, vì chúng cho phép ta biểu diễn các phương pháp tính toán tổng quát như các yếu tố rõ ràng trong ngôn ngữ lập trình của ta.  Bây giờ ta đã thấy các thủ tục bậc cao cho phép ta thao tác các phương pháp tổng quát này để tạo ra các trừu tượng xa hơn.
+
+Với tư cách là lập trình viên, ta nên cảnh giác với các cơ hội xác định các trừu tượng cơ bản trong các chương trình của ta và xây dựng dựa trên chúng và tổng quát hóa chúng để tạo ra các trừu tượng mạnh mẽ hơn.  Điều này không có nghĩa là người ta nên luôn viết chương trình theo cách trừu tượng nhất có thể; các lập trình viên chuyên nghiệp biết cách chọn mức độ trừu tượng phù hợp với nhiệm vụ của họ.  Nhưng quan trọng là có thể suy nghĩ theo các trừu tượng này, để ta có thể sẵn sàng áp dụng chúng trong các bối cảnh mới.  Ý nghĩa của các thủ tục bậc cao là chúng cho phép ta biểu diễn các trừu tượng này một cách rõ ràng như các yếu tố trong ngôn ngữ lập trình của ta, để chúng có thể được xử lý giống như các yếu tố tính toán khác.
+
+Nói chung, các ngôn ngữ lập trình áp đặt các hạn chế lên các cách mà các yếu tố tính toán có thể được thao tác.  Các yếu tố với ít hạn chế nhất được gọi là có trạng thái @newterm{hạng nhất}.  Một số ``quyền và đặc quyền'' của các yếu tố hạng nhất là:@footnote{Khái niệm trạng thái hạng nhất của các yếu tố ngôn ngữ lập trình xuất phát từ nhà khoa học máy tính người Anh Christopher Strachey (1916-1975).}
+
+@itemize @bullet
+
+@item
+Chúng có thể được đặt tên bởi các biến.
+
+@item
+Chúng có thể được truyền làm đối số cho các thủ tục.
+
+@item
+Chúng có thể được trả về như kết quả của các thủ tục.
+
+@item
+Chúng có thể được đưa vào các cấu trúc dữ liệu.@footnote{Ta sẽ thấy các ví dụ về điều này sau khi ta giới thiệu các cấu trúc dữ liệu trong @ref{Chapter 2,,@w{Chapter 2}}.}
+
+@end itemize
+
+@noindent
+Lisp, không giống như các ngôn ngữ lập trình phổ biến khác, trao cho các thủ tục trạng thái hạng nhất đầy đủ.  Điều này đặt ra các thách thức cho việc triển khai hiệu quả, nhưng lợi ích thu được về sức mạnh biểu đạt là rất lớn.@footnote{Chi phí triển khai chính của các thủ tục hạng nhất là việc cho phép các thủ tục được trả về như các giá trị đòi hỏi phải dành lưu trữ cho các biến tự do của thủ tục ngay cả khi thủ tục không thực thi.  Trong triển khai Scheme ta sẽ nghiên cứu trong @ref{4.1}, các biến này được lưu trong môi trường của thủ tục.}
+
+@quotation
+@strong{@anchor{Exercise 1.40}Bài tập 1.40:} Định nghĩa một thủ tục @code{cubic} có thể được dùng cùng với thủ tục @code{newtons-method} trong các biểu thức có dạng
+
+@lisp
+(newtons-method (cubic a b c) 1)
+@end lisp
+
+@noindent
+để xấp xỉ các nghiệm không của đa thức bậc ba @math{{x^3 + ax^2 + bx + c}}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.41}Bài tập 1.41:} Định nghĩa một thủ tục @code{double} nhận một thủ tục một đối số làm đối số và trả về một thủ tục áp dụng thủ tục ban đầu hai lần.  Chẳng hạn, nếu @code{inc} là một thủ tục cộng thêm 1 vào đối số của nó, thì @code{(double inc)} nên là một thủ tục cộng thêm 2.  Giá trị nào được trả về bởi
+
+@lisp
+(((double (double double)) inc) 5)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.42}Bài tập 1.42:} Gọi @math{f} và @math{g} là hai hàm một đối số.  @newterm{Hợp thành} @math{f} sau @math{g} được định nghĩa là hàm @math{{x \mapsto f(g(x))}}.  Định nghĩa một thủ tục @code{compose} triển khai hợp thành.  Chẳng hạn, nếu @code{inc} là thủ tục cộng thêm 1 vào đối số của nó,
+
+@lisp
+((compose square inc) 6)
+@i{49}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.43}Bài tập 1.43:} Nếu @math{f} là một hàm số và @math{n} là một số nguyên dương, thì ta có thể tạo ra ứng dụng lặp thứ @math{n} của @math{f}, được định nghĩa là hàm có giá trị tại @math{x} là @math{{f(f(\dots (f(x))\dots ))}}.  Chẳng hạn, nếu @math{f} là hàm @math{{x \mapsto x + 1}}, thì ứng dụng lặp thứ @math{n} của @math{f} là hàm @math{{x \mapsto x + n}}.  Nếu @math{f} là phép toán bình phương một số, thì ứng dụng lặp thứ @math{n} của @math{f} là hàm nâng đối số của nó lên lũy thừa @math{{2^n}}.  Viết một thủ tục nhận đầu vào là một thủ tục tính @math{f} và một số nguyên dương @math{n} rồi trả về thủ tục tính ứng dụng lặp thứ @math{n} của @math{f}.  Thủ tục của bạn nên có thể được dùng như sau:
+
+@lisp
+((repeated square 2) 5)
+@i{625}
+@end lisp
+
+Gợi ý: Bạn có thể thấy thuận tiện khi dùng @code{compose} từ @ref{Exercise 1.42}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.44}Bài tập 1.44:} Ý tưởng @newterm{làm mịn} một hàm là một khái niệm quan trọng trong xử lý tín hiệu.  Nếu @math{f} là một hàm và @math{{dx}} là một số nhỏ nào đó, thì phiên bản được làm mịn của @math{f} là hàm có giá trị tại điểm @math{x} là trung bình của @math{{f(x - dx)}}, @math{{f(x)}} và @math{{f(x + dx)}}.  Viết một thủ tục @code{smooth} nhận đầu vào là một thủ tục tính @math{f} và trả về một thủ tục tính @math{f} được làm mịn.  Đôi khi có giá trị khi làm mịn một hàm lặp đi lặp lại (tức là làm mịn hàm được làm mịn, v.v.) để thu được @newterm{hàm được làm mịn @i{n} lần}.  Chỉ ra cách tạo ra hàm được làm mịn @math{n} lần của bất kỳ hàm nào đã cho bằng @code{smooth} và @code{repeated} từ @ref{Exercise 1.43}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.45}Bài tập 1.45:} Ta đã thấy trong @ref{1.3.3} rằng cố gắng tính căn bậc hai bằng cách tìm điểm cố định của @math{{y \mapsto x / y}} một cách ngây thơ không hội tụ, và điều này có thể được khắc phục bằng giảm chấn trung bình.  Phương pháp tương tự hoạt động để tìm căn bậc ba như các điểm cố định của @math{{y \mapsto x / y^2}} được giảm chấn trung bình.  Thật không may, quá trình không hoạt động với căn bậc bốn---một lần giảm chấn trung bình là không đủ để làm cho tìm kiếm điểm cố định cho @math{{y \mapsto x / y^3}} hội tụ.  Mặt khác, nếu ta giảm chấn trung bình hai lần (tức là dùng giảm chấn trung bình của giảm chấn trung bình của @math{{y \mapsto x / y^3}}) thì tìm kiếm điểm cố định hội tụ.  Thực hiện một số thí nghiệm để xác định cần bao nhiêu lần giảm chấn trung bình để tính căn bậc @math{n} như một tìm kiếm điểm cố định dựa trên giảm chấn trung bình lặp lại của @math{{y \mapsto x / y^{\kern0.1em n-1}}}.  Dùng điều này để triển khai một thủ tục đơn giản để tính căn bậc @math{n} bằng cách dùng @code{fixed-point}, @code{average-damp} và thủ tục @code{repeated} từ @ref{Exercise 1.43}.  Giả sử rằng bất kỳ phép toán số học nào bạn cần đều có sẵn như các thứ nguyên thủy.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.46}Bài tập 1.46:} Một số phương pháp số học được mô tả trong chương này là các thể hiện của một chiến lược tính toán cực kỳ tổng quát được gọi là @newterm{cải thiện lặp}.  Cải thiện lặp nói rằng, để tính một thứ gì đó, ta bắt đầu với một dự đoán ban đầu cho câu trả lời, kiểm tra xem dự đoán có đủ tốt không, và nếu không thì cải thiện dự đoán và tiếp tục quá trình bằng cách dùng dự đoán được cải thiện như dự đoán mới.  Viết một thủ tục @code{iterative-improve} nhận hai thủ tục làm đối số: một phương pháp để xác định xem dự đoán có đủ tốt không và một phương pháp để cải thiện dự đoán.  @code{Iterative-improve} nên trả về làm giá trị của nó một thủ tục nhận một dự đoán làm đối số và liên tục cải thiện dự đoán cho đến khi nó đủ tốt.  Viết lại thủ tục @code{sqrt} từ @ref{1.1.7} và thủ tục @code{fixed-point} từ @ref{1.3.3} theo @code{iterative-improve}.
+@end quotation

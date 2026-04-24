@@ -1,0 +1,108 @@
+@node	4.2.1, 4.2.2, 4.2, 4.2
+@subsection Thứ Tự Thông Thường và Thứ Tự Áp Dụng
+
+Trong @ref{1.1}, nơi chúng ta bắt đầu thảo luận về các mô hình định giá, chúng
+ta đã lưu ý rằng Scheme là một ngôn ngữ @newterm{thứ tự áp dụng}, nghĩa là, tất
+cả các đối số cho các thủ tục Scheme đều được định giá khi thủ tục được áp
+dụng. Ngược lại, các ngôn ngữ @newterm{thứ tự thông thường} trì hoãn việc định
+giá các đối số thủ tục cho đến khi các giá trị đối số thực sự cần thiết. Việc
+trì hoãn định giá các đối số thủ tục cho đến thời điểm muộn nhất có thể (ví
+dụ, cho đến khi chúng được yêu cầu bởi một phép toán nguyên thủy) được gọi là
+@newterm{định giá lười}.@footnote{Sự khác biệt giữa thuật ngữ ``lười'' và thuật
+ngữ ``thứ tự thông thường'' có phần mờ nhạt. Nói chung, ``lười'' đề cập đến
+các cơ chế của các trình định giá cụ thể, trong khi ``thứ tự thông thường'' đề
+cập đến ngữ nghĩa của các ngôn ngữ, độc lập với bất kỳ chiến lược định giá
+cụ thể nào. Nhưng đây không phải là sự phân biệt cứng nhắc, và hai thuật ngữ
+thường được dùng thay thế cho nhau.} Hãy xem xét thủ tục
+
+@lisp
+(define (try a b)
+  (if (= a 0) 1 b))
+@end lisp
+
+@noindent
+Định giá @code{(try 0 (/ 1 0))} tạo ra lỗi trong Scheme. Với định giá lười,
+sẽ không có lỗi. Định giá biểu thức sẽ trả về 1, vì đối số @code{(/ 1 0)}
+sẽ không bao giờ được định giá.
+
+Một ví dụ khai thác định giá lười là định nghĩa của thủ tục @code{unless}
+
+@lisp
+(define (unless condition
+                usual-value
+                exceptional-value)
+  (if condition
+      exceptional-value
+      usual-value))
+@end lisp
+
+@noindent
+có thể được dùng trong các biểu thức như
+
+@lisp
+(unless (= b 0)
+        (/ a b)
+        (begin
+          (display "exception: returning 0")
+          0))
+@end lisp
+
+@noindent
+Điều này sẽ không hoạt động trong một ngôn ngữ thứ tự áp dụng vì cả giá trị
+thông thường lẫn giá trị ngoại lệ đều sẽ được định giá trước khi @code{unless}
+được gọi (so sánh @ref{Exercise 1.6}). Một ưu điểm của định giá lười là một số
+thủ tục, như @code{unless}, có thể thực hiện tính toán hữu ích ngay cả khi
+việc định giá một số đối số của chúng sẽ tạo ra lỗi hoặc không kết thúc.
+
+Nếu thân của một thủ tục được vào trước khi một đối số đã được định giá,
+chúng ta nói rằng thủ tục là @newterm{không chặt} trong đối số đó. Nếu đối số
+được định giá trước khi thân của thủ tục được vào, chúng ta nói rằng thủ tục
+là @newterm{chặt} trong đối số đó.@footnote{Thuật ngữ ``chặt'' so với ``không
+chặt'' có nghĩa về cơ bản giống như ``thứ tự áp dụng'' so với ``thứ tự thông
+thường'', ngoại trừ rằng nó đề cập đến các thủ tục và đối số riêng lẻ thay
+vì toàn bộ ngôn ngữ. Tại một hội nghị về ngôn ngữ lập trình, bạn có thể nghe
+ai đó nói, ``Ngôn ngữ thứ tự thông thường Hassle có một số nguyên thủy chặt
+nhất định. Các thủ tục khác lấy đối số của chúng bằng định giá lười.''} Trong
+một ngôn ngữ thứ tự áp dụng thuần túy, tất cả các thủ tục đều chặt trong
+mỗi đối số. Trong một ngôn ngữ thứ tự thông thường thuần túy, tất cả các thủ
+tục phức hợp đều không chặt trong mỗi đối số, và các thủ tục nguyên thủy có
+thể chặt hoặc không chặt. Cũng có các ngôn ngữ (xem @ref{Exercise 4.31}) cho
+phép lập trình viên kiểm soát chi tiết tính chặt của các thủ tục họ định nghĩa.
+
+Một ví dụ nổi bật về một thủ tục có thể hữu ích khi được làm không chặt là
+@code{cons} (hoặc nói chung, hầu hết bất kỳ bộ xây dựng nào cho cấu trúc dữ
+liệu). Người ta có thể thực hiện tính toán hữu ích, kết hợp các phần tử để
+tạo thành cấu trúc dữ liệu và thao tác trên các cấu trúc dữ liệu kết quả,
+ngay cả khi các giá trị của các phần tử chưa được biết. Hoàn toàn có ý nghĩa,
+chẳng hạn, để tính độ dài của một danh sách mà không biết các giá trị của các
+phần tử riêng lẻ trong danh sách. Chúng ta sẽ khai thác ý tưởng này trong
+@ref{4.2.3} để hiện thực các luồng của @ref{Chapter 3} như các danh sách được
+tạo từ các cặp @code{cons} không chặt.
+
+@quotation
+@strong{@anchor{Exercise 4.25}Exercise 4.25:} Giả sử rằng (trong Scheme thứ
+tự áp dụng thông thường) chúng ta định nghĩa @code{unless} như được trình bày
+ở trên và sau đó định nghĩa @code{factorial} theo @code{unless} như
+
+@lisp
+(define (factorial n)
+  (unless (= n 1)
+          (* n (factorial (- n 1)))
+          1))
+@end lisp
+
+Điều gì xảy ra nếu chúng ta cố gắng định giá @code{(factorial 5)}? Các định
+nghĩa của chúng ta có hoạt động trong một ngôn ngữ thứ tự thông thường không?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.26}Exercise 4.26:} Ben Bitdiddle và Alyssa P. Hacker
+không đồng ý về tầm quan trọng của định giá lười để hiện thực những thứ như
+@code{unless}. Ben chỉ ra rằng có thể hiện thực @code{unless} theo thứ tự
+áp dụng như một dạng đặc biệt. Alyssa phản bác rằng, nếu làm như vậy,
+@code{unless} sẽ chỉ là cú pháp, không phải là thủ tục có thể được dùng kết
+hợp với các thủ tục bậc cao hơn. Điền vào chi tiết cho cả hai phía của lập
+luận. Chỉ ra cách hiện thực @code{unless} như một biểu thức dẫn xuất (như
+@code{cond} hoặc @code{let}), và đưa ra ví dụ về tình huống mà @code{unless}
+có thể hữu ích khi có sẵn như một thủ tục, thay vì như một dạng đặc biệt.
+@end quotation

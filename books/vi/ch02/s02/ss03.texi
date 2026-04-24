@@ -1,0 +1,877 @@
+@node	2.2.3, 2.2.4, 2.2.2, 2.2
+@subsection Dãy như Giao Diện Thông Thường
+
+Khi làm việc với dữ liệu phức hợp, chúng ta đã nhấn mạnh cách trừu tượng dữ
+liệu cho phép chúng ta thiết kế chương trình mà không bị sa lầy vào các chi
+tiết của biểu diễn dữ liệu, và cách trừu tượng bảo toàn cho chúng ta sự linh
+hoạt để thử nghiệm các biểu diễn thay thế. Trong phần này, chúng ta giới thiệu
+một nguyên lý thiết kế mạnh mẽ khác khi làm việc với cấu trúc dữ liệu---sử dụng
+các @newterm{giao diện thông thường}.
+
+Trong @ref{1.3} chúng ta thấy cách các trừu tượng chương trình, được cài đặt
+như các thủ tục bậc cao, có thể nắm bắt các mẫu chung trong các chương trình
+xử lý dữ liệu số. Khả năng hình thành các phép toán tương tự để làm việc với
+dữ liệu phức hợp phụ thuộc rất nhiều vào phong cách mà chúng ta thao tác cấu
+trúc dữ liệu. Hãy xem xét, ví dụ, thủ tục sau đây, tương tự thủ tục
+@code{count-leaves} trong @ref{2.2.2}, nhận một cây làm đối số và tính tổng
+bình phương của các lá là số lẻ:
+
+@lisp
+(define (sum-odd-squares tree)
+  (cond ((null? tree) 0)
+        ((not (pair? tree))
+         (if (odd? tree) (square tree) 0))
+        (else (+ (sum-odd-squares
+                  (car tree))
+                 (sum-odd-squares
+                  (cdr tree))))))
+@end lisp
+
+@noindent
+Nhìn bề ngoài, thủ tục này rất khác với thủ tục sau đây, xây dựng danh sách
+tất cả các số Fibonacci chẵn @math{{\text{Fib}(k)}}, trong đó @math{k} nhỏ hơn
+hoặc bằng một số nguyên @math{n} cho trước:
+
+@lisp
+(define (even-fibs n)
+  (define (next k)
+    (if (> k n)
+        nil
+        (let ((f (fib k)))
+          (if (even? f)
+              (cons f (next (+ k 1)))
+              (next (+ k 1))))))
+  (next 0))
+@end lisp
+
+@noindent
+Mặc dù hai thủ tục này có cấu trúc rất khác nhau, một mô tả trừu tượng hơn về
+hai phép tính lại cho thấy rất nhiều điểm tương đồng. Chương trình đầu tiên
+
+@itemize @bullet
+
+@item
+liệt kê các lá của một cây;
+
+@item
+lọc chúng, chọn những lá lẻ;
+
+@item
+bình phương từng lá được chọn; và
+
+@item
+tích lũy các kết quả bằng @code{+}, bắt đầu từ 0.
+
+@end itemize
+
+@noindent
+Chương trình thứ hai
+
+@itemize @bullet
+
+@item
+liệt kê các số nguyên từ 0 đến @math{n};
+
+@item
+tính số Fibonacci cho mỗi số nguyên;
+
+@item
+lọc chúng, chọn những số chẵn; và
+
+@item
+tích lũy các kết quả bằng @code{cons}, bắt đầu từ danh sách rỗng.
+
+@end itemize
+
+@noindent
+Một kỹ sư xử lý tín hiệu sẽ thấy tự nhiên khi hình dung các quá trình này theo
+các tín hiệu chảy qua một chuỗi các giai đoạn, mỗi giai đoạn cài đặt một phần
+kế hoạch chương trình, như trong @ref{Figure 2.7}. Trong @code{sum-odd-squares},
+chúng ta bắt đầu với một @newterm{bộ liệt kê}, tạo ra ``tín hiệu'' bao gồm các
+lá của một cây cho trước. Tín hiệu này được truyền qua một @newterm{bộ lọc},
+loại bỏ tất cả các phần tử ngoại trừ các phần tử lẻ. Tín hiệu kết quả lần lượt
+được truyền qua một @newterm{map}, là một ``bộ biến đổi'' áp dụng thủ tục
+@code{square} cho mỗi phần tử. Đầu ra của map sau đó được đưa vào một
+@newterm{bộ tích lũy}, kết hợp các phần tử bằng @code{+}, bắt đầu từ giá trị
+ban đầu là 0. Kế hoạch cho @code{even-fibs} cũng tương tự.
+
+@float
+@anchor{Figure 2.7}
+@ifinfo
+@quotation
+@strong{Figure 2.7:} The signal-flow plans for the
+procedures @code{sum-odd-squares} (top) and @code{even-fibs} (bottom) reveal
+the commonality between the two programs.
+
+@example
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| filter:     |-->| map:        |-->| accumulate: |
+| tree leaves |   | odd?        |   | square      |   | +, 0        |
++-------------+   +-------------+   +-------------+   +-------------+
+
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| map:        |-->| filter:     |-->| accumulate: |
+| integers    |   | fib         |   | even?       |   | cons, ()    |
++-------------+   +-------------+   +-------------+   +-------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.7e,147mm,,,.std.svg}
+@caption{@strong{Figure 2.7:} The signal-flow plans for the procedures @code{sum-odd-squares} (top) and @code{even-fibs} (bottom) reveal the commonality between the two programs.}
+@end iftex
+@end float
+
+@noindent
+Thật không may, hai định nghĩa thủ tục ở trên không thể hiện cấu trúc luồng
+tín hiệu này. Ví dụ, nếu chúng ta kiểm tra thủ tục @code{sum-odd-squares},
+chúng ta thấy rằng việc liệt kê được cài đặt một phần bởi các kiểm tra
+@code{null?} và @code{pair?} và một phần bởi cấu trúc đệ quy theo cây của
+thủ tục. Tương tự, việc tích lũy được tìm thấy một phần trong các kiểm tra
+và một phần trong phép cộng được dùng trong đệ quy. Nói chung, không có các
+phần riêng biệt của cả hai thủ tục tương ứng với các thành phần trong mô tả
+luồng tín hiệu. Hai thủ tục của chúng ta phân rã các phép tính theo cách khác,
+trải rộng việc liệt kê trên toàn chương trình và trộn lẫn nó với map, bộ lọc
+và tích lũy. Nếu chúng ta có thể tổ chức các chương trình để làm cho cấu trúc
+luồng tín hiệu rõ ràng trong các thủ tục chúng ta viết, điều này sẽ tăng sự
+rõ ràng về khái niệm của code kết quả.
+
+@subsubheading Các phép toán dãy
+
+Chìa khóa để tổ chức chương trình nhằm phản ánh rõ hơn cấu trúc luồng tín
+hiệu là tập trung vào ``các tín hiệu'' chảy từ giai đoạn này sang giai đoạn
+tiếp theo trong quá trình. Nếu chúng ta biểu diễn các tín hiệu này như các
+danh sách, thì chúng ta có thể dùng các phép toán danh sách để cài đặt việc
+xử lý ở mỗi giai đoạn. Ví dụ, chúng ta có thể cài đặt các giai đoạn ánh xạ
+của các sơ đồ luồng tín hiệu bằng thủ tục @code{map} từ @ref{2.2.1}:
+
+@lisp
+(map square (list 1 2 3 4 5))
+@i{(1 4 9 16 25)}
+@end lisp
+
+@noindent
+Lọc một dãy để chỉ chọn những phần tử thỏa mãn một vị từ cho trước được thực
+hiện bởi
+
+@lisp
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+         (cons (car sequence)
+               (filter predicate
+                       (cdr sequence))))
+        (else  (filter predicate
+                       (cdr sequence)))))
+@end lisp
+
+@noindent
+Ví dụ,
+
+@lisp
+(filter odd? (list 1 2 3 4 5))
+@i{(1 3 5)}
+@end lisp
+
+@noindent
+Các tích lũy có thể được cài đặt bởi
+
+@lisp
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op
+                      initial
+                      (cdr sequence)))))
+
+(accumulate + 0 (list 1 2 3 4 5))
+@i{15}
+(accumulate * 1 (list 1 2 3 4 5))
+@i{120}
+(accumulate cons nil (list 1 2 3 4 5))
+@i{(1 2 3 4 5)}
+@end lisp
+
+@noindent
+Tất cả những gì còn lại để cài đặt các sơ đồ luồng tín hiệu là liệt kê dãy
+các phần tử cần xử lý. Đối với @code{even-fibs}, chúng ta cần tạo ra dãy các
+số nguyên trong một phạm vi cho trước, điều mà chúng ta có thể làm như sau:
+
+@lisp
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low
+            (enumerate-interval
+             (+ low 1)
+             high))))
+
+(enumerate-interval 2 7)
+@i{(2 3 4 5 6 7)}
+@end lisp
+
+@noindent
+Để liệt kê các lá của một cây, chúng ta có thể dùng@footnote{Đây thực ra chính
+xác là thủ tục @code{fringe} từ @ref{Exercise 2.28}. Ở đây chúng ta đổi tên nó
+để nhấn mạnh rằng nó là một phần của một nhóm các thủ tục thao tác dãy tổng
+quát.}
+
+@lisp
+(define (enumerate-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (list tree))
+        (else (append
+               (enumerate-tree (car tree))
+               (enumerate-tree (cdr tree))))))
+
+(enumerate-tree (list 1 (list 2 (list 3 4)) 5))
+@i{(1 2 3 4 5)}
+@end lisp
+
+@noindent
+Bây giờ chúng ta có thể tái hình thành @code{sum-odd-squares} và
+@code{even-fibs} như trong các sơ đồ luồng tín hiệu. Với @code{sum-odd-squares},
+chúng ta liệt kê dãy các lá của cây, lọc để chỉ giữ các số lẻ trong dãy, bình
+phương mỗi phần tử, và cộng các kết quả:
+
+@lisp
+(define (sum-odd-squares tree)
+  (accumulate
+   +
+   0
+   (map square
+        (filter odd?
+                (enumerate-tree tree)))))
+@end lisp
+
+@noindent
+Với @code{even-fibs}, chúng ta liệt kê các số nguyên từ 0 đến @math{n}, tính
+số Fibonacci cho mỗi số nguyên này, lọc dãy kết quả để chỉ giữ các phần tử
+chẵn, và tích lũy các kết quả vào một danh sách:
+
+@lisp
+(define (even-fibs n)
+  (accumulate
+   cons
+   nil
+   (filter even?
+           (map fib
+                (enumerate-interval 0 n)))))
+@end lisp
+
+@noindent
+Giá trị của việc biểu đạt chương trình như các phép toán dãy là điều này giúp
+chúng ta tạo ra các thiết kế chương trình có tính mô-đun hóa, tức là các thiết
+kế được xây dựng bằng cách kết hợp các mảnh tương đối độc lập. Chúng ta có thể
+khuyến khích thiết kế mô-đun bằng cách cung cấp một thư viện các thành phần
+tiêu chuẩn cùng với một giao diện thông thường để kết nối các thành phần theo
+những cách linh hoạt.
+
+Xây dựng theo mô-đun là một chiến lược mạnh mẽ để kiểm soát sự phức tạp trong
+thiết kế kỹ thuật. Trong các ứng dụng xử lý tín hiệu thực tế, ví dụ, các nhà
+thiết kế thường xuyên xây dựng hệ thống bằng cách nối tầng các phần tử được
+chọn từ các bộ lọc và bộ biến đổi tiêu chuẩn. Tương tự, các phép toán dãy
+cung cấp một thư viện các phần tử chương trình tiêu chuẩn mà chúng ta có thể
+kết hợp tùy ý. Ví dụ, chúng ta có thể tái sử dụng các mảnh từ các thủ tục
+@code{sum-odd-squares} và @code{even-fibs} trong một chương trình xây dựng
+danh sách các bình phương của @math{{n + 1}} số Fibonacci đầu tiên:
+
+@lisp
+(define (list-fib-squares n)
+  (accumulate
+   cons
+   nil
+   (map square
+        (map fib
+             (enumerate-interval 0 n)))))
+
+(list-fib-squares 10)
+@i{(0 1 1 4 9 25 64 169 441 1156 3025)}
+@end lisp
+
+@noindent
+Chúng ta có thể sắp xếp lại các mảnh và sử dụng chúng để tính tích của các
+bình phương của các số nguyên lẻ trong một dãy:
+
+@lisp
+(define
+  (product-of-squares-of-odd-elements
+   sequence)
+  (accumulate
+   *
+   1
+   (map square (filter odd? sequence))))
+
+(product-of-squares-of-odd-elements
+ (list 1 2 3 4 5))
+@i{225}
+@end lisp
+
+@noindent
+Chúng ta cũng có thể hình thành các ứng dụng xử lý dữ liệu thông thường theo
+các phép toán dãy. Giả sử chúng ta có một dãy các hồ sơ nhân sự và muốn tìm
+mức lương của lập trình viên được trả cao nhất. Giả sử chúng ta có bộ chọn
+@code{salary} trả về lương của một hồ sơ, và vị từ @code{programmer?} kiểm tra
+xem một hồ sơ có phải của lập trình viên không. Khi đó chúng ta có thể viết
+
+@lisp
+(define
+  (salary-of-highest-paid-programmer
+   records)
+  (accumulate
+   max
+   0
+   (map salary
+        (filter programmer? records))))
+@end lisp
+
+@noindent
+Những ví dụ này chỉ là gợi ý về phạm vi rộng lớn của các phép toán có thể
+được biểu đạt như các phép toán dãy.@footnote{Richard @ref{Waters (1979)} đã
+phát triển một chương trình tự động phân tích các chương trình Fortran truyền
+thống, nhìn nhận chúng theo các map, bộ lọc và tích lũy. Ông nhận thấy rằng
+đầy 90 phần trăm code trong Gói Chương trình Con Khoa học Fortran phù hợp gọn
+gàng với mẫu này. Một trong những lý do thành công của Lisp như một ngôn ngữ
+lập trình là danh sách cung cấp một phương tiện tiêu chuẩn để biểu đạt các
+tập hợp có thứ tự sao cho chúng có thể được thao tác bằng các phép toán bậc
+cao. Ngôn ngữ lập trình APL nợ nhiều sức mạnh và sức hấp dẫn của nó cho một
+lựa chọn tương tự. Trong APL tất cả dữ liệu được biểu diễn dưới dạng mảng,
+và có một tập hợp phổ quát và thuận tiện các toán tử tổng quát cho mọi loại
+phép toán mảng.}
+
+Các dãy, được cài đặt ở đây như danh sách, đóng vai trò là giao diện thông
+thường cho phép chúng ta kết hợp các mô-đun xử lý. Ngoài ra, khi chúng ta
+đồng nhất biểu diễn các cấu trúc như dãy, chúng ta đã cục bộ hóa các phụ
+thuộc cấu trúc dữ liệu trong chương trình vào một số lượng nhỏ các phép toán
+dãy. Bằng cách thay đổi những phép toán này, chúng ta có thể thử nghiệm các
+biểu diễn dãy thay thế, trong khi vẫn giữ nguyên thiết kế tổng thể của chương
+trình. Chúng ta sẽ khai thác khả năng này trong @ref{3.5}, khi chúng ta tổng
+quát hóa mẫu xử lý dãy để cho phép các dãy vô hạn.
+
+@quotation
+@strong{@anchor{Exercise 2.33}Bài tập 2.33:} Điền vào các biểu thức còn thiếu
+để hoàn thành các định nghĩa sau của một số phép toán thao tác danh sách cơ
+bản như các tích lũy:
+
+@lisp
+(define (map p sequence)
+  (accumulate (lambda (x y) ⟨??⟩)
+              nil sequence))
+
+(define (append seq1 seq2)
+  (accumulate cons ⟨??⟩ ⟨??⟩))
+
+(define (length sequence)
+  (accumulate ⟨??⟩ 0 sequence))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.34}Bài tập 2.34:} Đánh giá một đa thức theo @math{x}
+tại một giá trị @math{x} cho trước có thể được hình thành như một tích lũy.
+Chúng ta đánh giá đa thức
+@ifinfo
+
+@example
+a_n x^n + a_(n-1) x^(n-1) + ... + a_1 x + a_0
+@end example
+
+@end ifinfo
+@tex
+\[ % :35:
+  {a_n x^n} + {a_{n-1} x^{n-1}} + \dots + {a_1 x} + a_0  \]
+@end tex
+@noindent
+bằng một thuật toán nổi tiếng gọi là @newterm{quy tắc Horner}, cấu trúc phép
+tính như sau:
+@ifinfo
+
+@example
+(... (a_n x + a_(n-1)) x + ... + a_1) x + a_0
+@end example
+
+@end ifinfo
+@tex
+\[ % :36:
+  {(\dots (a_n x} + {a_{n-1}) x} + \dots + {a_1) x} + {a_0.}  \]
+@end tex
+@noindent
+Nói cách khác, chúng ta bắt đầu với @math{a_n}, nhân với @math{x}, cộng
+@math{a_{n-1}}, nhân với @math{x}, và cứ thế cho đến khi chúng ta đến
+@math{a_0}.@footnote{Theo @ref{Knuth 1981}, quy tắc này được W. G. Horner hình
+thành vào đầu thế kỷ 19, nhưng phương pháp này thực ra đã được Newton sử dụng
+hơn một trăm năm trước đó. Quy tắc Horner đánh giá đa thức bằng ít phép cộng
+và nhân hơn so với phương pháp đơn giản là tính @math{{a_n x^n}} trước, rồi
+cộng @math{{a_{n-1}x^{n-1}}}, v.v. Thực ra, có thể chứng minh rằng bất kỳ
+thuật toán nào để đánh giá các đa thức tùy ý phải dùng ít nhất nhiều phép cộng
+và nhân như quy tắc Horner, và do đó quy tắc Horner là thuật toán tối ưu để
+đánh giá đa thức. Điều này được chứng minh (đối với số phép cộng) bởi A. M.
+Ostrowski trong một bài báo năm 1954 thực chất đã đặt nền móng cho nghiên cứu
+hiện đại về các thuật toán tối ưu. Phát biểu tương tự cho phép nhân đã được
+V. Y. Pan chứng minh vào năm 1966. Cuốn sách của @ref{Borodin and Munro (1975)}
+cung cấp tổng quan về những kết quả này và các kết quả khác về các thuật toán
+tối ưu.}
+
+Điền vào mẫu sau để tạo ra thủ tục đánh giá đa thức bằng quy tắc Horner.
+Giả sử các hệ số của đa thức được sắp xếp trong một dãy, từ @math{a_0} đến
+@math{a_n}.
+
+@lisp
+(define
+  (horner-eval x coefficient-sequence)
+  (accumulate
+   (lambda (this-coeff higher-terms)
+     ⟨??⟩)
+   0
+   coefficient-sequence))
+@end lisp
+
+Ví dụ, để tính @math{{1 + 3x} + {5x^3 + x^5}} tại @math{{x = 2}} bạn sẽ
+đánh giá
+
+@lisp
+(horner-eval 2 (list 1 3 0 5 0 1))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.35}Bài tập 2.35:} Định nghĩa lại @code{count-leaves}
+từ @ref{2.2.2} như một tích lũy:
+
+@lisp
+(define (count-leaves t)
+  (accumulate ⟨??⟩ ⟨??⟩ (map ⟨??⟩ ⟨??⟩)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.36}Bài tập 2.36:} Thủ tục @code{accumulate-n} tương
+tự @code{accumulate} ngoại trừ nó nhận đối số thứ ba là một dãy các dãy, tất
+cả được giả sử có cùng số phần tử. Nó áp dụng thủ tục tích lũy được chỉ định
+để kết hợp tất cả các phần tử đầu tiên của các dãy, tất cả các phần tử thứ
+hai, v.v., và trả về một dãy các kết quả. Ví dụ, nếu @code{s} là dãy chứa
+bốn dãy, @code{((1 2 3) (4 5 6) (7 8 9) (10 11 12)),} thì giá trị của
+@code{(accumulate-n + 0 s)} nên là dãy @code{(22 26 30)}. Điền vào các biểu
+thức còn thiếu trong định nghĩa sau của @code{accumulate-n}:
+
+@lisp
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+      nil
+      (cons (accumulate op init ⟨??⟩)
+            (accumulate-n op init ⟨??⟩))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.37}Bài tập 2.37:}
+Giả sử chúng ta biểu diễn véc-tơ @b{v} = @math{{(v_i)}} như dãy các số, và
+ma trận @b{m} = @math{{(m_{ij})}} như dãy các véc-tơ (các hàng của ma trận).
+Ví dụ, ma trận
+@ifinfo
+
+@example
++-         -+
+|  1 2 3 4  |
+|  4 5 6 6  |
+|  6 7 8 9  |
++-         -+
+@end example
+
+@end ifinfo
+@tex
+\[ % :37:
+
+\left(\matrix{	1 & 2 & 3 & 4 \cr
+		4 & 5 & 6 & 6 \cr
+		6 & 7 & 8 & 9 \cr }\right)  \]
+@end tex
+@noindent
+được biểu diễn như dãy @code{((1 2 3 4) (4 5 6 6) (6 7 8 9))}. Với biểu diễn
+này, chúng ta có thể dùng các phép toán dãy để biểu đạt ngắn gọn các phép toán
+ma trận và véc-tơ cơ bản. Các phép toán này (được mô tả trong bất kỳ cuốn sách
+đại số ma trận nào) như sau:
+@ifinfo
+
+@example
+                                       __
+(dot-product v w)      returns the sum >_i v_i w_i
+
+(matrix-*-vector m v)  returns the vector t,
+                                   __
+                       where t_i = >_j m_(ij) v_j
+
+(matrix-*-matrix m n)  returns the matrix p,
+                                      __
+                       where p_(ij) = >_k m_(ik) n_(kj)
+
+(transpose m)          returns the matrix n,
+                       where n_(ij) = m_(ji)
+@end example
+
+@end ifinfo
+@tex
+\[ % :38:
+
+\eqalign{
+	\text{(dot-product v w)} 	& \text{returns the sum}\;\Sigma_i v_i w_i; \cr
+	\text{(matrix-*-vector m v)} 	& \text{returns the vector}\;{\bf t}, \cr
+		& \text{where}\; t_i = \Sigma_j m_{ij} v_j; \cr
+	\text{(matrix-*-matrix m n)} 	& \text{returns the matrix}\;{\bf p}, \cr
+		& \text{where}\; p_{ij} = \Sigma_k m_{ik} n_{kj}; \cr
+	\text{(transpose m)} 		& \text{returns the matrix}\;{\bf n}, \cr
+		& \text{where}\; n_{ij} = m_{ji}. \cr
+}  \]
+@end tex
+Chúng ta có thể định nghĩa tích chấm như@footnote{Định nghĩa này dùng phiên
+bản mở rộng của @code{map} được mô tả trong @ref{Footnote 78}.}
+
+@lisp
+(define (dot-product v w)
+  (accumulate + 0 (map * v w)))
+@end lisp
+
+Điền vào các biểu thức còn thiếu trong các thủ tục sau để tính các phép toán
+ma trận khác. (Thủ tục @code{accumulate-n} được định nghĩa trong
+@ref{Exercise 2.36}.)
+
+@lisp
+(define (matrix-*-vector m v)
+  (map ⟨??⟩ m))
+
+(define (transpose mat)
+  (accumulate-n ⟨??⟩ ⟨??⟩ mat))
+
+(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map ⟨??⟩ m)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.38}Bài tập 2.38:} Thủ tục @code{accumulate} còn
+được gọi là @code{fold-right}, vì nó kết hợp phần tử đầu tiên của dãy với kết
+quả của việc kết hợp tất cả các phần tử ở bên phải. Cũng có @code{fold-left},
+tương tự @code{fold-right}, ngoại trừ nó kết hợp các phần tử theo hướng ngược
+lại:
+
+@lisp
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+@end lisp
+
+Các giá trị của các biểu thức sau là gì:
+
+@lisp
+(fold-right / 1 (list 1 2 3))
+(fold-left  / 1 (list 1 2 3))
+(fold-right list nil (list 1 2 3))
+(fold-left  list nil (list 1 2 3))
+@end lisp
+
+Hãy cho một tính chất mà @code{op} cần thỏa mãn để đảm bảo @code{fold-right}
+và @code{fold-left} sẽ cho cùng giá trị cho bất kỳ dãy nào.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.39}Bài tập 2.39:} Hoàn thành các định nghĩa sau của
+@code{reverse} (@ref{Exercise 2.18}) theo @code{fold-right} và @code{fold-left}
+từ @ref{Exercise 2.38}:
+
+@lisp
+(define (reverse sequence)
+  (fold-right
+   (lambda (x y) ⟨??⟩) nil sequence))
+
+(define (reverse sequence)
+  (fold-left
+   (lambda (x y) ⟨??⟩) nil sequence))
+@end lisp
+@end quotation
+
+@subsubheading Các ánh xạ lồng nhau
+
+Chúng ta có thể mở rộng mẫu dãy để bao gồm nhiều phép tính thường được biểu
+đạt bằng các vòng lặp lồng nhau.@footnote{Cách tiếp cận ánh xạ lồng nhau này
+được David Turner chỉ ra cho chúng tôi, ngôn ngữ KRC và Miranda của ông cung
+cấp các hình thức hóa thanh lịch để xử lý các cấu trúc này. Các ví dụ trong
+phần này (xem thêm @ref{Exercise 2.42}) được phỏng theo @ref{Turner 1981}.
+Trong @ref{3.5.3}, chúng ta sẽ thấy cách tiếp cận này được tổng quát hóa cho
+các dãy vô hạn.} Hãy xem xét bài toán này: Cho một số nguyên dương @math{n},
+tìm tất cả các cặp có thứ tự của các số nguyên dương phân biệt @math{i} và
+@math{j}, trong đó @math{{1 \le j} < {i \le n}}, sao cho @math{{i + j}} là số
+nguyên tố. Ví dụ, nếu @math{n} là 6, thì các cặp là:
+@ifinfo
+
+@example
+  i   | 2 3 4 4 5 6 6
+  j   | 1 2 1 3 2 1 5
+------+---------------
+i + j | 3 5 5 7 7 7 11
+@end example
+
+@end ifinfo
+@tex
+\[ % :39:
+
+\begin{array}{c|ccccccc}
+i 	& 2 & 3 & 4 & 4 & 5 & 6 & 6 \\
+j 	& 1 & 2 & 1 & 3 & 2 & 1 & 5 \\
+\hline
+i + j	& 3 & 5 & 5 & 7 & 7 & 7 & 11
+\end{array}
+\]
+@end tex
+Một cách tự nhiên để tổ chức phép tính này là tạo ra dãy tất cả các cặp có
+thứ tự của các số nguyên dương nhỏ hơn hoặc bằng @math{n}, lọc để chọn những
+cặp có tổng là số nguyên tố, và sau đó, cho mỗi cặp @math{{(i, j)}} qua lọc,
+tạo ra bộ ba @math{{(i, j, i + j)}}.
+
+Đây là cách tạo ra dãy các cặp: Với mỗi số nguyên @math{{i \le n}}, liệt kê
+các số nguyên @math{{j < i}}, và cho mỗi cặp @math{i} và @math{j} như vậy
+tạo ra cặp @math{{(i, j)}}. Theo các phép toán dãy, chúng ta ánh xạ dọc theo
+dãy @code{(enumerate-interval 1 n)}. Với mỗi @math{i} trong dãy này, chúng ta
+ánh xạ dọc theo dãy @code{(enumerate-interval 1 (- i 1))}. Với mỗi @math{j}
+trong dãy sau này, chúng ta tạo ra cặp @code{(list i j)}. Điều này cho chúng
+ta một dãy các cặp cho mỗi @math{i}. Kết hợp tất cả các dãy cho tất cả các
+@math{i} (bằng cách tích lũy với @code{append}) tạo ra dãy các cặp cần
+thiết:@footnote{Ở đây chúng ta biểu diễn một cặp như một danh sách hai phần tử
+thay vì như một cặp Lisp. Do đó, ``cặp'' @math{{(i, j)}} được biểu diễn như
+@code{(list i j)}, không phải @code{(cons i j)}.}
+
+@lisp
+(accumulate
+ append
+ nil
+ (map (lambda (i)
+        (map (lambda (j)
+               (list i j))
+             (enumerate-interval 1 (- i 1))))
+      (enumerate-interval 1 n)))
+@end lisp
+
+@noindent
+Sự kết hợp của ánh xạ và tích lũy với @code{append} rất phổ biến trong loại
+chương trình này đến mức chúng ta sẽ cô lập nó như một thủ tục riêng:
+
+@lisp
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+@end lisp
+
+@noindent
+Bây giờ lọc dãy cặp này để tìm những cặp có tổng là số nguyên tố. Vị từ lọc
+được gọi cho mỗi phần tử của dãy; đối số của nó là một cặp và nó phải trích
+xuất các số nguyên từ cặp. Do đó, vị từ để áp dụng cho mỗi phần tử trong dãy
+là
+
+@lisp
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+@end lisp
+
+@noindent
+Cuối cùng, tạo ra dãy kết quả bằng cách ánh xạ trên các cặp đã lọc bằng thủ
+tục sau, xây dựng một bộ ba gồm hai phần tử của cặp cùng tổng của chúng:
+
+@lisp
+(define (make-pair-sum pair)
+  (list (car pair)
+        (cadr pair)
+        (+ (car pair) (cadr pair))))
+@end lisp
+
+@noindent
+Kết hợp tất cả các bước này cho ra thủ tục hoàn chỉnh:
+
+@lisp
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter
+        prime-sum?
+        (flatmap
+         (lambda (i)
+           (map (lambda (j)
+                  (list i j))
+                (enumerate-interval
+                 1
+                 (- i 1))))
+         (enumerate-interval 1 n)))))
+@end lisp
+
+@noindent
+Các ánh xạ lồng nhau cũng hữu ích cho các dãy khác ngoài những dãy liệt kê
+các khoảng. Giả sử chúng ta muốn tạo ra tất cả các hoán vị của một tập @math{{S;}}
+tức là, tất cả các cách sắp xếp các phần tử trong tập. Ví dụ, các hoán vị của
+@math{{\{1, 2, 3\}}} là @math{{\{1, 2, 3\}}}, @math{{\{1, 3, 2\}}},
+@math{{\{2, 1, 3\}}}, @math{{\{2, 3, 1\}}}, @math{{\{3, 1, 2\}}} và
+@math{{\{3, 2, 1\}}}. Đây là kế hoạch để tạo ra các hoán vị của @math{S}: Với
+mỗi phần tử @math{x} trong @math{S}, đệ quy tạo ra dãy các hoán vị của
+@math{{S - x}},@footnote{Tập @math{{S - x}} là tập tất cả các phần tử của
+@math{S}, ngoại trừ @math{x}.} và thêm @math{x} vào đầu mỗi hoán vị. Điều này
+cho ra, với mỗi @math{x} trong @math{S}, dãy các hoán vị của @math{S} bắt đầu
+bằng @math{x}. Kết hợp các dãy này cho tất cả @math{x} cho ra tất cả các hoán
+vị của @math{S}:@footnote{Dấu chấm phẩy trong code Scheme được dùng để giới
+thiệu @newterm{chú thích}. Tất cả mọi thứ từ dấu chấm phẩy đến cuối dòng bị
+trình thông dịch bỏ qua. Trong cuốn sách này chúng ta không dùng nhiều chú
+thích; chúng ta cố gắng làm cho các chương trình tự tài liệu hóa bằng cách
+dùng các tên mô tả.}
+
+@lisp
+(define (permutations s)
+  (if (null? s)   @r{; empty set?}
+      (list nil)  @r{; sequence containing empty set}
+      (flatmap (lambda (x)
+                 (map (lambda (p)
+                        (cons x p))
+                      (permutations
+                       (remove x s))))
+               s)))
+@end lisp
+
+@noindent
+Lưu ý cách chiến lược này rút gọn bài toán tạo ra các hoán vị của @math{S}
+thành bài toán tạo ra các hoán vị của các tập có ít phần tử hơn @math{S}.
+Trong trường hợp kết thúc, chúng ta làm việc xuống đến danh sách rỗng, biểu
+diễn một tập không có phần tử. Đối với điều này, chúng ta tạo ra @code{(list
+nil)}, là một dãy có một phần tử, cụ thể là tập không có phần tử. Thủ tục
+@code{remove} được dùng trong @code{permutations} trả về tất cả các phần tử
+trong một dãy cho trước ngoại trừ một phần tử cho trước. Điều này có thể được
+biểu đạt như một bộ lọc đơn giản:
+
+@lisp
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.40}Bài tập 2.40:} Định nghĩa thủ tục
+@code{unique-pairs} mà, cho một số nguyên @math{n}, tạo ra dãy các cặp
+@math{{(i, j)}} với @math{{1 \le j} < {i \le n}}. Dùng @code{unique-pairs} để
+đơn giản hóa định nghĩa của @code{prime-sum-pairs} đã cho ở trên.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.41}Bài tập 2.41:} Viết thủ tục để tìm tất cả các
+bộ ba có thứ tự của các số nguyên dương phân biệt @math{i}, @math{j} và
+@math{k} nhỏ hơn hoặc bằng một số nguyên @math{n} cho trước có tổng bằng một
+số nguyên @math{s} cho trước.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.42}Bài tập 2.42:} ``Bài toán tám quân hậu'' hỏi
+cách đặt tám quân hậu trên bàn cờ sao cho không có quân hậu nào bị chiếu từ
+bất kỳ quân hậu nào khác (tức là không có hai quân hậu nào ở cùng hàng, cột
+hoặc đường chéo). Một giải pháp khả thi được hiển thị trong @ref{Figure 2.8}.
+Một cách để giải câu đố này là làm việc theo chiều ngang bàn cờ, đặt một quân
+hậu vào mỗi cột. Khi chúng ta đã đặt @math{{k - 1}} quân hậu, chúng ta phải
+đặt quân hậu thứ @math{k^{\text{th}}} vào một vị trí mà nó không chiếu bất kỳ
+quân hậu nào đã có trên bàn cờ. Chúng ta có thể hình thành cách tiếp cận này
+theo đệ quy: Giả sử chúng ta đã tạo ra dãy tất cả các cách có thể để đặt
+@math{{k - 1}} quân hậu trong @math{{k - 1}} cột đầu của bàn cờ. Với mỗi cách
+trong số này, tạo ra tập mở rộng các vị trí bằng cách đặt một quân hậu vào
+mỗi hàng của cột thứ @math{k^{\text{th}}}. Bây giờ lọc chúng, chỉ giữ các
+vị trí mà quân hậu trong cột thứ @math{k^{\text{th}}} an toàn đối với các quân
+hậu khác. Điều này tạo ra dãy tất cả các cách để đặt @math{k} quân hậu trong
+@math{k} cột đầu. Bằng cách tiếp tục quá trình này, chúng ta sẽ tạo ra không
+chỉ một giải pháp mà tất cả các giải pháp cho câu đố.
+
+@float
+@anchor{Figure 2.8}
+@ifinfo
+@strong{Figure 2.8:} A solution to the eight-queens puzzle.
+
+@example
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   | Q |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | Q |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| Q |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   | Q |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   | Q |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   | Q |
++---+---+---+---+---+---+---+---+
+|   | Q |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   | Q |   |   |   |   |
++---+---+---+---+---+---+---+---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.8c,73mm,,,.std.svg}
+@caption{@strong{Figure 2.8:} A solution to the eight-queens puzzle.}
+@end iftex
+@end float
+
+Chúng ta cài đặt giải pháp này như một thủ tục @code{queens}, trả về dãy tất
+cả các giải pháp cho bài toán đặt @math{n} quân hậu trên bàn cờ @math{{n \times n}}.
+@code{Queens} có một thủ tục nội tại @code{queen-cols} trả về dãy tất cả các
+cách để đặt quân hậu trong @math{k} cột đầu của bàn cờ.
+
+@lisp
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions)
+           (safe? k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position
+                    new-row
+                    k
+                    rest-of-queens))
+                 (enumerate-interval
+                  1
+                  board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+@end lisp
+
+Trong thủ tục này @code{rest-of-queens} là cách đặt @math{{k - 1}} quân hậu
+trong @math{{k - 1}} cột đầu, và @code{new-row} là hàng đề xuất để đặt quân
+hậu cho cột thứ @math{k^{\text{th}}}. Hoàn thành chương trình bằng cách cài
+đặt biểu diễn cho các tập vị trí trên bàn cờ, bao gồm thủ tục
+@code{adjoin-position}, thêm một vị trí hàng-cột mới vào một tập các vị trí,
+và @code{empty-board}, biểu diễn một tập vị trí rỗng. Bạn cũng phải viết thủ
+tục @code{safe?}, xác định cho một tập các vị trí, liệu quân hậu trong cột
+thứ @math{k^{\text{th}}} có an toàn đối với các quân hậu khác không. (Lưu ý
+rằng chúng ta chỉ cần kiểm tra xem quân hậu mới có an toàn không---các quân
+hậu khác đã được đảm bảo an toàn với nhau.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.43}Bài tập 2.43:} Louis Reasoner đang gặp khó khăn
+lớn khi làm @ref{Exercise 2.42}. Thủ tục @code{queens} của anh ta dường như
+hoạt động, nhưng chạy cực kỳ chậm. (Louis không bao giờ chờ đủ lâu để nó giải
+kể cả trường hợp @math{{6\times6}}.) Khi Louis hỏi Eva Lu Ator giúp đỡ, cô ấy
+chỉ ra rằng anh ta đã hoán đổi thứ tự của các ánh xạ lồng nhau trong
+@code{flatmap}, viết nó như
+
+@lisp
+(flatmap
+ (lambda (new-row)
+   (map (lambda (rest-of-queens)
+          (adjoin-position
+           new-row k rest-of-queens))
+        (queen-cols (- k 1))))
+ (enumerate-interval 1 board-size))
+@end lisp
+
+Giải thích tại sao sự hoán đổi này làm cho chương trình chạy chậm. Ước tính
+thời gian để chương trình của Louis giải câu đố tám quân hậu, giả sử rằng
+chương trình trong @ref{Exercise 2.42} giải câu đố trong thời gian @math{T}.
+@end quotation

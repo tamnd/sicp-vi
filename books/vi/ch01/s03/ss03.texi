@@ -1,0 +1,255 @@
+@node	1.3.3, 1.3.4, 1.3.2, 1.3
+@subsection Thủ Tục như Các Phương Pháp Tổng Quát
+
+Chúng ta đã giới thiệu các thủ tục phức hợp trong @ref{1.1.4} như một cơ chế để trừu tượng hóa các mẫu phép toán số học để chúng độc lập với các số cụ thể liên quan.  Với các thủ tục bậc cao, như thủ tục @code{integral} của @ref{1.3.1}, ta bắt đầu thấy một loại trừu tượng mạnh mẽ hơn: các thủ tục được dùng để biểu diễn các phương pháp tính toán tổng quát, độc lập với các hàm cụ thể liên quan.  Trong phần này ta thảo luận về hai ví dụ phức tạp hơn---các phương pháp tổng quát để tìm nghiệm và điểm cố định của các hàm---và chỉ ra cách các phương pháp này có thể được biểu diễn trực tiếp thành các thủ tục.
+
+@subsubheading Tìm nghiệm của phương trình bằng phương pháp nửa khoảng
+
+@newterm{Phương pháp nửa khoảng} là một kỹ thuật đơn giản nhưng mạnh mẽ để tìm nghiệm của phương trình @math{{f(x) = 0}}, trong đó @math{f} là một hàm liên tục.  Ý tưởng là, nếu ta được cho các điểm @math{a} và @math{b} sao cho @math{{f(a) < 0 < f(b)}}, thì @math{f} phải có ít nhất một nghiệm không giữa @math{a} và @math{b}.  Để xác định vị trí nghiệm không, gọi @math{x} là trung bình của @math{a} và @math{b}, và tính @math{{f(x)}}.  Nếu @math{{f(x) > 0}}, thì @math{f} phải có nghiệm không giữa @math{a} và @math{x}.  Nếu @math{{f(x) < 0}}, thì @math{f} phải có nghiệm không giữa @math{x} và @math{b}.  Tiếp tục theo cách này, ta có thể xác định các khoảng ngày càng nhỏ mà @math{f} phải có nghiệm không.  Khi ta đến điểm mà khoảng đủ nhỏ, quá trình dừng lại.  Vì khoảng không chắc chắn được giảm đi một nửa ở mỗi bước của quá trình, số bước yêu cầu tăng theo @math{{\Theta(\log(L\, /\, T))}}, trong đó @math{L} là độ dài của khoảng ban đầu và @math{T} là dung sai lỗi (tức là kích thước của khoảng ta coi là ``đủ nhỏ'').  Đây là một thủ tục triển khai chiến lược này:
+
+@lisp
+(define (search f neg-point pos-point)
+  (let ((midpoint
+         (average neg-point pos-point)))
+    (if (close-enough? neg-point pos-point)
+        midpoint
+        (let ((test-value (f midpoint)))
+          (cond
+           ((positive? test-value)
+            (search f neg-point midpoint))
+           ((negative? test-value)
+            (search f midpoint pos-point))
+           (else midpoint))))))
+@end lisp
+
+@noindent
+Ta giả định rằng ban đầu ta được cho hàm @math{f} cùng với các điểm mà các giá trị của nó âm và dương.  Ta trước tiên tính trung điểm của hai điểm đã cho.  Tiếp theo ta kiểm tra xem khoảng đã cho có đủ nhỏ không, và nếu có ta đơn giản trả về trung điểm làm câu trả lời.  Nếu không, ta tính giá trị thử là giá trị của @math{f} tại trung điểm.  Nếu giá trị thử dương, thì ta tiếp tục quá trình với một khoảng mới chạy từ điểm âm ban đầu đến trung điểm.  Nếu giá trị thử âm, ta tiếp tục với khoảng từ trung điểm đến điểm dương.  Cuối cùng, có khả năng giá trị thử bằng 0, trong trường hợp đó trung điểm chính là nghiệm ta đang tìm.
+
+Để kiểm tra xem các điểm đầu mút có ``đủ gần'' không, ta có thể dùng một thủ tục tương tự với thủ tục đã dùng trong @ref{1.1.7} để tính căn bậc hai:@footnote{Ta đã dùng 0,001 như một số ``nhỏ'' đại diện để chỉ ra sai số chấp nhận được trong một phép tính.  Sai số phù hợp cho một phép tính thực tế phụ thuộc vào bài toán cần giải và các giới hạn của máy tính và thuật toán.  Đây thường là một xem xét rất tinh tế, đòi hỏi sự giúp đỡ của nhà phân tích số học hay loại pháp sư nào đó.}
+
+@lisp
+(define (close-enough? x y)
+  (< (abs (- x y)) 0.001))
+@end lisp
+
+@noindent
+@code{Search} thật khó dùng trực tiếp, vì ta có thể vô tình cung cấp cho nó các điểm mà các giá trị của @math{f} không có dấu yêu cầu, trong trường hợp đó ta nhận được câu trả lời sai.  Thay vào đó ta sẽ dùng @code{search} qua thủ tục sau, kiểm tra xem điểm đầu mút nào có giá trị hàm âm và điểm nào có giá trị dương, và gọi thủ tục @code{search} phù hợp.  Nếu hàm có cùng dấu tại hai điểm đã cho, phương pháp nửa khoảng không thể được sử dụng, trong trường hợp đó thủ tục phát tín hiệu lỗi.@footnote{Điều này có thể được thực hiện bằng @code{error}, nhận làm đối số một số mục được in như thông báo lỗi.}
+
+@lisp
+(define (half-interval-method f a b)
+  (let ((a-value (f a))
+        (b-value (f b)))
+    (cond ((and (negative? a-value)
+                (positive? b-value))
+           (search f a b))
+          ((and (negative? b-value)
+                (positive? a-value))
+           (search f b a))
+          (else
+           (error "Values are not of
+                   opposite sign" a b)))))
+@end lisp
+
+@noindent
+Ví dụ sau dùng phương pháp nửa khoảng để xấp xỉ @math{\pi} như nghiệm giữa 2 và 4 của @math{{\sin x = 0}}:
+
+@lisp
+(half-interval-method sin 2.0 4.0)
+@i{3.14111328125}
+@end lisp
+
+@noindent
+Đây là một ví dụ khác, dùng phương pháp nửa khoảng để tìm nghiệm của phương trình @math{{x^3 - 2x - 3 = 0}} giữa 1 và 2:
+
+@lisp
+(half-interval-method
+ (lambda (x) (- (* x x x) (* 2 x) 3))
+ 1.0
+ 2.0)
+@i{1.89306640625}
+@end lisp
+
+@subsubheading Tìm điểm cố định của hàm
+
+Một số @math{x} được gọi là @newterm{điểm cố định} của hàm @math{f} nếu @math{x} thỏa mãn phương trình @math{{f(x) = x}}.  Với một số hàm @math{f} ta có thể xác định điểm cố định bằng cách bắt đầu với một dự đoán ban đầu và áp dụng @math{f} lặp đi lặp lại,
+@ifinfo
+
+@example
+f(x), f(f(x)), f(f(f(x))), ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :24:
+
+{f(x),}\quad {f(f(x)),}\quad {f(f(f(x))),} \quad{\dots,}
+\]
+
+@end tex
+@noindent
+cho đến khi giá trị không thay đổi nhiều.  Dùng ý tưởng này, ta có thể nghĩ ra một thủ tục @code{fixed-point} nhận đầu vào là một hàm và một dự đoán ban đầu, và tạo ra một xấp xỉ về điểm cố định của hàm.  Ta áp dụng hàm lặp đi lặp lại cho đến khi tìm được hai giá trị liên tiếp mà hiệu của chúng nhỏ hơn một dung sai được quy định:
+
+@lisp
+(define tolerance 0.00001)
+
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+@end lisp
+
+@noindent
+Chẳng hạn, ta có thể dùng phương pháp này để xấp xỉ điểm cố định của hàm cosin, bắt đầu với 1 như xấp xỉ ban đầu:@footnote{Hãy thử điều này trong một bài giảng nhàm chán: Đặt máy tính của bạn ở chế độ radian rồi liên tục nhấn nút @code{cos} cho đến khi bạn tìm được điểm cố định.}
+
+@lisp
+(fixed-point cos 1.0)
+@i{.7390822985224023}
+@end lisp
+
+@noindent
+Tương tự, ta có thể tìm một nghiệm của phương trình @math{{y = \sin y + \cos y}}:
+
+@lisp
+(fixed-point (lambda (y) (+ (sin y) (cos y)))
+             1.0)
+@i{1.2587315962971173}
+@end lisp
+
+@noindent
+Quá trình điểm cố định gợi nhớ đến quá trình ta đã dùng để tìm căn bậc hai trong @ref{1.1.7}.  Cả hai đều dựa trên ý tưởng cải thiện dự đoán lặp đi lặp lại cho đến khi kết quả thỏa mãn một tiêu chí nào đó.  Thực ra, ta có thể dễ dàng xây dựng phép tính căn bậc hai như một tìm kiếm điểm cố định.  Tính căn bậc hai của một số @math{x} đòi hỏi tìm @math{y} sao cho @math{{y^2 = x}}.  Đưa phương trình này về dạng tương đương @math{{y = x / y}}, ta nhận ra rằng ta đang tìm điểm cố định của hàm@footnote{@math{\mapsto} (đọc là ``ánh xạ tới'') là cách viết @code{lambda} của nhà toán học.  @math{{y \mapsto x / y}} nghĩa là @code{(lambda (y) (/ x y))}, tức là hàm có giá trị tại @math{y} là @math{{x / y}}.} @math{{y \mapsto x / y}}, và do đó ta có thể thử tính căn bậc hai là
+
+@lisp
+(define (sqrt x)
+  (fixed-point (lambda (y) (/ x y))
+               1.0))
+@end lisp
+
+@noindent
+Thật không may, tìm kiếm điểm cố định này không hội tụ.  Hãy xét dự đoán ban đầu @math{y_1}.  Dự đoán tiếp theo là @math{{y_2 = x / y_1}} và dự đoán tiếp theo là @math{y_3 = {x / y_2} = {x / (x / y_1)} = y_1}.  Điều này dẫn đến một vòng lặp vô hạn trong đó hai dự đoán @math{y_1} và @math{y_2} lặp đi lặp lại, dao động xung quanh đáp án.
+
+Một cách để kiểm soát các dao động như vậy là ngăn các dự đoán thay đổi quá nhiều.  Vì đáp án luôn nằm giữa dự đoán @math{y} của ta và @math{{x / y}}, ta có thể đưa ra dự đoán mới không xa @math{y} bằng @math{{x / y}} bằng cách lấy trung bình @math{y} với @math{{x / y}}, sao cho dự đoán tiếp theo sau @math{y} là @math{{{1\over2}(y + x / y)}} thay vì @math{{x / y}}.  Quá trình tạo ra dãy dự đoán như vậy đơn giản là quá trình tìm điểm cố định của @math{y \mapsto {{1\over2}(y + x / y)}}:
+
+@lisp
+(define (sqrt x)
+  (fixed-point
+   (lambda (y) (average y (/ x y)))
+   1.0))
+@end lisp
+
+@noindent
+(Lưu ý rằng @math{y = {{1\over2}(y + x / y)}} là một phép biến đổi đơn giản của phương trình @math{{y = x / y;}} để suy ra nó, thêm @math{y} vào cả hai vế của phương trình rồi chia cho 2.)
+
+Với sửa đổi này, thủ tục căn bậc hai hoạt động.  Thực ra, nếu ta khai triển các định nghĩa, ta có thể thấy rằng dãy xấp xỉ căn bậc hai được tạo ra ở đây chính xác là dãy được tạo ra bởi thủ tục căn bậc hai ban đầu của ta trong @ref{1.1.7}.  Cách tiếp cận lấy trung bình các xấp xỉ liên tiếp cho một nghiệm, một kỹ thuật mà ta gọi là @newterm{giảm chấn trung bình}, thường giúp hội tụ các tìm kiếm điểm cố định.
+
+@quotation
+@strong{@anchor{Exercise 1.35}Bài tập 1.35:} Chứng minh rằng tỷ lệ vàng @math{\varphi} (@ref{1.2.2}) là điểm cố định của phép biến đổi @math{{x \mapsto 1 + 1 / x}}, và dùng thực tế này để tính @math{\varphi} bằng thủ tục @code{fixed-point}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.36}Bài tập 1.36:} Sửa đổi @code{fixed-point} để nó in dãy xấp xỉ mà nó tạo ra, dùng các thủ tục nguyên thủy @code{newline} và @code{display} được trình bày trong @ref{Exercise 1.22}.  Sau đó tìm một nghiệm của @math{{x^x = 1000}} bằng cách tìm điểm cố định của @math{x \mapsto {\log(1000) / \log(x)}}.  (Dùng thủ tục nguyên thủy @code{log} của Scheme, tính logarithm tự nhiên.)  So sánh số bước thực hiện với và không có giảm chấn trung bình.  (Lưu ý rằng bạn không thể khởi động @code{fixed-point} với dự đoán 1, vì điều này sẽ gây ra chia cho @math{{\log(1) = 0}}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.37}Bài tập 1.37:}
+
+@enumerate a
+
+@item
+Một @newterm{phân số liên tục} vô hạn là biểu thức có dạng
+@ifinfo
+
+@example
+           N_1
+f = ---------------------
+               N_2
+    D_1 + ---------------
+                   N_3
+          D_2 + ---------
+                D_3 + ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :25:
+
+f \,=\, {\frac{N_1}{D_1 + \frac{N_2}{D_2 + \frac{N_3}{D_3 + \dots}}}.}
+\]
+
+@end tex
+Ví dụ, có thể chứng minh rằng khai triển phân số liên tục vô hạn với tất cả @math{N_i} và @math{D_i} bằng 1 tạo ra @math{{1 / \varphi}}, trong đó @math{\varphi} là tỷ lệ vàng (được mô tả trong @ref{1.2.2}).  Một cách để xấp xỉ một phân số liên tục vô hạn là cắt bớt khai triển sau một số số hạng cho trước.  Sự cắt bớt như vậy---gọi là @newterm{phân số liên tục hữu hạn @i{k} số hạng}---có dạng
+@ifinfo
+
+@example
+       N_1
+-----------------
+          N_2
+D_1 + -----------
+      ...    N_K
+          + -----
+             D_K
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :26:
+
+{\frac{N_1}{D_1 + \frac{N_2}{\ddots + \frac{N_k}{D_k}}}.}
+\]
+
+@end tex
+Giả sử @code{n} và @code{d} là các thủ tục một đối số (chỉ số số hạng @math{i}) trả về @math{N_i} và @math{D_i} của các số hạng của phân số liên tục.  Định nghĩa một thủ tục @code{cont-frac} sao cho việc đánh giá @code{(cont-frac n d k)} tính giá trị của phân số liên tục hữu hạn @math{k} số hạng.  Kiểm tra thủ tục của bạn bằng cách xấp xỉ @math{{1 / \varphi}} dùng
+
+@lisp
+(cont-frac (lambda (i) 1.0)
+           (lambda (i) 1.0)
+           k)
+@end lisp
+
+@noindent
+cho các giá trị liên tiếp của @code{k}.  Bạn phải làm cho @code{k} lớn đến bao nhiêu để có được xấp xỉ chính xác đến 4 chữ số thập phân?
+
+@item
+Nếu thủ tục @code{cont-frac} của bạn tạo ra một quá trình đệ quy, hãy viết một thủ tục tạo ra một quá trình lặp.  Nếu nó tạo ra một quá trình lặp, hãy viết một thủ tục tạo ra một quá trình đệ quy.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.38}Bài tập 1.38:} Năm 1737, nhà toán học người Thụy Sĩ Leonhard Euler xuất bản một bài báo @cite{De Fractionibus Continuis}, trong đó có khai triển phân số liên tục cho @math{{e - 2}}, trong đó @math{e} là cơ số của logarithm tự nhiên.  Trong phân số này, tất cả @math{N_i} đều bằng 1, và các @math{D_i} lần lượt là 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, @dots{}.  Viết một chương trình dùng thủ tục @code{cont-frac} từ @ref{Exercise 1.37} để xấp xỉ @math{e}, dựa trên khai triển của Euler.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.39}Bài tập 1.39:} Biểu diễn phân số liên tục của hàm tang được xuất bản năm 1770 bởi nhà toán học người Đức J.H. Lambert:
+@ifinfo
+
+@example
+              x
+tan x = ---------------
+                x^2
+        1 - -----------
+                  x^2
+            3 - -------
+                5 - ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :27:
+
+{\tan x} \,=\, {\frac{x}{1 - \frac{x^2}{3 - \frac{x^2}{5 - \dots}}}\,,}
+\]
+
+@end tex
+@noindent
+trong đó @math{x} theo radian.  Định nghĩa thủ tục @code{(tan-cf x k)} tính gần đúng hàm tang dựa trên công thức của Lambert.  @code{k} chỉ định số số hạng cần tính, như trong @ref{Exercise 1.37}.
+@end quotation
