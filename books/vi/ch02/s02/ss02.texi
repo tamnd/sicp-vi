@@ -1,0 +1,395 @@
+@node	2.2.2, 2.2.3, 2.2.1, 2.2
+@subsection Cấu Trúc Phân Cấp
+
+Biểu diễn dãy theo danh sách được tổng quát hóa tự nhiên để biểu diễn các dãy
+có phần tử có thể là chính các dãy. Ví dụ, chúng ta có thể coi đối tượng
+@code{((1 2) 3 4)} được xây dựng bởi
+
+@lisp
+(cons (list 1 2) (list 3 4))
+@end lisp
+
+@noindent
+như một danh sách ba phần tử, phần tử đầu tiên là chính một danh sách,
+@code{(1 2)}. Thực vậy, điều này được gợi ý bởi dạng mà kết quả được trình
+thông dịch in ra. @ref{Figure 2.5} cho thấy biểu diễn của cấu trúc này theo
+các cặp.
+
+@float
+@anchor{Figure 2.5}
+@ifinfo
+@quotation
+@strong{Figure 2.5:} Structure formed by @code{(cons (list 1 2) (list 3 4))}.
+
+@example
+                                          (3 4)
+                                            |
+                                            V
+((1 2) 3 4)  +---+---+                  +---+---+     +---+---+
+        ---->| * | *-+----------------->| * | *-+---->| * | / |
+             +-|-+---+                  +-|-+---+     +-|-+---+
+               |                          |             |
+               V                          V             V
+      (1 2)  +---+---+     +---+---+    +---+         +---+
+        ---->| * | *-+---->| * | / |    | 3 |         | 4 |
+             +-|-+---+     +-|-+---+    +---+         +---+
+               |             |
+               V             V
+             +---+         +---+
+             | 1 |         | 2 |
+             +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.5e,140mm,,,.std.svg}
+@caption{@strong{Figure 2.5:} Structure formed by @code{(cons (list 1 2) (list 3 4))}.}
+@end iftex
+@end float
+
+Một cách khác để nghĩ về các dãy có phần tử là các dãy là như các @newterm{cây}.
+Các phần tử của dãy là các nhánh của cây, và các phần tử chính là các dãy là
+các cây con. @ref{Figure 2.6} cho thấy cấu trúc trong @ref{Figure 2.5} được
+nhìn như một cây.
+
+@float
+@anchor{Figure 2.6}
+@ifinfo
+@quotation
+@strong{Figure 2.6:} The list structure in @ref{Figure 2.5} viewed as a tree.
+
+@example
+ ((1 2) 3 4)
+     /\\
+    /  | \
+(1 2)  3 4
+ / \
+ 1 2
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.6b,40mm,,,.std.svg}
+@caption{@strong{Figure 2.6:} The list structure in @ref{Figure 2.5} viewed as a tree.}
+@end iftex
+@end float
+
+@noindent
+Đệ quy là công cụ tự nhiên để xử lý cấu trúc cây, vì chúng ta thường có thể
+rút gọn các thao tác trên cây thành các thao tác trên các nhánh của chúng, đến
+lượt mình lại rút gọn thành các thao tác trên các nhánh của các nhánh, v.v.,
+cho đến khi chúng ta đến lá của cây. Ví dụ, hãy so sánh thủ tục @code{length}
+trong @ref{2.2.1} với thủ tục @code{count-leaves}, trả về tổng số lá của một
+cây:
+
+@lisp
+(define x (cons (list 1 2) (list 3 4)))
+@end lisp
+
+@lisp
+(length x)
+@i{3}
+@end lisp
+
+@lisp
+(count-leaves x)
+@i{4}
+
+(list x x)
+@i{(((1 2) 3 4) ((1 2) 3 4))}
+
+(length (list x x))
+@i{2}
+
+(count-leaves (list x x))
+@i{8}
+@end lisp
+
+@noindent
+Để cài đặt @code{count-leaves}, hãy nhớ lại kế hoạch đệ quy để tính
+@code{length}:
+
+@itemize @bullet
+
+@item
+@code{Length} của danh sách @code{x} là 1 cộng @code{length} của @code{cdr}
+của @code{x}.
+
+@item
+@code{Length} của danh sách rỗng là 0.
+
+@end itemize
+
+@noindent
+@code{Count-leaves} tương tự. Giá trị cho danh sách rỗng là như nhau:
+
+@itemize @bullet
+
+@item
+@code{Count-leaves} của danh sách rỗng là 0.
+
+@end itemize
+
+@noindent
+Nhưng trong bước rút gọn, khi chúng ta tách @code{car} của danh sách, chúng
+ta phải tính đến việc @code{car} có thể tự nó là một cây có các lá cần đếm.
+Do đó, bước rút gọn thích hợp là
+
+@itemize @bullet
+
+@item
+@code{Count-leaves} của cây @code{x} là @code{count-leaves} của @code{car}
+của @code{x} cộng @code{count-leaves} của @code{cdr} của @code{x}.
+
+@end itemize
+
+@noindent
+Cuối cùng, bằng cách lấy @code{car}, chúng ta đến các lá thực sự, vì vậy
+chúng ta cần một trường hợp cơ sở khác:
+
+@itemize @bullet
+
+@item
+@code{Count-leaves} của một lá là 1.
+
+@end itemize
+
+@noindent
+Để hỗ trợ viết các thủ tục đệ quy trên cây, Scheme cung cấp vị từ nguyên thủy
+@code{pair?}, kiểm tra xem đối số của nó có phải là một cặp không. Đây là thủ
+tục đầy đủ:@footnote{Thứ tự của hai mệnh đề đầu tiên trong @code{cond} quan
+trọng, vì danh sách rỗng thỏa mãn @code{null?} và cũng không phải là một cặp.}
+
+@lisp
+(define (count-leaves x)
+  (cond ((null? x) 0)
+        ((not (pair? x)) 1)
+        (else (+ (count-leaves (car x))
+                 (count-leaves (cdr x))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.24}Bài tập 2.24:} Giả sử chúng ta đánh giá biểu
+thức @code{(list 1 (list 2 (list 3 4)))}. Hãy cho kết quả được trình thông dịch
+in ra, cấu trúc hộp-và-con-trỏ tương ứng, và cách giải thích đây như một cây
+(như trong @ref{Figure 2.6}).
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.25}Bài tập 2.25:} Hãy cho các tổ hợp của @code{car}
+và @code{cdr} sẽ chọn ra 7 từ mỗi danh sách sau:
+
+@lisp
+(1 3 (5 7) 9)
+((7))
+(1 (2 (3 (4 (5 (6 7))))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.26}Bài tập 2.26:} Giả sử chúng ta định nghĩa
+@code{x} và @code{y} là hai danh sách:
+
+@lisp
+(define x (list 1 2 3))
+(define y (list 4 5 6))
+@end lisp
+
+Kết quả nào được trình thông dịch in ra khi đánh giá mỗi biểu thức sau:
+
+@lisp
+(append x y)
+(cons x y)
+(list x y)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.27}Bài tập 2.27:} Sửa đổi thủ tục @code{reverse}
+của bạn trong @ref{Exercise 2.18} để tạo ra thủ tục @code{deep-reverse} nhận
+một danh sách làm đối số và trả về danh sách với các phần tử bị đảo ngược và
+tất cả các danh sách con cũng bị đảo ngược sâu. Ví dụ,
+
+@lisp
+(define x
+  (list (list 1 2) (list 3 4)))
+
+x
+@i{((1 2) (3 4))}
+
+(reverse x)
+@i{((3 4) (1 2))}
+
+(deep-reverse x)
+@i{((4 3) (2 1))}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.28}Bài tập 2.28:} Viết thủ tục @code{fringe} nhận
+một cây (được biểu diễn như một danh sách) làm đối số và trả về một danh sách
+có các phần tử là tất cả các lá của cây được sắp xếp theo thứ tự từ trái sang
+phải. Ví dụ,
+
+@lisp
+(define x
+  (list (list 1 2) (list 3 4)))
+
+(fringe x)
+@i{(1 2 3 4)}
+
+(fringe (list x x))
+@i{(1 2 3 4 1 2 3 4)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.29}Bài tập 2.29:} Một cân đòn nhị phân gồm hai
+nhánh, nhánh trái và nhánh phải. Mỗi nhánh là một thanh có độ dài nhất định,
+trên đó treo một vật nặng hoặc một cân đòn nhị phân khác. Chúng ta có thể
+biểu diễn một cân đòn nhị phân bằng dữ liệu phức hợp bằng cách xây dựng nó
+từ hai nhánh (ví dụ, dùng @code{list}):
+
+@lisp
+(define (make-mobile left right)
+  (list left right))
+@end lisp
+
+Một nhánh được xây dựng từ một @code{length} (phải là một số) cùng với một
+@code{structure}, có thể là một số (biểu diễn một vật nặng đơn giản) hoặc một
+cân đòn khác:
+
+@lisp
+(define (make-branch length structure)
+  (list length structure))
+@end lisp
+
+@enumerate a
+
+@item
+Viết các bộ chọn tương ứng @code{left-branch} và @code{right-branch}, trả về
+các nhánh của một cân đòn, và @code{branch-length} và @code{branch-structure},
+trả về các thành phần của một nhánh.
+
+@item
+Dùng các bộ chọn của bạn, định nghĩa thủ tục @code{total-weight} trả về tổng
+trọng lượng của một cân đòn.
+
+@item
+Một cân đòn được gọi là @newterm{cân bằng} nếu mô-men xoắn tác dụng bởi nhánh
+trên cùng bên trái bằng mô-men xoắn tác dụng bởi nhánh trên cùng bên phải
+(tức là nếu chiều dài của thanh trái nhân với trọng lượng treo từ thanh đó
+bằng tích tương ứng cho phía bên phải) và nếu mỗi cân đòn con treo trên các
+nhánh của nó đều cân bằng. Thiết kế một vị từ kiểm tra xem một cân đòn nhị
+phân có cân bằng không.
+
+@item
+Giả sử chúng ta thay đổi biểu diễn của các cân đòn sao cho các bộ khởi tạo
+là
+
+@lisp
+(define (make-mobile left right)
+  (cons left right))
+
+(define (make-branch length structure)
+  (cons length structure))
+@end lisp
+
+Bạn cần thay đổi bao nhiêu trong các chương trình để chuyển sang biểu diễn
+mới?
+
+@end enumerate
+@end quotation
+
+@subsubheading Ánh xạ trên cây
+
+Giống như @code{map} là một trừu tượng mạnh mẽ để xử lý dãy, @code{map} cùng
+với đệ quy là một trừu tượng mạnh mẽ để xử lý cây. Ví dụ, thủ tục
+@code{scale-tree}, tương tự @code{scale-list} trong @ref{2.2.1}, nhận một hệ
+số số và một cây có lá là các số làm đối số. Nó trả về một cây có cùng hình
+dạng, trong đó mỗi số được nhân với hệ số. Kế hoạch đệ quy cho
+@code{scale-tree} tương tự như cho @code{count-leaves}:
+
+@lisp
+(define (scale-tree tree factor)
+  (cond ((null? tree) nil)
+        ((not (pair? tree))
+         (* tree factor))
+        (else
+         (cons (scale-tree (car tree)
+                           factor)
+               (scale-tree (cdr tree)
+                           factor)))))
+
+(scale-tree (list 1
+                  (list 2 (list 3 4) 5)
+                  (list 6 7))
+            10)
+
+@i{(10 (20 (30 40) 50) (60 70))}
+@end lisp
+
+@noindent
+Một cách khác để cài đặt @code{scale-tree} là coi cây như một dãy các cây con
+và dùng @code{map}. Chúng ta ánh xạ trên dãy, co giãn từng cây con lần lượt,
+và trả về danh sách các kết quả. Trong trường hợp cơ sở, khi cây là một lá,
+chúng ta chỉ đơn giản nhân với hệ số:
+
+@lisp
+(define (scale-tree tree factor)
+  (map (lambda (sub-tree)
+         (if (pair? sub-tree)
+             (scale-tree sub-tree factor)
+             (* sub-tree factor)))
+       tree))
+@end lisp
+
+@noindent
+Nhiều thao tác cây có thể được cài đặt bằng các tổ hợp tương tự của các phép
+toán dãy và đệ quy.
+
+@quotation
+@strong{@anchor{Exercise 2.30}Bài tập 2.30:} Định nghĩa thủ tục
+@code{square-tree} tương tự thủ tục @code{square-list} trong
+@ref{Exercise 2.21}. Tức là, @code{square-tree} nên hoạt động như sau:
+
+@lisp
+(square-tree
+ (list 1
+       (list 2 (list 3 4) 5)
+       (list 6 7)))
+@i{(1 (4 (9 16) 25) (36 49))}
+@end lisp
+
+Định nghĩa @code{square-tree} cả trực tiếp (tức là không dùng bất kỳ thủ tục
+bậc cao nào) và bằng cách dùng @code{map} và đệ quy.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.31}Bài tập 2.31:} Trừu tượng hóa câu trả lời của
+bạn cho @ref{Exercise 2.30} để tạo ra thủ tục @code{tree-map} với tính chất
+rằng @code{square-tree} có thể được định nghĩa là
+
+@lisp
+(define (square-tree tree)
+  (tree-map square tree))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.32}Bài tập 2.32:} Chúng ta có thể biểu diễn một
+tập hợp như một danh sách các phần tử phân biệt, và biểu diễn tập hợp tất cả
+các tập con của tập hợp như một danh sách các danh sách. Ví dụ, nếu tập hợp
+là @code{(1 2 3)}, thì tập hợp tất cả các tập con là
+@code{(() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))}. Hoàn thành định nghĩa sau
+của thủ tục tạo ra tập hợp các tập con của một tập hợp và giải thích rõ ràng
+tại sao nó hoạt động:
+
+@lisp
+(define (subsets s)
+  (if (null? s)
+      (list nil)
+      (let ((rest (subsets (cdr s))))
+        (append rest (map ⟨??⟩ rest)))))
+@end lisp
+@end quotation

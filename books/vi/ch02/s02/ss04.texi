@@ -1,0 +1,832 @@
+@node	2.2.4, 2.3, 2.1, 2.2
+@subsection Ví Dụ: Ngôn Ngữ Đồ Họa
+
+Phần này trình bày một ngôn ngữ đơn giản để vẽ hình minh họa sức mạnh của trừu
+tượng dữ liệu và tính bao đóng, đồng thời khai thác các thủ tục bậc cao một
+cách thiết yếu. Ngôn ngữ được thiết kế để dễ dàng thử nghiệm các mẫu như những
+mẫu trong @ref{Figure 2.9}, được tạo thành từ các phần tử lặp lại được dịch
+chuyển và co giãn.@footnote{Ngôn ngữ đồ họa dựa trên ngôn ngữ Peter Henderson
+tạo ra để xây dựng các hình ảnh như bản khắc gỗ ``Square Limit'' của M.C.
+Escher (xem @ref{Henderson 1982}). Bản khắc gỗ kết hợp một mẫu co giãn lặp
+lại, tương tự như các cách sắp xếp được vẽ bằng thủ tục @code{square-limit}
+trong phần này.} Trong ngôn ngữ này, các đối tượng dữ liệu được kết hợp được
+biểu diễn như các thủ tục thay vì như cấu trúc danh sách. Giống như @code{cons},
+thỏa mãn tính chất bao đóng, cho phép chúng ta dễ dàng xây dựng cấu trúc danh
+sách tùy ý phức tạp, các phép toán trong ngôn ngữ này, cũng thỏa mãn tính chất
+bao đóng, cho phép chúng ta dễ dàng xây dựng các mẫu tùy ý phức tạp.
+
+@float
+@anchor{Figure 2.9}
+@ifinfo
+@quotation
+@strong{Figure 2.9:} Designs generated with the picture language.
+
+[two graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.9,139mm,60mm,,.std.svg}
+@caption{@strong{Figure 2.9:} Designs generated with the picture language.}
+@end iftex
+@end float
+
+@subsubheading Ngôn ngữ đồ họa
+
+Khi chúng ta bắt đầu học lập trình trong @ref{1.1}, chúng ta đã nhấn mạnh tầm
+quan trọng của việc mô tả một ngôn ngữ bằng cách tập trung vào các nguyên tố
+nguyên thủy của ngôn ngữ, các phương tiện kết hợp và các phương tiện trừu tượng
+hóa của nó. Chúng ta sẽ theo khung đó ở đây.
+
+Một phần vẻ đẹp của ngôn ngữ đồ họa này là chỉ có một loại phần tử, được gọi
+là @newterm{họa sĩ}. Một họa sĩ vẽ một hình ảnh được dịch chuyển và co giãn để
+vừa với một khung hình dạng bình hành được chỉ định. Ví dụ, có một họa sĩ
+nguyên thủy chúng ta sẽ gọi là @code{wave} vẽ một hình vẽ đường thô, như trong
+@ref{Figure 2.10}. Hình dạng thực tế của hình vẽ phụ thuộc vào khung---tất cả
+bốn hình ảnh trong hình 2.10 được tạo ra bởi cùng một họa sĩ @code{wave}, nhưng
+theo bốn khung khác nhau. Họa sĩ có thể phức tạp hơn thế này: Họa sĩ nguyên
+thủy được gọi là @code{rogers} vẽ hình người sáng lập của @abbr{MIT}, William
+Barton Rogers, như trong @ref{Figure 2.11}.@footnote{William Barton Rogers
+(1804-1882) là người sáng lập và chủ tịch đầu tiên của @abbr{MIT}. Là nhà địa
+chất và giáo viên tài năng, ông dạy tại Trường Cao đẳng William and Mary và tại
+Đại học Virginia. Năm 1859 ông chuyển đến Boston, nơi ông có thêm thời gian
+nghiên cứu, làm việc về kế hoạch thành lập một ``học viện bách khoa'' và phục
+vụ như Thanh tra Đồng hồ Gas Tiểu bang đầu tiên của Massachusetts.
+
+Khi @abbr{MIT} được thành lập năm 1861, Rogers được bầu làm chủ tịch đầu tiên.
+Rogers tán thành lý tưởng về ``học tập có ích'' khác với giáo dục đại học thời
+bấy giờ, với sự chú trọng quá mức vào các môn cổ điển, mà theo ông, ``cản trở
+việc giảng dạy và rèn luyện rộng hơn, cao hơn và thực tiễn hơn về các khoa học
+tự nhiên và xã hội.'' Nền giáo dục này cũng khác với giáo dục trường nghề hẹp.
+Theo lời Rogers:
+
+@quotation
+Sự phân biệt do thế giới áp đặt giữa người thực hành và người khoa học hoàn
+toàn vô ích, và toàn bộ kinh nghiệm thời hiện đại đã chứng minh sự vô nghĩa
+hoàn toàn của nó.
+@end quotation
+
+Rogers phục vụ với tư cách là chủ tịch của @abbr{MIT} cho đến năm 1870, khi
+ông từ chức do sức khỏe kém. Năm 1878 chủ tịch thứ hai của @abbr{MIT}, John
+Runkle, từ chức dưới áp lực của cuộc khủng hoảng tài chính do Hoảng loạn năm
+1873 và căng thẳng trong việc chống lại các nỗ lực của Harvard để tiếp quản
+@abbr{MIT}. Rogers trở lại giữ chức chủ tịch cho đến năm 1881.
+
+Rogers đột quỵ và qua đời trong khi phát biểu tại lễ tốt nghiệp của @abbr{MIT}
+năm 1882. Runkle trích dẫn những lời cuối cùng của Rogers trong bài phát biểu
+tưởng niệm được đọc cùng năm đó:
+
+@quotation
+``Khi tôi đứng ở đây hôm nay và nhìn thấy Viện là gì, @dots{} tôi nhớ lại
+những khởi đầu của khoa học. Tôi nhớ một trăm năm mươi năm trước Stephen Hales
+đã xuất bản một tập sách nhỏ về chủ đề khí chiếu sáng, trong đó ông tuyên bố
+rằng các nghiên cứu của ông đã chứng minh rằng 128 hạt than đá bituminous --
+'' ``Than đá bituminous,'' đó là những lời cuối cùng của ông trên trái đất. Ở
+đây ông cúi người về phía trước, như thể đang tham khảo một số ghi chú trên
+bàn trước mặt ông, sau đó từ từ trở lại tư thế thẳng đứng, giơ tay lên, và
+được chuyển từ cảnh lao động và chiến thắng trần thế của ông đến ``ngày mai
+của cái chết,'' nơi các bí ẩn của cuộc sống được giải quyết, và linh hồn thoát
+xác tìm thấy sự thỏa mãn vô tận khi chiêm ngưỡng những bí ẩn mới và vẫn chưa
+thể dò được của tương lai vô hạn.
+@end quotation
+
+Theo lời Francis A. Walker (chủ tịch thứ ba của @abbr{MIT}):
+
+@quotation
+Suốt đời ông đã tự giữ mình trung thực và anh hùng nhất, và ông chết như một
+hiệp sĩ tốt như vậy chắc chắn đã mong muốn, trong khi còn đang làm việc, tại
+vị trí của mình, và trong chính phần và hành động của bổn phận công cộng.
+@end quotation
+} Bốn hình ảnh trong hình 2.11 được vẽ theo bốn khung giống như các hình ảnh
+@code{wave} trong hình 2.10.
+
+@float
+@anchor{Figure 2.10}
+@ifinfo
+@quotation
+@strong{Figure 2.10:} Images produced by the @code{wave}
+painter, with respect to four different frames.  The frames, shown with dotted
+lines, are not part of the images.
+
+[four graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.10,58mm,,,.std.svg}
+@caption{@strong{Figure 2.10:} Images produced by the @code{wave} painter, with respect to four different frames.  The frames, shown with dotted lines, are not part of the images.}
+@end iftex
+@end float
+
+@float
+@anchor{Figure 2.11}
+@ifinfo
+@quotation
+@strong{Figure 2.11:} Images of William Barton Rogers,
+founder and first president of @abbr{MIT}, painted with respect to the same
+four frames as in @ref{Figure 2.10} (original image reprinted with the
+permission of the @abbr{MIT} Museum).
+
+[four graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.11,58mm,,,.std.svg}
+@caption{@strong{Figure 2.11:} Images of William Barton Rogers, founder and first president of @abbr{MIT}, painted with respect to the same four frames as in @ref{Figure 2.10} (original image from Wikimedia Commons).}
+@end iftex
+@end float
+
+@noindent
+Để kết hợp các hình ảnh, chúng ta sử dụng các phép toán khác nhau tạo ra các
+họa sĩ mới từ các họa sĩ đã cho. Ví dụ, phép toán @code{beside} nhận hai họa
+sĩ và tạo ra một họa sĩ phức hợp mới vẽ hình ảnh của họa sĩ đầu tiên ở nửa
+trái của khung và hình ảnh của họa sĩ thứ hai ở nửa phải của khung. Tương tự,
+@code{below} nhận hai họa sĩ và tạo ra một họa sĩ phức hợp vẽ hình ảnh của
+họa sĩ đầu tiên bên dưới hình ảnh của họa sĩ thứ hai. Một số phép toán biến
+đổi một họa sĩ đơn để tạo ra một họa sĩ mới. Ví dụ, @code{flip-vert} nhận
+một họa sĩ và tạo ra một họa sĩ vẽ hình ảnh của nó lộn ngược, và
+@code{flip-horiz} tạo ra một họa sĩ vẽ hình ảnh của họa sĩ gốc được lật từ
+trái sang phải.
+
+@ref{Figure 2.12} cho thấy hình vẽ của một họa sĩ được gọi là @code{wave4} được
+xây dựng qua hai giai đoạn bắt đầu từ @code{wave}:
+
+@lisp
+(define wave2 (beside wave (flip-vert wave)))
+(define wave4 (below wave2 wave2))
+@end lisp
+
+@float
+@anchor{Figure 2.12}
+@ifinfo
+@quotation
+@strong{Figure 2.12:} Creating a complex figure, starting
+from the @code{wave} painter of @ref{Figure 2.10}.
+
+[two graphic images not included]
+
+@lisp
+(define wave2                      (define wave4
+  (beside wave (flip-vert wave)))    (below wave2 wave2))
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.12,118mm,,,.std.svg}
+@caption{@strong{Figure 2.12:} Creating a complex figure, starting from the @code{wave} painter of @ref{Figure 2.10}.}
+@end iftex
+@end float
+
+@noindent
+Khi xây dựng một hình ảnh phức tạp theo cách này, chúng ta đang khai thác thực
+tế là các họa sĩ được đóng dưới các phương tiện kết hợp của ngôn ngữ. @code{Beside}
+hoặc @code{below} của hai họa sĩ tự nó là một họa sĩ; do đó, chúng ta có thể
+dùng nó như một phần tử trong việc tạo ra các họa sĩ phức tạp hơn. Cũng như
+xây dựng cấu trúc danh sách bằng @code{cons}, tính bao đóng của dữ liệu dưới
+các phương tiện kết hợp là điều kiện cốt lõi để tạo ra các cấu trúc phức tạp
+trong khi chỉ dùng một vài phép toán.
+
+Khi đã có thể kết hợp các họa sĩ, chúng ta muốn có thể trừu tượng hóa các mẫu
+điển hình của việc kết hợp họa sĩ. Chúng ta sẽ cài đặt các phép toán họa sĩ
+như các thủ tục Scheme. Điều này có nghĩa là chúng ta không cần cơ chế trừu
+tượng đặc biệt trong ngôn ngữ đồ họa: Vì các phương tiện kết hợp là các thủ
+tục Scheme thông thường, chúng ta tự động có khả năng làm bất cứ điều gì với
+các phép toán họa sĩ mà chúng ta có thể làm với các thủ tục. Ví dụ, chúng ta
+có thể trừu tượng hóa mẫu trong @code{wave4} như
+
+@lisp
+(define (flipped-pairs painter)
+  (let ((painter2
+         (beside painter
+                 (flip-vert painter))))
+    (below painter2 painter2)))
+@end lisp
+
+@noindent
+và định nghĩa @code{wave4} như một thực thể của mẫu này:
+
+@lisp
+(define wave4 (flipped-pairs wave))
+@end lisp
+
+@noindent
+Chúng ta cũng có thể định nghĩa các phép toán đệ quy. Đây là một phép toán
+làm cho các họa sĩ chia và phân nhánh về bên phải như trong @ref{Figure 2.13}
+và @ref{Figure 2.14}:
+
+@lisp
+(define (right-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (right-split painter
+                                  (- n 1))))
+        (beside painter
+                (below smaller smaller)))))
+@end lisp
+
+@float
+@anchor{Figure 2.13}
+@ifinfo
+@quotation
+@strong{Figure 2.13:} Recursive plans for @code{right-split} and @code{corner-split}.
+
+@example
++-------------+-------------+    +------+------+-------------+
+|             |             |    | up-  | up-  |             |
+|             | right-split |    | split| split| corner-split|
+|             |             |    |      |      |             |
+|             |     n-1     |    |  n-1 |  n-1 |     n-1     |
+|             |             |    |      |      |             |
+|  identity   +-------------+    +------+------+-------------+
+|             |             |    |             | right-split |
+|             | right-split |    |             |     n-1     |
+|             |             |    |  identity   +-------------+
+|             |     n-1     |    |             | right-split |
+|             |             |    |             |     n-1     |
++-------------+-------------+    +-------------+-------------+
+
+       right-split n                    corner-split n
+@end example
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.13a,132mm,,,.std.svg}
+@caption{@strong{Figure 2.13:} Recursive plans for @code{right-split} and @code{corner-split}.}
+@end iftex
+@end float
+
+@noindent
+Chúng ta có thể tạo ra các mẫu cân bằng bằng cách phân nhánh lên trên cũng như
+về bên phải (xem @ref{Exercise 2.44}, @ref{Figure 2.13} và @ref{Figure 2.14}):
+
+@lisp
+(define (corner-split painter n)
+  (if (= n 0)
+      painter
+      (let ((up (up-split painter (- n 1)))
+            (right (right-split painter
+                                (- n 1))))
+        (let ((top-left (beside up up))
+              (bottom-right (below right
+                                   right))
+              (corner (corner-split painter
+                                    (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right
+                         corner))))))
+@end lisp
+
+@float
+@anchor{Figure 2.14}
+@ifinfo
+@quotation
+@strong{Figure 2.14:} The recursive operations
+@code{right-split} and @code{corner-split} applied to the painters @code{wave}
+and @code{rogers}.  Combining four @code{corner-split} figures produces
+symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.
+
+[two graphic images not included]
+
+@lisp
+(right-split wave 4)         (right-split rogers 4)
+@end lisp
+
+[two graphic images not included]
+
+@lisp
+(corner-split wave 4)        (corner-split rogers 4)
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.14b,136mm,,,.std.svg}
+@caption{@strong{Figure 2.14:} The recursive operations @code{right-split} and @code{corner-split} applied to the painters @code{wave} and @code{rogers}.  Combining four @code{corner-split} figures produces symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.}
+@end iftex
+@end float
+
+Bằng cách đặt bốn bản sao của @code{corner-split} một cách thích hợp, chúng
+ta thu được một mẫu được gọi là @code{square-limit}, ứng dụng của nó cho
+@code{wave} và @code{rogers} được hiển thị trong @ref{Figure 2.9}:
+
+@lisp
+(define (square-limit painter n)
+  (let ((quarter (corner-split painter n)))
+    (let ((half (beside (flip-horiz quarter)
+                        quarter)))
+      (below (flip-vert half) half))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.44}Bài tập 2.44:} Định nghĩa thủ tục @code{up-split}
+được dùng bởi @code{corner-split}. Nó tương tự @code{right-split}, ngoại trừ
+nó hoán đổi vai trò của @code{below} và @code{beside}.
+@end quotation
+
+@subsubheading Các phép toán bậc cao
+
+Ngoài việc trừu tượng hóa các mẫu kết hợp họa sĩ, chúng ta có thể làm việc ở
+mức cao hơn, trừu tượng hóa các mẫu kết hợp các phép toán họa sĩ. Tức là,
+chúng ta có thể coi các phép toán họa sĩ như các phần tử để thao tác và có
+thể viết các phương tiện kết hợp cho các phần tử này---các thủ tục nhận các
+phép toán họa sĩ làm đối số và tạo ra các phép toán họa sĩ mới.
+
+Ví dụ, @code{flipped-pairs} và @code{square-limit} mỗi cái sắp xếp bốn bản sao
+hình ảnh của họa sĩ theo mẫu hình vuông; chúng chỉ khác nhau ở cách chúng định
+hướng các bản sao. Một cách trừu tượng hóa mẫu kết hợp họa sĩ này là với thủ
+tục sau, nhận bốn phép toán họa sĩ một đối số và tạo ra một phép toán họa sĩ
+biến đổi một họa sĩ đã cho với bốn phép toán đó và sắp xếp các kết quả thành
+một hình vuông. @code{Tl}, @code{tr}, @code{bl} và @code{br} là các biến đổi
+áp dụng cho bản sao trên trái, bản sao trên phải, bản sao dưới trái và bản sao
+dưới phải, tương ứng.
+
+@lisp
+(define (square-of-four tl tr bl br)
+  (lambda (painter)
+    (let ((top (beside (tl painter)
+                       (tr painter)))
+          (bottom (beside (bl painter)
+                          (br painter))))
+      (below bottom top))))
+@end lisp
+
+@noindent
+Khi đó @code{flipped-pairs} có thể được định nghĩa theo @code{square-of-four}
+như sau:@footnote{Tương đương, chúng ta có thể viết
+
+@lisp
+(define flipped-pairs
+  (square-of-four
+   identity flip-vert identity flip-vert))
+@end lisp
+}
+
+@lisp
+(define (flipped-pairs painter)
+  (let ((combine4
+         (square-of-four identity
+                         flip-vert
+                         identity
+                         flip-vert)))
+    (combine4 painter)))
+@end lisp
+
+@noindent
+và @code{square-limit} có thể được biểu đạt như@footnote{@code{Rotate180} xoay
+một họa sĩ 180 độ (xem @ref{Exercise 2.50}). Thay vì @code{rotate180} chúng ta
+có thể nói @code{(compose flip-vert flip-horiz)}, dùng thủ tục @code{compose}
+từ @ref{Exercise 1.42}.}
+
+@lisp
+(define (square-limit painter n)
+  (let ((combine4
+         (square-of-four flip-horiz
+                         identity
+                         rotate180
+                         flip-vert)))
+    (combine4 (corner-split painter n))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.45}Bài tập 2.45:} @code{Right-split} và
+@code{up-split} có thể được biểu đạt như các thực thể của một phép toán chia
+tổng quát. Định nghĩa thủ tục @code{split} với tính chất rằng việc đánh giá
+
+@lisp
+(define right-split (split beside below))
+(define up-split (split below beside))
+@end lisp
+
+@noindent
+tạo ra các thủ tục @code{right-split} và @code{up-split} với cùng hành vi như
+các thủ tục đã được định nghĩa.
+@end quotation
+
+@subsubheading Khung
+
+Trước khi có thể chỉ ra cách cài đặt các họa sĩ và các phương tiện kết hợp của
+chúng, chúng ta phải xem xét các khung trước. Một khung có thể được mô tả bởi
+ba véc-tơ---một véc-tơ gốc và hai véc-tơ cạnh. Véc-tơ gốc chỉ định độ lệch
+của gốc của khung so với một gốc tuyệt đối trong mặt phẳng, và các véc-tơ cạnh
+chỉ định độ lệch của các góc của khung từ gốc của nó. Nếu các cạnh vuông góc,
+khung sẽ là hình chữ nhật. Nếu không, khung sẽ là một hình bình hành tổng quát
+hơn.
+
+@ref{Figure 2.15} hiển thị một khung và các véc-tơ liên quan của nó. Phù hợp
+với trừu tượng dữ liệu, chúng ta chưa cần phải cụ thể về cách các khung được
+biểu diễn, ngoài việc nói rằng có một bộ khởi tạo @code{make-frame}, nhận ba
+véc-tơ và tạo ra một khung, và ba bộ chọn tương ứng @code{origin-frame},
+@code{edge1-frame} và @code{edge2-frame} (xem @ref{Exercise 2.47}).
+
+@float
+@anchor{Figure 2.15}
+@ifinfo
+@quotation
+@strong{Figure 2.15:} A frame is described by three vectors
+-- an origin and two edges.
+
+@example
+                         __
+                     __--  \
+                 __--       \
+      __     __--            \   __
+     |\  __--                 \__-|
+       \-                  __--
+frame   \              __--
+edge2    \         __--    frame
+vector    \    __--        edge1
+           \_--            vector
+            -   <--+
+          frame    |
+          origin   +-- (0, 0) point
+          vector       on display screen
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.15a,78mm,,,.std.svg}
+@caption{@strong{Figure 2.15:} A frame is described by three vectors --- an origin and two edges.}
+@end iftex
+@end float
+
+@noindent
+Chúng ta sẽ sử dụng tọa độ trong hình vuông đơn vị @math{{(0 \le x, y \le 1)}}
+để chỉ định hình ảnh. Với mỗi khung, chúng ta liên kết một @newterm{ánh xạ tọa
+độ khung}, sẽ được dùng để dịch chuyển và co giãn hình ảnh cho vừa với khung.
+Ánh xạ biến đổi hình vuông đơn vị thành khung bằng cách ánh xạ véc-tơ
+@math{{{\bf v} = (x, y)}} đến tổng véc-tơ
+@ifinfo
+
+@example
+Origin(Frame) + x * Edge_1(Frame) + y * Edge_2(Frame)
+@end example
+
+@end ifinfo
+@tex
+\[ % :40:
+  {\text{Origin(Frame)}} + {x \cdot \text{Edge}_1\text{(Frame)}} + {y \cdot \text{Edge}_2\text{(Frame)}.} \]
+@end tex
+@noindent
+Ví dụ, (0, 0) được ánh xạ đến gốc của khung, (1, 1) đến đỉnh đối diện gốc
+theo đường chéo, và (0.5, 0.5) đến trung tâm của khung. Chúng ta có thể tạo
+ra ánh xạ tọa độ của khung bằng thủ tục sau:@footnote{@code{Frame-coord-map}
+dùng các phép toán véc-tơ được mô tả trong @ref{Exercise 2.46} bên dưới, mà
+chúng ta giả sử đã được cài đặt bằng một biểu diễn nào đó cho các véc-tơ. Do
+trừu tượng dữ liệu, không quan trọng biểu diễn véc-tơ này là gì, miễn là các
+phép toán véc-tơ hoạt động đúng.}
+
+@lisp
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+     (origin-frame frame)
+     (add-vect
+      (scale-vect (xcor-vect v)
+                  (edge1-frame frame))
+      (scale-vect (ycor-vect v)
+                  (edge2-frame frame))))))
+@end lisp
+
+@noindent
+Quan sát rằng áp dụng @code{frame-coord-map} cho một khung trả về một thủ tục
+mà, cho một véc-tơ, trả về một véc-tơ. Nếu véc-tơ đối số nằm trong hình vuông
+đơn vị, thì véc-tơ kết quả sẽ nằm trong khung. Ví dụ,
+
+@lisp
+((frame-coord-map a-frame) (make-vect 0 0))
+@end lisp
+
+@noindent
+trả về cùng véc-tơ như
+
+@lisp
+(origin-frame a-frame)
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.46}Bài tập 2.46:} Một véc-tơ hai chiều @math{\bf v}
+chạy từ gốc đến một điểm có thể được biểu diễn như một cặp gồm tọa độ @math{x}
+và tọa độ @math{y}. Cài đặt trừu tượng dữ liệu cho các véc-tơ bằng cách cho
+bộ khởi tạo @code{make-vect} và các bộ chọn tương ứng @code{xcor-vect} và
+@code{ycor-vect}. Theo các bộ chọn và bộ khởi tạo của bạn, cài đặt các thủ
+tục @code{add-vect}, @code{sub-vect} và @code{scale-vect} thực hiện các phép
+toán cộng véc-tơ, trừ véc-tơ và nhân véc-tơ với một số vô hướng:
+@ifinfo
+
+@example
+(x_1, y_1) + (x_2, y_2) = (x_1 + x_2, y_1 + y_2)
+(x_1, y_1) - (x_2, y_2) = (x_1 - x_2, y_1 - y_2)
+             s * (x, y) = (sx, sy)
+@end example
+@end ifinfo
+@tex
+\[ % :41:
+
+\begin{eqnarray}
+	(x_1, y_1) + (x_2, y_2)  &=&  (x_1 + x_2, y_1 + y_2), \\
+	(x_1, y_1) - (x_2, y_2)  &=&  (x_1 - x_2, y_1 - y_2), \\
+	s \cdot (x, y) 		 &=&  (sx, sy).
+\end{eqnarray}
+\]
+@end tex
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.47}Bài tập 2.47:} Đây là hai bộ khởi tạo có thể
+cho các khung:
+
+@lisp
+(define (make-frame origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (make-frame origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+@end lisp
+
+Với mỗi bộ khởi tạo, cung cấp các bộ chọn thích hợp để tạo ra một cài đặt
+cho các khung.
+@end quotation
+
+@subsubheading Họa sĩ
+
+Một họa sĩ được biểu diễn như một thủ tục mà, cho một khung làm đối số, vẽ một
+hình ảnh cụ thể được dịch chuyển và co giãn cho vừa với khung. Tức là, nếu
+@code{p} là một họa sĩ và @code{f} là một khung, thì chúng ta tạo ra hình ảnh
+của @code{p} trong @code{f} bằng cách gọi @code{p} với @code{f} làm đối số.
+
+Các chi tiết về cách cài đặt các họa sĩ nguyên thủy phụ thuộc vào các đặc tính
+cụ thể của hệ thống đồ họa và loại hình ảnh cần vẽ. Ví dụ, giả sử chúng ta có
+thủ tục @code{draw-line} vẽ một đường thẳng trên màn hình giữa hai điểm được
+chỉ định. Khi đó chúng ta có thể tạo ra các họa sĩ cho các hình vẽ đường thẳng,
+như họa sĩ @code{wave} trong @ref{Figure 2.10}, từ các danh sách đoạn thẳng
+như sau:@footnote{@code{Segments->painter} dùng biểu diễn cho các đoạn thẳng
+được mô tả trong @ref{Exercise 2.48} bên dưới. Nó cũng dùng thủ tục
+@code{for-each} được mô tả trong @ref{Exercise 2.23}.}
+
+@lisp
+(define (segments->painter segment-list)
+  (lambda (frame)
+    (for-each
+     (lambda (segment)
+       (draw-line
+        ((frame-coord-map frame)
+         (start-segment segment))
+        ((frame-coord-map frame)
+         (end-segment segment))))
+     segment-list)))
+@end lisp
+
+@noindent
+Các đoạn thẳng được cho bằng tọa độ theo hình vuông đơn vị. Với mỗi đoạn
+trong danh sách, họa sĩ biến đổi các điểm đầu của đoạn bằng ánh xạ tọa độ
+khung và vẽ một đường thẳng giữa các điểm đã biến đổi.
+
+Biểu diễn các họa sĩ như các thủ tục dựng lên một rào cản trừu tượng mạnh mẽ
+trong ngôn ngữ đồ họa. Chúng ta có thể tạo ra và kết hợp mọi loại họa sĩ
+nguyên thủy, dựa trên nhiều khả năng đồ họa khác nhau. Các chi tiết về cài
+đặt của chúng không quan trọng. Bất kỳ thủ tục nào đều có thể phục vụ như một
+họa sĩ, miễn là nó nhận một khung làm đối số và vẽ một thứ gì đó được co giãn
+cho vừa với khung.@footnote{Ví dụ, họa sĩ @code{rogers} trong @ref{Figure 2.11}
+được xây dựng từ một hình ảnh mức xám. Với mỗi điểm trong một khung cho trước,
+họa sĩ @code{rogers} xác định điểm trong hình ảnh được ánh xạ đến nó theo
+ánh xạ tọa độ khung, và tô bóng nó tương ứng. Bằng cách cho phép các loại
+họa sĩ khác nhau, chúng ta đang tận dụng ý tưởng dữ liệu trừu tượng đã thảo
+luận trong @ref{2.1.3}, nơi chúng ta lập luận rằng một biểu diễn số hữu tỉ
+có thể là bất cứ thứ gì thỏa mãn một điều kiện thích hợp. Ở đây chúng ta sử
+dụng thực tế là một họa sĩ có thể được cài đặt theo bất kỳ cách nào, miễn là
+nó vẽ một thứ gì đó trong khung được chỉ định. @ref{2.1.3} cũng cho thấy cách
+các cặp có thể được cài đặt như các thủ tục. Các họa sĩ là ví dụ thứ hai của
+chúng ta về biểu diễn thủ tục cho dữ liệu.}
+
+@quotation
+@strong{@anchor{Exercise 2.48}Bài tập 2.48:} Một đoạn thẳng có hướng trong mặt
+phẳng có thể được biểu diễn như một cặp véc-tơ---véc-tơ chạy từ gốc đến điểm
+bắt đầu của đoạn, và véc-tơ chạy từ gốc đến điểm kết thúc của đoạn. Dùng biểu
+diễn véc-tơ của bạn từ @ref{Exercise 2.46} để định nghĩa một biểu diễn cho
+các đoạn thẳng với bộ khởi tạo @code{make-segment} và các bộ chọn
+@code{start-segment} và @code{end-segment}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.49}Bài tập 2.49:} Dùng @code{segments->painter} để
+định nghĩa các họa sĩ nguyên thủy sau:
+
+@enumerate a
+
+@item
+Họa sĩ vẽ đường viền của khung được chỉ định.
+
+@item
+Họa sĩ vẽ một chữ ``X'' bằng cách nối các góc đối diện của khung.
+
+@item
+Họa sĩ vẽ hình thoi bằng cách nối các trung điểm của các cạnh của khung.
+
+@item
+Họa sĩ @code{wave}.
+
+@end enumerate
+@end quotation
+
+@subsubheading Biến đổi và kết hợp họa sĩ
+
+Một phép toán trên các họa sĩ (như @code{flip-vert} hoặc @code{beside}) hoạt
+động bằng cách tạo ra một họa sĩ gọi các họa sĩ gốc theo các khung được dẫn
+xuất từ khung đối số. Vì vậy, ví dụ, @code{flip-vert} không cần biết một họa
+sĩ hoạt động như thế nào để lật nó---nó chỉ cần biết cách lộn ngược một khung:
+Họa sĩ đã lật chỉ dùng họa sĩ gốc, nhưng trong khung đã đảo ngược.
+
+Các phép toán họa sĩ dựa trên thủ tục @code{transform-painter}, nhận một họa
+sĩ và thông tin về cách biến đổi một khung làm đối số và tạo ra một họa sĩ mới.
+Họa sĩ đã biến đổi, khi được gọi trên một khung, biến đổi khung và gọi họa sĩ
+gốc trên khung đã biến đổi. Các đối số cho @code{transform-painter} là các
+điểm (được biểu diễn như các véc-tơ) chỉ định các góc của khung mới: Khi được
+ánh xạ vào khung, điểm đầu tiên chỉ định gốc của khung mới và hai điểm còn lại
+chỉ định các đầu của các véc-tơ cạnh của nó. Vì vậy, các đối số trong hình
+vuông đơn vị chỉ định một khung nằm trong khung gốc.
+
+@lisp
+(define (transform-painter
+         painter origin corner1 corner2)
+  (lambda (frame)
+    (let ((m (frame-coord-map frame)))
+      (let ((new-origin (m origin)))
+        (painter (make-frame new-origin
+                  (sub-vect (m corner1)
+                            new-origin)
+                  (sub-vect (m corner2)
+                            new-origin)))))))
+@end lisp
+
+@noindent
+Đây là cách lật các hình ảnh họa sĩ theo chiều dọc:
+
+@lisp
+(define (flip-vert painter)
+  (transform-painter
+   painter
+   (make-vect 0.0 1.0)   @r{; new @code{origin}}
+   (make-vect 1.0 1.0)   @r{; new end of @code{edge1}}
+   (make-vect 0.0 0.0))) @r{; new end of @code{edge2}}
+@end lisp
+
+@noindent
+Dùng @code{transform-painter}, chúng ta có thể dễ dàng định nghĩa các biến
+đổi mới. Ví dụ, chúng ta có thể định nghĩa một họa sĩ thu nhỏ hình ảnh của nó
+vào góc trên bên phải của khung được cho:
+
+@lisp
+(define (shrink-to-upper-right painter)
+  (transform-painter painter
+                     (make-vect 0.5 0.5)
+                     (make-vect 1.0 0.5)
+                     (make-vect 0.5 1.0)))
+@end lisp
+
+@noindent
+Các biến đổi khác xoay hình ảnh ngược chiều kim đồng hồ 90
+độ@footnote{@code{Rotate90} chỉ là phép xoay thuần túy cho các khung vuông,
+vì nó cũng kéo dài và thu nhỏ hình ảnh để vừa với khung đã xoay.}
+
+@lisp
+(define (rotate90 painter)
+  (transform-painter painter
+                     (make-vect 1.0 0.0)
+                     (make-vect 1.0 1.0)
+                     (make-vect 0.0 0.0)))
+@end lisp
+
+@noindent
+hoặc ép hình ảnh về phía trung tâm của khung:@footnote{Các hình ảnh hình thoi
+trong @ref{Figure 2.10} và @ref{Figure 2.11} được tạo ra với @code{squash-inwards}
+áp dụng cho @code{wave} và @code{rogers}.}
+
+@lisp
+(define (squash-inwards painter)
+  (transform-painter painter
+                     (make-vect 0.0 0.0)
+                     (make-vect 0.65 0.35)
+                     (make-vect 0.35 0.65)))
+@end lisp
+
+@noindent
+Biến đổi khung cũng là chìa khóa để định nghĩa các phương tiện kết hợp hai
+hoặc nhiều họa sĩ. Thủ tục @code{beside}, ví dụ, nhận hai họa sĩ, biến đổi
+chúng để vẽ trong nửa trái và nửa phải của một khung đối số tương ứng, và tạo
+ra một họa sĩ phức hợp mới. Khi họa sĩ phức hợp được cho một khung, nó gọi
+họa sĩ đã biến đổi đầu tiên để vẽ trong nửa trái của khung và gọi họa sĩ đã
+biến đổi thứ hai để vẽ trong nửa phải của khung:
+
+@lisp
+(define (beside painter1 painter2)
+  (let ((split-point (make-vect 0.5 0.0)))
+    (let ((paint-left  (transform-painter
+                        painter1
+                        (make-vect 0.0 0.0)
+                        split-point
+                        (make-vect 0.0 1.0)))
+          (paint-right (transform-painter
+                        painter2
+                        split-point
+                        (make-vect 1.0 0.0)
+                        (make-vect 0.5 1.0))))
+      (lambda (frame)
+        (paint-left frame)
+        (paint-right frame)))))
+@end lisp
+
+@noindent
+Quan sát cách trừu tượng dữ liệu họa sĩ, và đặc biệt là biểu diễn các họa sĩ
+như các thủ tục, làm cho @code{beside} dễ cài đặt. Thủ tục @code{beside} không
+cần biết bất cứ điều gì về chi tiết của các họa sĩ thành phần ngoài việc mỗi
+họa sĩ sẽ vẽ một thứ gì đó trong khung được chỉ định cho nó.
+
+@quotation
+@strong{@anchor{Exercise 2.50}Bài tập 2.50:} Định nghĩa biến đổi
+@code{flip-horiz}, lật các họa sĩ theo chiều ngang, và các biến đổi xoay các
+họa sĩ ngược chiều kim đồng hồ 180 độ và 270 độ.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.51}Bài tập 2.51:} Định nghĩa phép toán @code{below}
+cho các họa sĩ. @code{Below} nhận hai họa sĩ làm đối số. Họa sĩ kết quả, cho
+một khung, vẽ bằng họa sĩ đầu tiên ở dưới cùng của khung và bằng họa sĩ thứ
+hai ở trên cùng. Định nghĩa @code{below} theo hai cách khác nhau---trước tiên
+bằng cách viết một thủ tục tương tự thủ tục @code{beside} đã cho ở trên, và
+sau đó theo @code{beside} và các phép xoay thích hợp (từ @ref{Exercise 2.50}).
+@end quotation
+
+@subsubheading Các mức độ ngôn ngữ cho thiết kế vững chắc
+
+Ngôn ngữ đồ họa thực hành một số ý tưởng quan trọng chúng ta đã giới thiệu về
+trừu tượng hóa với thủ tục và dữ liệu. Các trừu tượng dữ liệu cơ bản, các họa
+sĩ, được cài đặt bằng cách sử dụng các biểu diễn thủ tục, cho phép ngôn ngữ
+xử lý các khả năng vẽ cơ bản khác nhau theo cách đồng nhất. Các phương tiện
+kết hợp thỏa mãn tính chất bao đóng, cho phép chúng ta dễ dàng xây dựng các
+thiết kế phức tạp. Cuối cùng, tất cả các công cụ để trừu tượng hóa thủ tục đều
+có sẵn cho chúng ta để trừu tượng hóa các phương tiện kết hợp cho họa sĩ.
+
+Chúng ta cũng có được một thoáng nhìn về một ý tưởng quan trọng khác về ngôn
+ngữ và thiết kế chương trình. Đây là cách tiếp cận của @newterm{thiết kế phân
+tầng}, khái niệm rằng một hệ thống phức tạp nên được cấu trúc như một dãy các
+cấp độ được mô tả bằng một dãy các ngôn ngữ. Mỗi cấp độ được xây dựng bằng
+cách kết hợp các phần được coi là nguyên thủy ở cấp độ đó, và các phần được
+xây dựng ở mỗi cấp độ được dùng như các nguyên thủy ở cấp độ tiếp theo. Ngôn
+ngữ được dùng ở mỗi cấp độ của một thiết kế phân tầng có các nguyên thủy, các
+phương tiện kết hợp và các phương tiện trừu tượng hóa phù hợp với mức độ chi
+tiết đó.
+
+Thiết kế phân tầng thấm nhuần kỹ thuật các hệ thống phức tạp. Ví dụ, trong
+kỹ thuật máy tính, các điện trở và transistor được kết hợp (và được mô tả bằng
+ngôn ngữ mạch điện tương tự) để tạo ra các phần tử như cổng AND và cổng OR,
+tạo thành các nguyên thủy của một ngôn ngữ để thiết kế mạch số.@footnote{Phần
+@ref{3.3.4} mô tả một ngôn ngữ như vậy.} Các phần tử này được kết hợp để xây
+dựng các bộ xử lý, cấu trúc bus và hệ thống bộ nhớ, đến lượt chúng được kết
+hợp để tạo thành các máy tính, bằng cách sử dụng các ngôn ngữ phù hợp với kiến
+trúc máy tính. Các máy tính được kết hợp để tạo thành các hệ thống phân tán,
+bằng cách sử dụng các ngôn ngữ phù hợp để mô tả các kết nối mạng, v.v.
+
+Như một ví dụ nhỏ về sự phân tầng, ngôn ngữ đồ họa của chúng ta sử dụng các
+phần tử nguyên thủy (họa sĩ nguyên thủy) được tạo ra bằng ngôn ngữ chỉ định
+các điểm và đường thẳng để cung cấp các danh sách đoạn thẳng cho
+@code{segments->painter}, hoặc các chi tiết tô bóng cho họa sĩ như
+@code{rogers}. Phần lớn mô tả của chúng ta về ngôn ngữ đồ họa tập trung vào
+việc kết hợp các nguyên thủy này, bằng cách sử dụng các bộ kết hợp hình học
+như @code{beside} và @code{below}. Chúng ta cũng làm việc ở cấp độ cao hơn,
+coi @code{beside} và @code{below} như các nguyên thủy để thao tác trong một
+ngôn ngữ có các phép toán, như @code{square-of-four}, nắm bắt các mẫu chung
+của việc kết hợp các bộ kết hợp hình học.
+
+Thiết kế phân tầng giúp làm cho chương trình @newterm{vững chắc}, tức là, nó
+làm cho các thay đổi nhỏ trong một đặc tả có khả năng đòi hỏi các thay đổi
+tương ứng nhỏ trong chương trình. Ví dụ, giả sử chúng ta muốn thay đổi hình
+ảnh dựa trên @code{wave} được hiển thị trong @ref{Figure 2.9}. Chúng ta có thể
+làm việc ở cấp độ thấp nhất để thay đổi diện mạo chi tiết của phần tử
+@code{wave}; chúng ta có thể làm việc ở cấp độ giữa để thay đổi cách
+@code{corner-split} sao chép @code{wave}; chúng ta có thể làm việc ở cấp độ
+cao nhất để thay đổi cách @code{square-limit} sắp xếp bốn bản sao của góc.
+Nói chung, mỗi cấp độ của một thiết kế phân tầng cung cấp một vốn từ vựng
+khác nhau để biểu đạt các đặc tính của hệ thống, và một loại khả năng khác
+nhau để thay đổi nó.
+
+@quotation
+@strong{@anchor{Exercise 2.52}Bài tập 2.52:} Thực hiện các thay đổi đối với
+giới hạn hình vuông của @code{wave} được hiển thị trong @ref{Figure 2.9} bằng
+cách làm việc ở mỗi cấp độ được mô tả ở trên. Cụ thể:
+
+@enumerate a
+
+@item
+Thêm một số đoạn vào họa sĩ @code{wave} nguyên thủy trong @ref{Exercise 2.49}
+(để thêm nụ cười, ví dụ).
+
+@item
+Thay đổi mẫu được xây dựng bởi @code{corner-split} (ví dụ, bằng cách chỉ dùng
+một bản sao của các hình ảnh @code{up-split} và @code{right-split} thay vì
+hai).
+
+@item
+Sửa đổi phiên bản của @code{square-limit} dùng @code{square-of-four} để lắp
+ráp các góc theo một mẫu khác. (Ví dụ, bạn có thể làm cho ông Rogers lớn nhìn
+ra ngoài từ mỗi góc của hình vuông.)
+
+@end enumerate
+@end quotation

@@ -1,0 +1,130 @@
+@node	2.2, 2.3, 2.1, Chapter 2
+@section Dữ Liệu Phân Cấp và Tính Chất Bao Đóng
+
+Như chúng ta đã thấy, các cặp cung cấp ``keo dán'' nguyên thủy mà chúng ta có
+thể dùng để xây dựng các đối tượng dữ liệu phức hợp. @ref{Figure 2.2} cho thấy
+cách trực quan hóa tiêu chuẩn một cặp---trong trường hợp này là cặp được tạo
+bởi @code{(cons 1 2)}. Trong biểu diễn này, được gọi là @newterm{ký hiệu hộp
+và con trỏ}, mỗi đối tượng được hiển thị như một @newterm{con trỏ} đến một hộp.
+Hộp cho một đối tượng nguyên thủy chứa biểu diễn của đối tượng. Ví dụ, hộp
+cho một số chứa một chữ số. Hộp cho một cặp thực ra là một hộp đôi, phần bên
+trái chứa (con trỏ đến) @code{car} của cặp và phần bên phải chứa @code{cdr}.
+
+@float
+@anchor{Figure 2.2}
+@ifinfo
+@quotation
+@strong{Figure 2.2:} Box-and-pointer representation of @code{(cons 1 2)}.
+
+@example
+     +---+---+     +---+
+---->| * | *-+---->| 2 |
+     +-|-+---+     +---+
+       |
+       V
+     +---+
+     | 1 |
+     +---+
+@end example
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.2e,57mm,,,.std.svg}
+@caption{@strong{Figure 2.2:} Box-and-pointer representation of @code{(cons 1 2)}.}
+@end iftex
+@end float
+
+Chúng ta đã thấy rằng @code{cons} có thể được dùng để kết hợp không chỉ các
+số mà cả các cặp. (Bạn đã sử dụng thực tế này, hay lẽ ra phải sử dụng, khi
+làm @ref{Exercise 2.2} và @ref{Exercise 2.3}.) Vì vậy, các cặp cung cấp một
+khối xây dựng đa năng từ đó chúng ta có thể xây dựng mọi loại cấu trúc dữ
+liệu. @ref{Figure 2.3} cho thấy hai cách sử dụng các cặp để kết hợp các số
+1, 2, 3 và 4.
+
+@float
+@anchor{Figure 2.3}
+@ifinfo
+@quotation
+@strong{Figure 2.3:} Two ways to combine 1, 2, 3, and 4 using pairs.
+
+@example
+     +---+---+     +---+---+         +---+---+     +---+
+---->| * | *-+---->| * | * |    ---->| * | *-+---->| 4 |
+     +-|-+---+     +-|-+-|-+         +-|-+---+     +---+
+       |             |   |             |
+       V             V   V             V
+   +---+---+      +---+ +---+      +---+---+     +---+---+
+   | * | * |      | 3 | | 4 |      | * | *-+---->| * | * |
+   +-|-+-|-+      +---+ +---+      +-|-+---+     +-|-+-|-+
+     |   |                           |             |   |
+     V   V                           V             V   V
+  +---+ +---+                      +---+        +---+ +---+
+  | 1 | | 2 |                      | 1 |        | 2 | | 3 |
+  +---+ +---+                      +---+        +---+ +---+
+
+  (cons (cons 1 2)                 (cons (cons 1
+        (cons 3 4))                            (cons 2 3))
+                                         4)
+@end example
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.3e,147mm,,,.std.svg}
+@caption{@strong{Figure 2.3:} Two ways to combine 1, 2, 3, and 4 using pairs.}
+@end iftex
+@end float
+
+@noindent
+Khả năng tạo ra các cặp có các phần tử là các cặp là bản chất của tầm quan
+trọng của cấu trúc danh sách như một công cụ biểu diễn. Chúng ta gọi khả năng
+này là @newterm{tính chất bao đóng} của @code{cons}. Nói chung, một phép toán
+kết hợp các đối tượng dữ liệu thỏa mãn tính chất bao đóng nếu kết quả của việc
+kết hợp các thứ bằng phép toán đó có thể tự chúng được kết hợp bằng cùng phép
+toán.@footnote{Việc dùng từ ``bao đóng'' ở đây bắt nguồn từ đại số trừu tượng,
+nơi một tập hợp các phần tử được gọi là đóng đối với một phép toán nếu áp dụng
+phép toán cho các phần tử trong tập cho ra một phần tử cũng là phần tử của tập.
+Cộng đồng Lisp cũng (thật không may) sử dụng từ ``bao đóng'' để mô tả một khái
+niệm hoàn toàn không liên quan: Một bao đóng là một kỹ thuật cài đặt để biểu
+diễn các thủ tục có biến tự do. Chúng ta không dùng từ ``bao đóng'' theo nghĩa
+thứ hai này trong cuốn sách này.} Bao đóng là chìa khóa của sức mạnh trong bất
+kỳ phương tiện kết hợp nào vì nó cho phép chúng ta tạo ra các cấu trúc
+@newterm{phân cấp}---các cấu trúc được tạo thành từ các phần, chính các phần
+đó lại được tạo thành từ các phần, và cứ thế tiếp tục.
+
+Từ đầu @ref{Chapter 1}, chúng ta đã sử dụng thiết yếu tính bao đóng khi làm
+việc với các thủ tục, vì tất cả các chương trình ngoại trừ những chương trình
+đơn giản nhất đều dựa vào thực tế là các phần tử của một tổ hợp có thể tự chúng
+là các tổ hợp. Trong phần này, chúng ta xem xét hậu quả của tính bao đóng đối
+với dữ liệu phức hợp. Chúng ta mô tả một số kỹ thuật thông thường để dùng cặp
+biểu diễn dãy và cây, và trình bày một ngôn ngữ đồ họa minh họa tính bao đóng
+một cách sinh động.@footnote{Khái niệm rằng một phương tiện kết hợp nên thỏa
+mãn tính bao đóng là một ý tưởng đơn giản. Thật không may, các bộ kết hợp dữ
+liệu được cung cấp trong nhiều ngôn ngữ lập trình phổ biến không thỏa mãn tính
+bao đóng, hoặc làm cho việc khai thác tính bao đóng trở nên cồng kềnh. Trong
+Fortran hoặc Basic, người ta thường kết hợp các phần tử dữ liệu bằng cách
+lắp ráp chúng vào mảng---nhưng không thể tạo thành các mảng có phần tử là
+chính các mảng. Pascal và C cho phép các cấu trúc có phần tử là các cấu trúc.
+Tuy nhiên, điều này đòi hỏi lập trình viên phải thao tác con trỏ một cách
+tường minh và tuân theo hạn chế rằng mỗi trường của cấu trúc chỉ có thể chứa
+các phần tử của dạng được chỉ định trước. Không như Lisp với các cặp của nó,
+các ngôn ngữ này không có keo dán đa năng tích hợp sẵn giúp dễ dàng thao tác
+dữ liệu phức hợp theo cách đồng nhất. Giới hạn này nằm đằng sau nhận xét của
+Alan Perlis trong lời tựa của ông cho cuốn sách này: ``Trong Pascal, sự dư thừa
+các cấu trúc dữ liệu có thể khai báo dẫn đến sự chuyên biệt hóa trong các hàm
+vốn cản trở và gây bất lợi cho sự hợp tác tự do. Tốt hơn là có 100 hàm thao
+tác trên một cấu trúc dữ liệu hơn là có 10 hàm thao tác trên 10 cấu trúc dữ
+liệu.''}
+
+@menu
+* 2.2.1::            Biểu Diễn Dãy
+* 2.2.2::            Cấu Trúc Phân Cấp
+* 2.2.3::            Dãy như Giao Diện Thông Thường
+* 2.2.4::            Ví Dụ: Ngôn Ngữ Đồ Họa
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi
+@include ss04.texi
