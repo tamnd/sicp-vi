@@ -1,0 +1,156 @@
+@node    Chapter 1, 1.1, Acknowledgments, Top
+@chapter Xây Dựng Các Trừu Tượng với Thủ Tục
+
+@quotation
+Những hành động của tâm trí, khi nó phát huy sức mạnh trên những ý tưởng đơn
+giản, chủ yếu là ba điều này: @w{1. Kết hợp} nhiều ý tưởng đơn giản thành một
+ý tưởng phức hợp, và như vậy tất cả các ý tưởng phức tạp được tạo ra. @w{2. Điều
+thứ hai} là đưa hai ý tưởng, dù đơn giản hay phức tạp, lại với nhau và đặt chúng
+cạnh nhau để có thể nhìn chúng cùng một lúc mà không kết hợp chúng thành một, qua
+đó thu được tất cả các ý tưởng về quan hệ. @w{3. Điều thứ ba} là tách chúng ra
+khỏi tất cả các ý tưởng khác đi kèm với chúng trong sự tồn tại thực của chúng:
+đây được gọi là trừu tượng hóa, và như vậy tất cả các ý tưởng chung của nó được
+tạo ra.
+
+---John Locke, @cite{An Essay Concerning Human Understanding} (1690)
+@end quotation
+
+
+@noindent
+Chúng ta sắp nghiên cứu ý tưởng về một @newterm{quá trình tính toán}. Các quá
+trình tính toán là những thực thể trừu tượng sống trong máy tính. Khi chúng phát
+triển, các quá trình thao tác các thứ trừu tượng khác gọi là @newterm{dữ liệu}.
+Sự phát triển của một quá trình được định hướng bởi một mẫu quy tắc gọi là
+@newterm{chương trình}. Con người tạo ra các chương trình để điều khiển các quá
+trình. Trên thực tế, chúng ta triệu hồi những tinh linh của máy tính bằng những
+câu thần chú của mình.
+
+Một quá trình tính toán thực sự rất giống với ý niệm của phù thủy về một tinh linh.
+Nó không thể nhìn thấy hay chạm vào được. Nó hoàn toàn không được cấu thành từ
+vật chất. Tuy nhiên, nó rất thực. Nó có thể thực hiện công việc trí tuệ. Nó có
+thể trả lời các câu hỏi. Nó có thể tác động đến thế giới bằng cách giải ngân tiền
+tại ngân hàng hoặc kiểm soát cánh tay robot trong nhà máy. Các chương trình chúng
+ta dùng để triệu hồi các quá trình giống như những câu thần chú của phù thủy. Chúng
+được tạo thành cẩn thận từ các biểu thức ký hiệu trong những @newterm{ngôn ngữ lập
+trình} bí ẩn và huyền bí quy định những nhiệm vụ chúng ta muốn các quá trình của
+mình thực hiện.
+
+Một quá trình tính toán, trong một máy tính hoạt động đúng, thực thi các chương
+trình một cách chính xác và chính xác. Do đó, giống như người học việc của phù thủy,
+các lập trình viên mới bắt đầu phải học cách hiểu và dự đoán hậu quả của những
+câu thần chú của họ. Ngay cả những lỗi nhỏ (thường được gọi là @newterm{lỗi} hay
+@newterm{trục trặc}) trong các chương trình cũng có thể gây ra những hậu quả phức
+tạp và không lường trước.
+
+May mắn thay, việc học lập trình ít nguy hiểm hơn đáng kể so với việc học phù thuật,
+vì những tinh linh mà chúng ta xử lý được chứa đựng thuận tiện theo cách an toàn.
+Lập trình trong thế giới thực, tuy nhiên, đòi hỏi sự cẩn thận, chuyên môn và trí
+tuệ. Một lỗi nhỏ trong chương trình thiết kế hỗ trợ máy tính, chẳng hạn, có thể dẫn
+đến sự sụp đổ thảm khốc của một máy bay hay đập nước hoặc sự tự phá hủy của một
+robot công nghiệp.
+
+Các kỹ sư phần mềm bậc thầy có khả năng tổ chức các chương trình sao cho họ có thể
+khá chắc chắn rằng các quá trình kết quả sẽ thực hiện các nhiệm vụ như dự định. Họ
+có thể hình dung trước hành vi của các hệ thống của họ. Họ biết cách cấu trúc các
+chương trình để những vấn đề không lường trước không dẫn đến hậu quả thảm khốc, và
+khi các vấn đề phát sinh, họ có thể @newterm{gỡ lỗi} các chương trình của mình. Các
+hệ thống tính toán được thiết kế tốt, giống như ô tô hay lò phản ứng hạt nhân được
+thiết kế tốt, được thiết kế theo kiểu mô đun, sao cho các phần có thể được xây dựng,
+thay thế và gỡ lỗi riêng biệt.
+
+@subsubheading Lập trình trong Lisp
+
+Chúng ta cần một ngôn ngữ thích hợp để mô tả các quá trình, và chúng ta sẽ sử dụng
+cho mục đích này ngôn ngữ lập trình Lisp. Giống như những suy nghĩ hàng ngày của
+chúng ta thường được diễn đạt bằng ngôn ngữ tự nhiên của chúng ta (như tiếng Anh,
+tiếng Pháp hay tiếng Nhật), và các mô tả về các hiện tượng định lượng được diễn đạt
+bằng ký hiệu toán học, những suy nghĩ thủ tục của chúng ta sẽ được diễn đạt bằng
+Lisp. Lisp được phát minh vào cuối những năm 1950 như một hình thức chủ nghĩa hình
+thức để lý luận về việc sử dụng một số loại biểu thức logic nhất định, gọi là
+@newterm{phương trình đệ quy}, như một mô hình cho tính toán. Ngôn ngữ được hình
+thành bởi John McCarthy và dựa trên bài báo của ông ``Recursive Functions of
+Symbolic Expressions and Their Computation by Machine'' (@ref{McCarthy 1960}).
+
+Mặc dù ra đời như một hình thức toán học, Lisp là một ngôn ngữ lập trình thực tế.
+Một @newterm{trình thông dịch} Lisp là một cỗ máy thực hiện các quá trình được mô
+tả bằng ngôn ngữ Lisp. Trình thông dịch Lisp đầu tiên được cài đặt bởi McCarthy
+với sự giúp đỡ của các đồng nghiệp và sinh viên trong Nhóm Trí tuệ Nhân tạo của
+Phòng Thí nghiệm Nghiên cứu Điện tử @abbr{MIT} và tại Trung tâm Tính toán @abbr{MIT}.@footnote{@cite{Lisp 1 Programmer's Manual} xuất hiện năm 1960 và @cite{Lisp 1.5
+Programmer's Manual} (@ref{McCarthy et al. 1965}) được xuất bản năm 1962. Lịch sử
+ban đầu của Lisp được mô tả trong @ref{McCarthy 1978}.} Lisp, có tên là từ viết tắt
+của LISt Processing (Xử lý Danh sách), được thiết kế để cung cấp khả năng thao tác
+ký hiệu nhằm giải quyết các bài toán lập trình như phân biệt và tích hợp ký hiệu
+các biểu thức đại số. Nó bao gồm cho mục đích này các đối tượng dữ liệu mới được
+gọi là nguyên tử và danh sách, điều này rõ ràng nhất phân biệt nó với tất cả các
+ngôn ngữ khác của thời kỳ đó.
+
+Lisp không phải là sản phẩm của một nỗ lực thiết kế có phối hợp. Thay vào đó, nó
+phát triển một cách không chính thức theo cách thử nghiệm để đáp ứng nhu cầu của
+người dùng và các cân nhắc thực hiện thực tế. Sự tiến hóa không chính thức của Lisp
+đã tiếp tục qua nhiều năm, và cộng đồng người dùng Lisp theo truyền thống đã kháng
+cự các nỗ lực phổ biến bất kỳ định nghĩa ``chính thức'' nào về ngôn ngữ. Sự tiến
+hóa này, cùng với tính linh hoạt và thanh lịch của ý niệm ban đầu, đã cho phép Lisp,
+ngôn ngữ cổ thứ hai đang được sử dụng rộng rãi hiện nay (chỉ có Fortran là cổ hơn),
+liên tục thích nghi để bao gồm những ý tưởng hiện đại nhất về thiết kế chương trình.
+Do đó, Lisp hiện tại là một họ các phương ngữ, mà trong khi chia sẻ hầu hết các
+tính năng ban đầu, có thể khác nhau theo những cách đáng kể. Phương ngữ Lisp được
+dùng trong cuốn sách này được gọi là Scheme.@footnote{Hai phương ngữ mà hầu hết các
+chương trình Lisp lớn của những năm 1970 được viết là MacLisp (@ref{Moon 1978};
+@ref{Pitman 1983}), được phát triển tại @abbr{MIT} Project @abbr{MAC}, và Interlisp
+(@ref{Teitelman 1974}), được phát triển tại Bolt Beranek and Newman Inc. và Xerox
+Palo Alto Research Center. Portable Standard Lisp (@ref{Hearn 1969}; @ref{Griss 1981})
+là một phương ngữ Lisp được thiết kế để dễ dàng chuyển sang các máy khác nhau.
+MacLisp sinh ra một số phương ngữ con, chẳng hạn như Franz Lisp, được phát triển tại
+Đại học California ở Berkeley, và Zetalisp (@ref{Moon and Weinreb 1981}), dựa trên
+một bộ xử lý đặc biệt được thiết kế tại Phòng Thí nghiệm Trí tuệ Nhân tạo @abbr{MIT}
+để chạy Lisp rất hiệu quả. Phương ngữ Lisp được dùng trong cuốn sách này, được gọi
+là Scheme (@ref{Steele and Sussman 1975}), được phát minh năm 1975 bởi Guy Lewis
+Steele Jr. và Gerald Jay Sussman của Phòng Thí nghiệm Trí tuệ Nhân tạo @abbr{MIT}
+và sau đó được cài đặt lại cho mục đích giảng dạy tại @abbr{MIT}. Scheme trở thành
+tiêu chuẩn @abbr{IEEE} năm 1990 (@ref{IEEE 1990}). Phương ngữ Common Lisp
+(@ref{Steele 1982}, @ref{Steele 1990}) được phát triển bởi cộng đồng Lisp để kết
+hợp các tính năng từ các phương ngữ Lisp trước đó để tạo ra một tiêu chuẩn công
+nghiệp cho Lisp. Common Lisp trở thành tiêu chuẩn @abbr{ANSI} năm 1994
+(@ref{ANSI 1994}).}
+
+Vì tính chất thử nghiệm và sự nhấn mạnh vào thao tác ký hiệu, Lisp lúc đầu rất kém
+hiệu quả cho các tính toán số, ít nhất là so với Fortran. Qua nhiều năm, tuy nhiên,
+các trình biên dịch Lisp đã được phát triển để dịch các chương trình thành mã máy
+có thể thực hiện các tính toán số một cách hợp lý hiệu quả. Và cho các ứng dụng đặc
+biệt, Lisp đã được sử dụng với hiệu quả cao.@footnote{Một ứng dụng đặc biệt như
+vậy là một tính toán đột phá có tầm quan trọng khoa học---một tích phân của chuyển
+động của Hệ Mặt Trời mở rộng các kết quả trước đó gần hai bậc độ lớn, và chứng minh
+rằng động lực học của Hệ Mặt Trời là hỗn loạn. Tính toán này được thực hiện nhờ các
+thuật toán tích phân mới, một trình biên dịch đặc biệt và một máy tính đặc biệt tất
+cả được cài đặt với sự trợ giúp của các công cụ phần mềm được viết bằng Lisp
+(@ref{Abelson et al. 1992}; @ref{Sussman and Wisdom 1992}).} Mặc dù Lisp vẫn chưa
+khắc phục được danh tiếng cũ là cực kỳ kém hiệu quả, Lisp hiện đang được dùng trong
+nhiều ứng dụng nơi hiệu quả không phải là mối quan tâm trung tâm. Ví dụ, Lisp đã
+trở thành ngôn ngữ được chọn cho các ngôn ngữ shell hệ điều hành và cho các ngôn
+ngữ mở rộng dành cho các trình soạn thảo và hệ thống thiết kế hỗ trợ máy tính.
+
+Nếu Lisp không phải là ngôn ngữ chính thống, tại sao chúng ta lại sử dụng nó như
+khung cho cuộc thảo luận về lập trình? Vì ngôn ngữ này có các tính năng độc đáo
+khiến nó trở thành một phương tiện xuất sắc để nghiên cứu các cấu trúc lập trình
+quan trọng và các cấu trúc dữ liệu và để liên hệ chúng với các tính năng ngôn ngữ
+hỗ trợ chúng. Quan trọng nhất trong số những tính năng này là thực tế rằng các mô
+tả Lisp về các quá trình, gọi là @newterm{thủ tục}, bản thân chúng có thể được biểu
+diễn và thao tác như các dữ liệu Lisp. Tầm quan trọng của điều này là có những kỹ
+thuật thiết kế chương trình mạnh mẽ dựa trên khả năng làm mờ ranh giới truyền thống
+giữa dữ liệu ``thụ động'' và các quá trình ``chủ động''. Như chúng ta sẽ khám phá,
+tính linh hoạt của Lisp trong việc xử lý các thủ tục như dữ liệu khiến nó trở thành
+một trong những ngôn ngữ thuận tiện nhất để khám phá các kỹ thuật này. Khả năng biểu
+diễn các thủ tục như dữ liệu cũng khiến Lisp trở thành một ngôn ngữ xuất sắc để viết
+các chương trình phải thao tác các chương trình khác như dữ liệu, chẳng hạn như các
+trình thông dịch và trình biên dịch hỗ trợ các ngôn ngữ máy tính. Trên hết những
+điều đó, lập trình bằng Lisp thực sự rất vui.
+
+@menu
+* 1.1::              Các Yếu Tố của Lập Trình
+* 1.2::              Các Thủ Tục và Các Quá Trình Mà Chúng Tạo Ra
+* 1.3::              Xây Dựng Các Trừu Tượng với Các Thủ Tục Bậc Cao
+@end menu
+
+@include s01/index.texi
+@include s02/index.texi
+@include s03/index.texi
