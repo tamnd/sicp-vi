@@ -1,6 +1,7 @@
 content.opf
 toc.xhtml
 *.png
+!src/pdf/fig/**/*.png
 *.json
 *.vim
 *.swp
