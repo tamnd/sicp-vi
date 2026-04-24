@@ -1,0 +1,97 @@
+@node    Preface 1e, Acknowledgments, Preface, Top
+@unnumbered Lời Nói Đầu Ấn Bản Thứ Nhất
+
+@quotation
+Một cái máy tính giống như cây vĩ cầm. Bạn có thể tưởng tượng một người mới bắt đầu
+thử trước máy hát đĩa rồi đến cây vĩ cầm. Cái sau, anh ta nói, nghe thật tệ. Đó là
+lập luận mà chúng tôi nghe từ các nhà nhân văn và hầu hết các nhà khoa học máy tính
+của chúng tôi. Các chương trình máy tính thì tốt, họ nói, cho những mục đích cụ thể,
+nhưng chúng không linh hoạt. Cây vĩ cầm hay máy đánh chữ cũng vậy, cho đến khi bạn
+học cách sử dụng chúng.
+
+---Marvin Minsky, @cite{Why Programming Is a Good Medium for Expressing
+Poorly-Understood and Sloppily-Formulated Ideas}
+@end quotation
+
+
+@noindent
+``Cấu trúc và Thông dịch Chương trình Máy tính'' là môn học nhập môn khoa học máy
+tính tại Viện Công nghệ Massachusetts. Đây là môn học bắt buộc cho tất cả sinh viên
+tại @abbr{MIT} theo ngành kỹ thuật điện hoặc khoa học máy tính, chiếm một phần tư
+``chương trình học chung'' cũng bao gồm hai môn về mạch điện và hệ thống tuyến tính
+cùng một môn về thiết kế hệ thống kỹ thuật số. Chúng tôi đã tham gia phát triển môn
+học này từ năm 1978, và đã dạy tài liệu này ở dạng hiện tại từ mùa thu năm 1980 cho
+từ 600 đến 700 sinh viên mỗi năm. Hầu hết trong số những sinh viên này có ít hoặc
+không có đào tạo chính thức trước đó về tính toán, mặc dù nhiều người đã nghịch máy
+tính một chút và một số ít có kinh nghiệm lập trình hoặc thiết kế phần cứng rộng rãi.
+
+Thiết kế của chúng tôi cho môn học khoa học máy tính nhập môn này phản ánh hai mối
+quan tâm lớn. Thứ nhất, chúng tôi muốn thiết lập ý tưởng rằng một ngôn ngữ máy tính
+không chỉ là cách để máy tính thực hiện các thao tác mà đúng hơn là một phương tiện
+hình thức mới để biểu đạt ý tưởng về phương pháp luận. Do đó, các chương trình phải
+được viết cho người đọc, và chỉ tình cờ mới cho máy thực thi. Thứ hai, chúng tôi tin
+rằng tài liệu thiết yếu cần được đề cập ở một môn học ở cấp độ này không phải là cú
+pháp của các cấu trúc ngôn ngữ lập trình cụ thể, cũng không phải các thuật toán khéo
+léo để tính toán các hàm cụ thể một cách hiệu quả, cũng không phải phân tích toán học
+của các thuật toán và nền tảng của tính toán, mà đúng hơn là các kỹ thuật được dùng
+để kiểm soát độ phức tạp trí tuệ của các hệ thống phần mềm lớn.
+
+Mục tiêu của chúng tôi là các sinh viên hoàn thành môn học này nên có cảm nhận tốt
+về các yếu tố phong cách và thẩm mỹ của lập trình. Họ nên nắm vững các kỹ thuật
+chính để kiểm soát độ phức tạp trong một hệ thống lớn. Họ nên có khả năng đọc một
+chương trình dài 50 trang, nếu nó được viết theo phong cách mẫu mực. Họ nên biết
+những gì không cần đọc và những gì họ không cần phải hiểu vào bất kỳ thời điểm nào.
+Họ nên cảm thấy tự tin khi sửa đổi một chương trình, giữ nguyên tinh thần và phong
+cách của tác giả gốc.
+
+Những kỹ năng này không hề chỉ dành riêng cho lập trình máy tính. Các kỹ thuật mà
+chúng tôi dạy và sử dụng là chung cho tất cả các thiết kế kỹ thuật. Chúng ta kiểm
+soát độ phức tạp bằng cách xây dựng các trừu tượng ẩn các chi tiết khi thích hợp.
+Chúng ta kiểm soát độ phức tạp bằng cách thiết lập các giao diện quy ước cho phép
+chúng ta xây dựng hệ thống bằng cách kết hợp các phần tiêu chuẩn, được hiểu rõ theo
+cách ``ghép nối tùy ý''. Chúng ta kiểm soát độ phức tạp bằng cách thiết lập các ngôn
+ngữ mới để mô tả thiết kế, mỗi ngôn ngữ nhấn mạnh các khía cạnh cụ thể của thiết
+kế và hạ thấp các khía cạnh khác.
+
+Nền tảng của cách tiếp cận này với môn học là niềm tin của chúng tôi rằng ``khoa học
+máy tính'' không phải là một khoa học và ý nghĩa của nó ít liên quan đến máy tính.
+Cuộc cách mạng máy tính là một cuộc cách mạng trong cách chúng ta suy nghĩ và trong
+cách chúng ta biểu đạt những gì chúng ta nghĩ. Bản chất của sự thay đổi này là sự
+xuất hiện của cái có thể gọi tốt nhất là @newterm{nhận thức luận thủ tục}---nghiên
+cứu về cấu trúc của tri thức từ quan điểm mệnh lệnh, trái ngược với quan điểm khai
+báo hơn được lấy bởi các môn toán học cổ điển. Toán học cung cấp một khung để xử
+lý chính xác các khái niệm về ``cái gì là''. Tính toán cung cấp một khung để xử lý
+chính xác các khái niệm về ``cách làm như thế nào''.
+
+Trong việc dạy tài liệu của mình, chúng tôi sử dụng một phương ngữ của ngôn ngữ lập
+trình Lisp. Chúng tôi không bao giờ dạy ngôn ngữ một cách chính thức, vì chúng tôi
+không cần phải vậy. Chúng tôi chỉ sử dụng nó, và sinh viên học được nó trong vài ngày.
+Đây là một lợi thế lớn của các ngôn ngữ giống Lisp: Chúng có rất ít cách để hình thành
+các biểu thức hợp và hầu như không có cấu trúc cú pháp. Tất cả các thuộc tính hình
+thức có thể được đề cập trong một giờ, giống như các quy tắc cờ vua. Sau một thời gian
+ngắn chúng tôi quên đi các chi tiết cú pháp của ngôn ngữ (vì không có chi tiết nào)
+và tiến sang các vấn đề thực sự---tìm hiểu những gì chúng ta muốn tính toán, cách
+chúng ta sẽ phân rã các vấn đề thành các phần có thể quản lý được, và cách chúng ta
+sẽ làm việc với các phần đó. Một lợi thế khác của Lisp là nó hỗ trợ (nhưng không bắt
+buộc) nhiều chiến lược quy mô lớn hơn để phân rã mô đun các chương trình hơn bất kỳ
+ngôn ngữ nào khác mà chúng tôi biết. Chúng ta có thể tạo ra các trừu tượng thủ tục
+và dữ liệu, chúng ta có thể sử dụng các hàm bậc cao để nắm bắt các mẫu sử dụng
+thông thường, chúng ta có thể mô hình hóa trạng thái cục bộ bằng cách sử dụng gán
+và biến đổi dữ liệu, chúng ta có thể liên kết các phần của chương trình với các luồng
+và đánh giá trì hoãn, và chúng ta có thể dễ dàng cài đặt các ngôn ngữ nhúng. Tất cả
+điều này được nhúng trong một môi trường tương tác với sự hỗ trợ xuất sắc cho thiết
+kế chương trình tăng dần, xây dựng, kiểm thử và gỡ lỗi. Chúng tôi cảm ơn tất cả
+các thế hệ phù thủy Lisp, bắt đầu từ John McCarthy, người đã tạo ra một công cụ
+tuyệt vời với sức mạnh và sự thanh lịch chưa từng có.
+
+Scheme, phương ngữ Lisp mà chúng tôi sử dụng, là nỗ lực để kết hợp sức mạnh và sự
+thanh lịch của Lisp và Algol. Từ Lisp chúng tôi lấy sức mạnh siêu ngôn ngữ xuất phát
+từ cú pháp đơn giản, biểu diễn thống nhất các chương trình như các đối tượng dữ liệu,
+và dữ liệu được phân bổ heap có thu gom rác. Từ Algol chúng tôi lấy phạm vi từ vựng
+và cấu trúc khối, là những món quà từ những người tiên phong trong thiết kế ngôn ngữ
+lập trình trong ủy ban Algol. Chúng tôi muốn trích dẫn John Reynolds và Peter Landin
+vì những hiểu biết của họ về mối quan hệ của λ-tính của Church với cấu trúc của các
+ngôn ngữ lập trình. Chúng tôi cũng ghi nhận khoản nợ của mình với các nhà toán học
+đã khám phá ra vùng lãnh thổ này hàng thập kỷ trước khi máy tính xuất hiện. Những
+người tiên phong này bao gồm Alonzo Church, Barkley Rosser, Stephen Kleene và Haskell
+Curry.

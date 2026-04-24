@@ -1,0 +1,50 @@
+@node    Preface, Preface 1e, Foreword, Top
+@unnumbered Lời Nói Đầu Ấn Bản Thứ Hai
+
+@quotation
+Liệu phần mềm có khác mọi thứ khác không, rằng nó được tạo ra để bị loại bỏ:
+rằng toàn bộ ý nghĩa là luôn nhìn nó như bong bóng xà phòng?
+
+---Alan J. Perlis
+@end quotation
+
+
+@noindent
+Tài liệu trong cuốn sách này là nền tảng cho môn học khoa học máy tính nhập môn
+của @abbr{MIT} từ năm 1980. Chúng tôi đã dạy tài liệu này được bốn năm khi ấn bản
+đầu tiên được xuất bản, và thêm mười hai năm nữa trôi qua trước khi ấn bản thứ hai
+này ra đời. Chúng tôi vui mừng vì công trình của chúng tôi đã được áp dụng rộng rãi
+và kết hợp vào các văn bản khác. Chúng tôi đã thấy các học sinh của mình lấy những
+ý tưởng và chương trình trong cuốn sách này, rồi xây dựng chúng thành lõi của các
+hệ thống máy tính và ngôn ngữ mới. Theo nghĩa đen của một câu chơi chữ cổ trong
+kinh Talmud, các học sinh của chúng tôi đã trở thành những người xây dựng cho chúng
+tôi. Chúng tôi thật may mắn khi có những học sinh tài năng như vậy và những người
+xây dựng giỏi giang như vậy.
+
+Trong quá trình chuẩn bị cho ấn bản này, chúng tôi đã kết hợp hàng trăm điểm làm
+rõ được đề xuất từ kinh nghiệm giảng dạy của chính mình và các nhận xét của các
+đồng nghiệp tại @abbr{MIT} và các nơi khác. Chúng tôi đã thiết kế lại hầu hết các
+hệ thống lập trình lớn trong cuốn sách, bao gồm hệ thống số học tổng quát, các trình
+thông dịch, trình mô phỏng máy thanh ghi và trình biên dịch; và chúng tôi đã viết lại
+tất cả các ví dụ chương trình để đảm bảo rằng bất kỳ cài đặt Scheme nào tuân thủ tiêu
+chuẩn @abbr{IEEE} Scheme (@ref{IEEE 1990}) đều có thể chạy được mã.
+
+Ấn bản này nhấn mạnh một số chủ đề mới. Quan trọng nhất trong số đó là vai trò trung
+tâm của các cách tiếp cận khác nhau để xử lý thời gian trong các mô hình tính toán:
+đối tượng có trạng thái, lập trình đồng thời, lập trình hàm, đánh giá lười biếng và
+lập trình không xác định. Chúng tôi đã bổ sung các phần mới về tính đồng thời và tính
+không xác định, và đã cố gắng tích hợp chủ đề này xuyên suốt cuốn sách.
+
+Ấn bản đầu tiên của cuốn sách theo sát chương trình học một học kỳ của chúng tôi tại
+@abbr{MIT}. Với tất cả tài liệu mới trong ấn bản thứ hai, sẽ không thể bao quát tất
+cả trong một học kỳ, vì vậy người hướng dẫn sẽ phải chọn lọc. Trong việc giảng dạy
+của chính mình, đôi khi chúng tôi bỏ qua phần về lập trình logic (@ref{4.4}), chúng
+tôi để sinh viên sử dụng trình mô phỏng máy thanh ghi nhưng không bao quát phần cài
+đặt của nó (@ref{5.2}), và chúng tôi chỉ trình bày tổng quan sơ lược về trình biên
+dịch (@ref{5.5}). Dù vậy, đây vẫn là một khóa học chuyên sâu. Một số người hướng dẫn
+có thể muốn chỉ bao quát ba hoặc bốn chương đầu tiên, để phần tài liệu còn lại cho
+các khóa học tiếp theo.
+
+Trang web @url{http://mitpress.mit.edu/sicp} cung cấp hỗ trợ cho người dùng cuốn
+sách này. Trang này bao gồm các chương trình từ cuốn sách, bài tập lập trình mẫu,
+tài liệu bổ sung và các cài đặt có thể tải xuống của phương ngữ Scheme của Lisp.
