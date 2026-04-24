@@ -1,0 +1,548 @@
+@node	3.5.2, 3.5.3, 3.5.1, 3.5
+@subsection Luồng Vô Hạn
+
+Chúng ta đã thấy cách hỗ trợ ảo giác thao tác các luồng như các thực thể hoàn
+chỉnh mặc dù, trên thực tế, chúng ta chỉ tính toán nhiều luồng khi chúng ta cần
+truy cập. Chúng ta có thể khai thác kỹ thuật này để biểu diễn các dãy hiệu quả
+như các luồng, ngay cả khi các dãy rất dài. Điều nổi bật hơn, chúng ta có thể
+dùng các luồng để biểu diễn các dãy có độ dài vô hạn. Ví dụ, hãy xem xét định
+nghĩa sau của luồng các số nguyên dương:
+
+@lisp
+(define (integers-starting-from n)
+  (cons-stream
+   n (integers-starting-from (+ n 1))))
+(define integers (integers-starting-from 1))
+@end lisp
+
+@noindent
+Điều này có nghĩa vì @code{integers} sẽ là một cặp mà @code{car} của nó là 1
+và @code{cdr} của nó là một lời hứa để tạo ra các số nguyên bắt đầu từ 2. Đây
+là một luồng có độ dài vô hạn, nhưng tại bất kỳ thời điểm nào chúng ta chỉ có
+thể xem xét một phần hữu hạn của nó. Do đó, các chương trình của chúng ta sẽ
+không bao giờ biết rằng toàn bộ luồng vô hạn không có ở đó.
+
+Dùng @code{integers} chúng ta có thể định nghĩa các luồng vô hạn khác, chẳng
+hạn như luồng các số nguyên không chia hết cho 7:
+
+@lisp
+(define (divisible? x y) (= (remainder x y) 0))
+(define no-sevens
+  (stream-filter (lambda (x)
+                   (not (divisible? x 7)))
+                 integers))
+@end lisp
+
+@noindent
+Sau đó chúng ta có thể tìm các số nguyên không chia hết cho 7 đơn giản bằng
+cách truy cập các phần tử của luồng này:
+
+@lisp
+(stream-ref no-sevens 100)
+@i{117}
+@end lisp
+
+@noindent
+Tương tự như @code{integers}, chúng ta có thể định nghĩa luồng vô hạn các số
+Fibonacci:
+
+@lisp
+(define (fibgen a b)
+  (cons-stream a (fibgen b (+ a b))))
+(define fibs (fibgen 0 1))
+@end lisp
+
+@noindent
+@code{Fibs} là một cặp mà @code{car} của nó là 0 và @code{cdr} của nó là một
+lời hứa để định giá @code{(fibgen 1 1)}. Khi chúng ta định giá @code{(fibgen 1
+1)} trì hoãn này, nó sẽ tạo ra một cặp mà @code{car} của nó là 1 và @code{cdr}
+của nó là một lời hứa để định giá @code{(fibgen 1 2)}, và tiếp tục như vậy.
+
+Để xem xét một luồng vô hạn thú vị hơn, chúng ta có thể tổng quát hóa ví dụ
+@code{no-sevens} để xây dựng luồng vô hạn các số nguyên tố, dùng một phương
+pháp được biết đến như @newterm{sàng Eratosthenes}.@footnote{Eratosthenes, một
+triết gia Hy Lạp Alexandria thế kỷ thứ ba trước Công nguyên, nổi tiếng vì đã
+đưa ra ước tính chính xác đầu tiên về chu vi Trái Đất, mà ông đã tính bằng cách
+quan sát bóng tối vào buổi trưa ngày hạ chí. Phương pháp sàng của Eratosthenes,
+mặc dù cổ xưa, đã tạo cơ sở cho các ``sàng'' phần cứng có mục đích đặc biệt
+mà cho đến gần đây vẫn là những công cụ mạnh mẽ nhất tồn tại để định vị các số
+nguyên tố lớn. Tuy nhiên kể từ những năm 70, các phương pháp này đã được thay
+thế bởi những phát triển từ các kỹ thuật xác suất được thảo luận trong
+@ref{1.2.6}.} Chúng ta bắt đầu với các số nguyên bắt đầu từ 2, là số nguyên
+tố đầu tiên. Để có phần còn lại của các số nguyên tố, chúng ta bắt đầu bằng
+cách lọc bội số của 2 khỏi phần còn lại của các số nguyên. Điều này để lại một
+luồng bắt đầu từ 3, là số nguyên tố tiếp theo. Bây giờ chúng ta lọc bội số của
+3 khỏi phần còn lại của luồng này. Điều này để lại một luồng bắt đầu từ 5, là
+số nguyên tố tiếp theo, và tiếp tục như vậy. Nói cách khác, chúng ta xây dựng
+các số nguyên tố bằng một quá trình sàng, được mô tả như sau: Để sàng một luồng
+@code{S}, tạo ra một luồng mà phần tử đầu tiên là phần tử đầu tiên của @code{S}
+và phần còn lại thu được bằng cách lọc tất cả bội số của phần tử đầu tiên của
+@code{S} ra khỏi phần còn lại của @code{S} và sàng kết quả. Quá trình này dễ
+dàng được mô tả theo các phép toán luồng:
+
+@lisp
+(define (sieve stream)
+  (cons-stream
+   (stream-car stream)
+   (sieve (stream-filter
+           (lambda (x)
+             (not (divisible?
+                   x (stream-car stream))))
+           (stream-cdr stream)))))
+
+(define primes
+  (sieve (integers-starting-from 2)))
+@end lisp
+
+@noindent
+Bây giờ để tìm một số nguyên tố cụ thể chúng ta chỉ cần yêu cầu nó:
+
+@lisp
+(stream-ref primes 50)
+@i{233}
+@end lisp
+
+@noindent
+Thật thú vị khi suy ngẫm về hệ thống xử lý tín hiệu được thiết lập bởi
+@code{sieve}, được hiển thị trong ``biểu đồ Henderson'' trong @ref{Figure 3.31}.@footnote{Chúng ta đã đặt tên những hình này theo Peter Henderson, là người đầu
+tiên cho chúng ta thấy các biểu đồ loại này như một cách suy nghĩ về xử lý
+luồng. Mỗi đường liền nét biểu diễn một luồng giá trị đang được truyền. Đường
+đứt nét từ @code{car} đến @code{cons} và @code{filter} cho thấy đây là một giá
+trị đơn chứ không phải một luồng.} Luồng đầu vào được đưa vào một ``bộ
+un@code{cons}'' phân tách phần tử đầu tiên của luồng khỏi phần còn lại của
+luồng. Phần tử đầu tiên được dùng để xây dựng một bộ lọc chia hết, qua đó phần
+còn lại được truyền, và đầu ra của bộ lọc được đưa đến một hộp sàng khác. Sau
+đó phần tử đầu tiên gốc được @code{cons}ed lên đầu ra của sàng bên trong để
+tạo ra luồng đầu ra. Do đó, không chỉ luồng là vô hạn, mà bộ xử lý tín hiệu
+cũng vô hạn, vì sàng chứa một sàng bên trong nó.
+
+@float
+@anchor{Figure 3.31}
+@ifinfo
+@strong{Figure 3.31:} The prime sieve viewed as a signal-processing system.
+
+@example
+  +---------------------------------------------------------------+
+  | sieve                                                         |
+  |                                                               |
+  |        __/|                                        |\__       |
+  |     __/car|........................................|   \__    |
+  |   _/      |           :                            |      \_  |
+----><_       |           V                            |  cons _>---->
+  |    \__    |    +------------+    +------------+    |    __/   |
+  |       \cdr|--->| filter:    |    | sieve      |--->| __/      |
+  |          \|    |            |--->|            |    |/         |
+  |                | not        |    |            |               |
+  |                | divisible? |    |            |               |
+  |                +------------+    +------------+               |
+  +---------------------------------------------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.31a,132mm,,,.std.svg}
+@caption{@strong{Figure 3.31:} The prime sieve viewed as a signal-processing system.}
+@end iftex
+@end float
+
+@subsubheading Defining streams implicitly
+
+Các luồng @code{integers} và @code{fibs} ở trên được định nghĩa bằng cách chỉ
+định các thủ tục ``tạo'' tính toán rõ ràng các phần tử luồng từng cái một. Một
+cách thay thế để chỉ định các luồng là tận dụng định giá trì hoãn để định nghĩa
+các luồng ngầm định. Ví dụ, biểu thức sau định nghĩa luồng @code{ones} là một
+luồng vô hạn các số một:
+
+@lisp
+(define ones (cons-stream 1 ones))
+@end lisp
+
+@noindent
+Điều này hoạt động giống như định nghĩa một thủ tục đệ quy: @code{ones} là một
+cặp mà @code{car} của nó là 1 và @code{cdr} của nó là một lời hứa để định giá
+@code{ones}. Định giá @code{cdr} cho chúng ta lại một số 1 và một lời hứa để
+định giá @code{ones}, và tiếp tục như vậy.
+
+Chúng ta có thể làm những điều thú vị hơn bằng cách thao tác các luồng với các
+phép toán như @code{add-streams}, tạo ra tổng theo từng phần tử của hai luồng
+đã cho:@footnote{Điều này dùng phiên bản tổng quát hóa của @code{stream-map} từ
+@ref{Exercise 3.50}.}
+
+@lisp
+(define (add-streams s1 s2)
+  (stream-map + s1 s2))
+@end lisp
+
+@noindent
+Bây giờ chúng ta có thể định nghĩa các số nguyên như sau:
+
+@lisp
+(define integers
+  (cons-stream 1 (add-streams ones integers)))
+@end lisp
+
+@noindent
+Điều này định nghĩa @code{integers} là một luồng mà phần tử đầu tiên là 1 và
+phần còn lại là tổng của @code{ones} và @code{integers}. Do đó, phần tử thứ hai
+của @code{integers} là 1 cộng với phần tử đầu tiên của @code{integers}, hay 2;
+phần tử thứ ba của @code{integers} là 1 cộng với phần tử thứ hai của
+@code{integers}, hay 3; và tiếp tục như vậy. Định nghĩa này hoạt động vì tại
+bất kỳ điểm nào, đủ luồng @code{integers} đã được tạo ra để chúng ta có thể
+đưa nó trở lại định nghĩa để tạo số nguyên tiếp theo.
+
+Chúng ta có thể định nghĩa các số Fibonacci theo cùng phong cách:
+
+@lisp
+(define fibs
+  (cons-stream
+   0 (cons-stream
+      1 (add-streams
+         (stream-cdr fibs) fibs))))
+@end lisp
+
+@noindent
+Định nghĩa này nói rằng @code{fibs} là một luồng bắt đầu với 0 và 1, sao cho
+phần còn lại của luồng có thể được tạo bằng cách thêm @code{fibs} với chính nó
+được dịch chuyển một vị trí:
+
+@example
+    1 1 2 3 5  8 13 21 @r{…} = @code{(stream-cdr fibs)}
+    0 1 1 2 3  5  8 13 @r{…} = @code{fibs}
+0 1 1 2 3 5 8 13 21 34 @r{…} = @code{fibs}
+@end example
+
+@noindent
+@code{Scale-stream} là một thủ tục hữu ích khác trong việc xây dựng các định
+nghĩa luồng như vậy. Thủ tục này nhân mỗi mục trong một luồng với một hằng số
+đã cho:
+
+@lisp
+(define (scale-stream stream factor)
+  (stream-map
+   (lambda (x) (* x factor))
+   stream))
+@end lisp
+
+@noindent
+Ví dụ,
+
+@lisp
+(define double
+  (cons-stream 1 (scale-stream double 2)))
+@end lisp
+
+@noindent
+tạo ra luồng các lũy thừa của 2: 1, 2, 4, 8, 16, 32, @dots{}.
+
+Một định nghĩa thay thế về luồng các số nguyên tố có thể được đưa ra bằng cách
+bắt đầu với các số nguyên và lọc chúng bằng cách kiểm tra tính nguyên tố. Chúng
+ta sẽ cần số nguyên tố đầu tiên, 2, để bắt đầu:
+
+@lisp
+(define primes
+  (cons-stream
+   2 (stream-filter
+      prime? (integers-starting-from 3))))
+@end lisp
+
+@noindent
+Định nghĩa này không đơn giản như vẻ bề ngoài, vì chúng ta sẽ kiểm tra xem
+một số @math{n} có phải là số nguyên tố bằng cách kiểm tra xem @math{n} có chia
+hết cho một số nguyên tố (không phải bất kỳ số nguyên nào) nhỏ hơn hoặc bằng
+@math{\sqrt{n}} không:
+
+@lisp
+(define (prime? n)
+  (define (iter ps)
+    (cond ((> (square (stream-car ps)) n) true)
+          ((divisible? n (stream-car ps)) false)
+          (else (iter (stream-cdr ps)))))
+  (iter primes))
+@end lisp
+
+@noindent
+Đây là một định nghĩa đệ quy, vì @code{primes} được định nghĩa theo vị từ
+@code{prime?}, chính nó dùng luồng @code{primes}. Lý do thủ tục này hoạt động
+là tại bất kỳ điểm nào, đủ luồng @code{primes} đã được tạo ra để kiểm tra tính
+nguyên tố của các số chúng ta cần kiểm tra tiếp theo. Tức là, đối với mỗi
+@math{n} chúng ta kiểm tra tính nguyên tố, hoặc @math{n} không phải là số
+nguyên tố (trong trường hợp đó đã có một số nguyên tố được tạo ra chia hết cho
+nó) hoặc @math{n} là số nguyên tố (trong trường hợp đó đã có một số nguyên tố
+được tạo ra---tức là, một số nguyên tố nhỏ hơn @math{n}---lớn hơn
+@math{\sqrt{n}}).@footnote{Điểm cuối cùng này rất tinh tế và dựa vào thực tế
+rằng @math{{p_{n+1} \le p_n^2}.} (Ở đây, @math{p_k} ký hiệu số nguyên tố thứ
+@math{k^{\text{th}}}.) Các ước tính như vậy rất khó thiết lập. Bằng chứng cổ
+đại của Euclid rằng có vô số số nguyên tố cho thấy rằng @math{p_{n+1} \le {p_1
+p_2 \cdots p_n + 1}}, và không có kết quả tốt hơn đáng kể nào được chứng minh
+cho đến năm 1851, khi nhà toán học người Nga P. L. Chebyshev xác lập rằng
+@math{p_{n+1} \le 2p_n} cho tất cả @math{n}. Kết quả này, ban đầu được phỏng
+đoán vào năm 1845, được biết đến như @newterm{giả thuyết Bertrand}. Bằng chứng
+có thể được tìm thấy trong phần 22.3 của @ref{Hardy and Wright 1960}.}
+
+@quotation
+@strong{@anchor{Exercise 3.53}Bài tập 3.53:} Không chạy chương trình, mô tả
+các phần tử của luồng được định nghĩa bởi
+
+@lisp
+(define s (cons-stream 1 (add-streams s s)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.54}Bài tập 3.54:} Định nghĩa một thủ tục
+@code{mul-streams}, tương tự như @code{add-streams}, tạo ra tích theo từng phần
+tử của hai luồng đầu vào. Dùng điều này cùng với luồng @code{integers} để hoàn
+thiện định nghĩa sau của luồng mà phần tử thứ @math{n^{\text{th}}} (đếm từ 0)
+là @math{{n + 1}} giai thừa:
+
+@lisp
+(define factorials
+  (cons-stream 1 (mul-streams ⟨??⟩ ⟨??⟩)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.55}Bài tập 3.55:} Định nghĩa một thủ tục
+@code{partial-sums} nhận như đối số một luồng @math{S} và trả về luồng mà các
+phần tử là @math{S_0}, @math{{S_0 + S_1}}, @math{{S_0 + S_1} + {S_2, \dots}}.
+Ví dụ, @code{(partial-sums integers)} nên là luồng 1, 3, 6, 10, 15, @dots{}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.56}Bài tập 3.56:} Một bài toán nổi tiếng, lần đầu
+tiên được đặt ra bởi R. Hamming, là liệt kê, theo thứ tự tăng dần không có sự
+lặp lại, tất cả các số nguyên dương không có thừa số nguyên tố ngoài 2, 3 hoặc
+5. Một cách hiển nhiên để làm điều này là đơn giản kiểm tra từng số nguyên lần
+lượt để xem nó có bất kỳ thừa số nào khác 2, 3 và 5 không. Nhưng điều này rất
+kém hiệu quả, vì khi các số nguyên lớn hơn, ngày càng ít số hơn thỏa mãn yêu
+cầu. Như một thay thế, hãy gọi luồng số yêu cầu là @code{S} và chú ý các thực
+tế sau về nó.
+
+@itemize @bullet
+
+@item
+@code{S} bắt đầu với 1.
+
+@item
+Các phần tử của @code{(scale-stream S 2)} cũng là các phần tử của @code{S}.
+
+@item
+Điều tương tự đúng với @code{(scale-stream S 3)} và @code{(scale-stream S 5)}.
+
+@item
+Đây là tất cả các phần tử của @code{S}.
+
+@end itemize
+
+Bây giờ tất cả những gì chúng ta phải làm là kết hợp các phần tử từ các nguồn
+này. Để làm điều này, chúng ta định nghĩa một thủ tục @code{merge} kết hợp hai
+luồng có thứ tự thành một luồng kết quả có thứ tự, loại bỏ các bản sao:
+
+@lisp
+(define (merge s1 s2)
+  (cond ((stream-null? s1) s2)
+        ((stream-null? s2) s1)
+        (else
+         (let ((s1car (stream-car s1))
+               (s2car (stream-car s2)))
+           (cond ((< s1car s2car)
+                  (cons-stream
+                   s1car
+                   (merge (stream-cdr s1)
+                          s2)))
+                 ((> s1car s2car)
+                  (cons-stream
+                   s2car
+                   (merge s1
+                          (stream-cdr s2))))
+                 (else
+                  (cons-stream
+                   s1car
+                   (merge
+                    (stream-cdr s1)
+                    (stream-cdr s2)))))))))
+@end lisp
+
+Sau đó luồng yêu cầu có thể được xây dựng với @code{merge}, như sau:
+
+@lisp
+(define S (cons-stream 1 (merge ⟨??⟩ ⟨??⟩)))
+@end lisp
+
+Điền vào các biểu thức còn thiếu ở các nơi được đánh dấu @code{⟨??⟩} ở trên.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.57}Bài tập 3.57:} Bao nhiêu phép cộng được thực
+hiện khi chúng ta tính số Fibonacci thứ @math{n^{\text{th}}} dùng định nghĩa
+của @code{fibs} dựa trên thủ tục @code{add-streams}? Hãy chỉ ra rằng số phép
+cộng sẽ lớn theo cấp số nhân hơn nếu chúng ta đã hiện thực @code{(delay ⟨@var{exp}⟩)}
+đơn giản như @code{(lambda () ⟨@var{exp}⟩)}, mà không dùng tối ưu hóa được
+cung cấp bởi thủ tục @code{memo-proc} được mô tả trong @ref{3.5.1}.@footnote{Bài
+tập này cho thấy call-by-need liên quan chặt chẽ như thế nào với việc ghi nhớ
+thông thường như được mô tả trong @ref{Exercise 3.27}. Trong bài tập đó, chúng
+ta đã dùng phép gán để xây dựng rõ ràng một bảng cục bộ. Tối ưu hóa luồng
+call-by-need của chúng ta thực sự xây dựng bảng như vậy tự động, lưu trữ các
+giá trị trong các phần đã được buộc trước đó của luồng.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.58}Bài tập 3.58:} Cho một cách giải thích luồng
+được tính bởi thủ tục sau:
+
+@lisp
+(define (expand num den radix)
+  (cons-stream
+   (quotient (* num radix) den)
+   (expand (remainder (* num radix) den)
+           den
+           radix)))
+@end lisp
+
+(@code{Quotient} là một nguyên thủy trả về thương nguyên của hai số nguyên.)
+Các phần tử liên tiếp được tạo ra bởi @code{(expand 1 7 10)} là gì? @code{(expand 3 8 10)} tạo ra gì?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.59}Bài tập 3.59:} Trong @ref{2.5.3} chúng ta đã
+thấy cách hiện thực một hệ thống số học đa thức biểu diễn các đa thức như danh
+sách các số hạng. Theo cách tương tự, chúng ta có thể làm việc với @newterm{chuỗi
+lũy thừa}, chẳng hạn như
+@ifinfo
+
+@example
+               x^2     x^3       x^4
+e^x = 1 + x + ----- + ----- + --------- + ...
+                2     3 * 2   4 * 3 * 2
+
+             x^2       x^4
+cos x = 1 - ----- + --------- - ...
+              2     4 * 3 * 2
+
+             x^3         x^5
+sin x = x - ----- + ------------- - ...
+            3 * 2   5 * 4 * 3 * 2
+@end example
+
+@end ifinfo
+@tex
+\[ % :63:
+\begin{eqnarray}
+  e^x 	  &=& 1 + x + \frac{1}{2} x^2  + \frac{1}{3 \cdot 2} x^3  + \frac{1}{4 \cdot 3 \cdot 2} x^4  + \dots, \\
+  \cos x  &=& 1 - \frac{1}{2} x^2  + \frac{1}{4 \cdot 3 \cdot 2} x^4  - \dots, \\
+  \sin x  &=& x - \frac{1}{3 \cdot 2} x^3  + \frac{1}{5 \cdot 4 \cdot 3 \cdot 2} x^5  - \dots
+\end{eqnarray}
+\]
+@end tex
+@noindent
+được biểu diễn như các luồng vô hạn. Chúng ta sẽ biểu diễn chuỗi @math{{a_0 +
+a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}} như luồng mà các phần tử là các hệ số
+@math{a_0}, @math{a_1}, @math{a_2}, @math{a_3}, @dots{}.
+
+@enumerate a
+
+@item
+Tích phân của chuỗi @math{{a_0 + a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}} là
+chuỗi
+@ifinfo
+
+@example
+             1             1             1
+c + a_0 x + --- a_1 x^2 + --- a_2 x^3 + --- a_3 x^4 + ...
+             2             3             4
+@end example
+
+@end ifinfo
+@tex
+\[ % :64:
+  c + {a_0 x} + {\frac{1}{2} a_1 x^2} + {\frac{1}{3} a_2 x^3} + {\frac{1}{4} a_3 x^4 + \dots,}  \]
+@end tex
+@noindent
+trong đó @math{c} là bất kỳ hằng số nào. Định nghĩa một thủ tục
+@code{integrate-series} nhận đầu vào là một luồng @math{a_0}, @math{a_1},
+@math{a_2}, @dots{} biểu diễn một chuỗi lũy thừa và trả về luồng @math{a_0},
+@math{{{1\over2}a_1}}, @math{{{1\over3}a_2}}, @dots{} của các hệ số của các số
+hạng không hằng của tích phân của chuỗi. (Vì kết quả không có số hạng hằng, nó
+không biểu diễn một chuỗi lũy thừa; khi chúng ta dùng @code{integrate-series},
+chúng ta sẽ @code{cons} thêm hằng số thích hợp.)
+
+@item
+Hàm @math{{x \mapsto e^x}} là đạo hàm riêng của nó. Điều này ngụ ý rằng
+@math{e^x} và tích phân của @math{e^x} là cùng một chuỗi, ngoại trừ số hạng
+hằng, là @math{{e^0 = 1}}. Theo đó, chúng ta có thể tạo chuỗi cho @math{e^x} như
+
+@lisp
+(define exp-series
+  (cons-stream
+   1 (integrate-series exp-series)))
+@end lisp
+
+Hãy chỉ ra cách tạo ra chuỗi cho sine và cosine, bắt đầu từ thực tế là đạo
+hàm của sine là cosine và đạo hàm của cosine là âm của sine:
+
+@lisp
+(define cosine-series
+  (cons-stream 1 ⟨??⟩))
+
+(define sine-series
+  (cons-stream 0 ⟨??⟩))
+@end lisp
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.60}Bài tập 3.60:} Với các chuỗi lũy thừa được biểu
+diễn như các luồng hệ số như trong @ref{Exercise 3.59}, việc cộng các chuỗi
+được hiện thực bởi @code{add-streams}. Hoàn thiện định nghĩa của thủ tục sau
+để nhân các chuỗi:
+
+@lisp
+(define (mul-series s1 s2)
+  (cons-stream ⟨??⟩ (add-streams ⟨??⟩ ⟨??⟩)))
+@end lisp
+
+Bạn có thể kiểm tra thủ tục của mình bằng cách xác minh rằng @math{{\sin^2x +
+\cos^2x = 1,}} dùng các chuỗi từ @ref{Exercise 3.59}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.61}Bài tập 3.61:} Gọi @math{S} là một chuỗi lũy
+thừa (@ref{Exercise 3.59}) có số hạng hằng là 1. Giả sử chúng ta muốn tìm
+chuỗi lũy thừa @math{{1 / S}}, tức là chuỗi @math{X} sao cho @math{{SX = 1}}.
+Viết @math{{S = 1 + S_R}} trong đó @math{S_R} là phần của @math{S} sau số hạng
+hằng. Sau đó chúng ta có thể giải cho @math{X} như sau:
+@ifinfo
+
+@example
+        S * X = 1
+(1 + S_R) * X = 1
+  X + S_R * X = 1
+            X = 1 - S_R * X
+@end example
+
+@end ifinfo
+@tex
+\[ % :65:
+\begin{eqnarray}
+  S \cdot X           &=&   1, \\
+  (1 + S_R) \cdot X   &=&   1, \\
+  X + S_R \cdot X     &=&   1, \\
+  X                   &=&   1 - S_R \cdot X.
+\end{eqnarray}
+\]
+@end tex
+Nói cách khác, @math{X} là chuỗi lũy thừa có số hạng hằng là 1 và các số hạng
+bậc cao hơn được cho bởi âm của @math{S_R} nhân @math{X}. Dùng ý tưởng này để
+viết một thủ tục @code{invert-unit-series} tính @math{{1 / S}} cho một chuỗi
+lũy thừa @math{S} với số hạng hằng là 1. Bạn sẽ cần dùng @code{mul-series}
+từ @ref{Exercise 3.60}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.62}Bài tập 3.62:} Dùng kết quả của @ref{Exercise 3.60}
+và @ref{Exercise 3.61} để định nghĩa một thủ tục @code{div-series} chia hai
+chuỗi lũy thừa. @code{Div-series} nên hoạt động với bất kỳ hai chuỗi nào, miễn
+là chuỗi mẫu bắt đầu với một số hạng hằng khác không. (Nếu mẫu có số hạng hằng
+bằng không, thì @code{div-series} nên báo hiệu lỗi.) Hãy chỉ ra cách dùng
+@code{div-series} cùng với kết quả của @ref{Exercise 3.59} để tạo ra chuỗi lũy
+thừa cho tangent.
+@end quotation

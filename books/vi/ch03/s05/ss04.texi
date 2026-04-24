@@ -1,0 +1,433 @@
+@node	3.5.4, 3.5.5, 3.5.3, 3.5
+@subsection Luồng và Định Giá Trì Hoãn
+
+Thủ tục @code{integral} ở cuối phần trước cho thấy cách chúng ta có thể
+dùng các luồng để mô hình hóa các hệ thống xử lý tín hiệu có vòng phản hồi.
+Vòng phản hồi của bộ cộng được thể hiện trong @ref{Figure 3.32} được mô hình
+hóa bởi thực tế là luồng nội bộ @code{int} của @code{integral} được định
+nghĩa theo chính nó:
+
+@lisp
+(define int
+  (cons-stream
+   initial-value
+   (add-streams
+    (scale-stream integrand dt) int)))
+@end lisp
+
+@noindent
+Khả năng của trình thông dịch để xử lý định nghĩa ẩn như vậy phụ thuộc vào
+@code{delay} được tích hợp vào @code{cons-stream}. Không có @code{delay}
+này, trình thông dịch không thể xây dựng @code{int} trước khi định giá cả
+hai đối số của @code{cons-stream}, điều này sẽ đòi hỏi @code{int} phải được
+định nghĩa trước. Nói chung, @code{delay} là thiết yếu để dùng luồng mô
+hình hóa các hệ thống xử lý tín hiệu có vòng lặp. Không có @code{delay},
+các mô hình của chúng ta phải được xây dựng sao cho các đầu vào của bất kỳ
+thành phần xử lý tín hiệu nào cũng phải được định giá đầy đủ trước khi đầu
+ra có thể được tạo ra. Điều này sẽ loại bỏ các vòng lặp.
+
+@noindent
+Thật không may, các mô hình luồng của các hệ thống có vòng lặp có thể đòi
+hỏi sử dụng @code{delay} ngoài @code{delay} ``ẩn'' do @code{cons-stream}
+cung cấp. Ví dụ, @ref{Figure 3.34} thể hiện một hệ thống xử lý tín hiệu
+để giải phương trình vi phân @math{{dy / dt = f(y)}} trong đó @math{f} là
+một hàm cho trước. Hình vẽ thể hiện một thành phần ánh xạ áp dụng @math{f}
+cho tín hiệu đầu vào, được kết nối trong một vòng phản hồi với một bộ tích
+phân theo cách rất giống với các mạch máy tính tương tự thực sự được dùng
+để giải các phương trình như vậy.
+
+@float
+@anchor{Figure 3.34}
+@ifinfo
+@quotation
+@strong{Figure 3.34:} An ``analog computer circuit'' that solves the equation @math{{dy / dt = f(y)}}.
+
+@example
+                            y_0
+                             |
+                             V
+    +----------+  dy   +----------+     y
++-->|  map: f  +------>| integral +--*----->
+|   +----------+       +----------+  |
+|                                    |
++------------------------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.34,110mm,,,.std.svg}
+@caption{@strong{Figure 3.34:} An ``analog computer circuit'' that solves the equation @math{{dy / dt = f(y)}}.}
+@end iftex
+@end float
+
+Giả sử chúng ta được cho một giá trị ban đầu @math{y_0} cho @math{y}, chúng
+ta có thể cố gắng mô hình hóa hệ thống này bằng thủ tục
+
+@lisp
+(define (solve f y0 dt)
+  (define y (integral dy y0 dt))
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+@noindent
+Thủ tục này không hoạt động, vì trong dòng đầu tiên của @code{solve}, lời
+gọi đến @code{integral} đòi hỏi đầu vào @code{dy} phải được định nghĩa,
+điều này không xảy ra cho đến dòng thứ hai của @code{solve}.
+
+Mặt khác, mục đích của định nghĩa của chúng ta có ý nghĩa, vì về nguyên
+tắc, chúng ta có thể bắt đầu tạo ra luồng @code{y} mà không cần biết
+@code{dy}. Thực vậy, @code{integral} và nhiều phép toán luồng khác có các
+thuộc tính tương tự như @code{cons-stream}, ở chỗ chúng ta có thể tạo ra
+một phần của câu trả lời khi chỉ biết thông tin một phần về các đối số. Đối
+với @code{integral}, phần tử đầu tiên của luồng đầu ra là @code{initial-value}
+được chỉ định. Như vậy, chúng ta có thể tạo ra phần tử đầu tiên của luồng
+đầu ra mà không cần định giá tích phân @code{dy}. Khi chúng ta biết phần
+tử đầu tiên của @code{y}, @code{stream-map} trong dòng thứ hai của @code{solve}
+có thể bắt đầu làm việc để tạo ra phần tử đầu tiên của @code{dy}, điều này
+sẽ tạo ra phần tử tiếp theo của @code{y}, v.v.
+
+Để tận dụng ý tưởng này, chúng ta sẽ định nghĩa lại @code{integral} để
+mong đợi luồng tích phân là một @newterm{đối số trì hoãn}. @code{Integral}
+sẽ @code{force} tích phân được định giá chỉ khi cần thiết để tạo ra nhiều
+hơn phần tử đầu tiên của luồng đầu ra:
+
+@lisp
+(define (integral
+         delayed-integrand initial-value dt)
+  (define int
+    (cons-stream
+     initial-value
+     (let ((integrand
+            (force delayed-integrand)))
+       (add-streams
+        (scale-stream integrand dt)
+        int))))
+  int)
+@end lisp
+
+@noindent
+Bây giờ chúng ta có thể hiện thực thủ tục @code{solve} bằng cách trì hoãn
+định giá @code{dy} trong định nghĩa của @code{y}:@footnote{Thủ tục này
+không được đảm bảo hoạt động trong tất cả các hiện thực Scheme, mặc dù đối
+với bất kỳ hiện thực nào đều có một biến thể đơn giản sẽ hoạt động. Vấn đề
+liên quan đến sự khác biệt tinh tế trong cách các hiện thực Scheme xử lý
+các định nghĩa nội bộ. (Xem @ref{4.1.6}.)}
+
+@lisp
+(define (solve f y0 dt)
+  (define y (integral (delay dy) y0 dt))
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+@noindent
+Nói chung, mọi người gọi @code{integral} bây giờ phải @code{delay} đối số
+tích phân. Chúng ta có thể minh họa rằng thủ tục @code{solve} hoạt động
+bằng cách xấp xỉ @math{{e \approx 2.718}} bằng cách tính giá trị tại
+@math{{y = 1}} của nghiệm của phương trình vi phân @math{{dy / dt = y}} với
+điều kiện ban đầu @math{{y(0) = 1}}:
+
+@lisp
+(stream-ref
+ (solve (lambda (y) y) 1 0.001) 1000)
+@i{2.716924}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.77}Exercise 3.77:} Thủ tục @code{integral} được
+dùng ở trên tương tự như định nghĩa ``ẩn'' của luồng vô hạn các số nguyên
+trong @ref{3.5.2}. Ngoài ra, chúng ta có thể đưa ra định nghĩa của
+@code{integral} giống hơn với @code{integers-starting-from} (cũng trong
+@ref{3.5.2}):
+
+@lisp
+(define (integral
+         integrand initial-value dt)
+  (cons-stream
+   initial-value
+   (if (stream-null? integrand)
+       the-empty-stream
+       (integral
+        (stream-cdr integrand)
+        (+ (* dt (stream-car integrand))
+           initial-value)
+        dt))))
+@end lisp
+
+Khi được dùng trong các hệ thống có vòng lặp, thủ tục này có cùng vấn đề
+như phiên bản ban đầu của @code{integral}. Sửa đổi thủ tục sao cho nó mong
+đợi @code{integrand} là một đối số trì hoãn và do đó có thể được dùng trong
+thủ tục @code{solve} được thể hiện ở trên.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.78}Exercise 3.78:} Xem xét bài toán thiết kế một
+hệ thống xử lý tín hiệu để nghiên cứu phương trình vi phân tuyến tính bậc
+hai thuần nhất
+@ifinfo
+
+@example
+d^2 y        d y
+-----  -  a -----  -  by  =  0
+d t^2        d t
+@end example
+
+@end ifinfo
+@tex
+\[ % :74:
+  \frac{d^2 y}{dt^2} - {a \frac{dy}{dt}} - {by} \,=\, {0.}  \]
+@end tex
+Luồng đầu ra, mô hình hóa @math{y}, được tạo ra bởi một mạng có chứa vòng
+lặp. Điều này là vì giá trị của @math{{d^2 y / dt^2}} phụ thuộc vào các
+giá trị của @math{y} và @math{{dy / dt}} và cả hai đều được xác định bằng
+cách tích phân @math{{d^2 y / dt^2}}. Sơ đồ mà chúng ta muốn mã hóa được
+thể hiện trong @ref{Figure 3.35}. Viết một thủ tục @code{solve-2nd} nhận
+các hằng số @math{a}, @math{b} và @math{{dt}} và các giá trị ban đầu
+@math{y_0} và @math{{dy_0}} cho @math{y} và @math{{dy / dt}} và tạo ra
+luồng các giá trị liên tiếp của @math{y}.
+@end quotation
+
+@float
+@anchor{Figure 3.35}
+@ifinfo
+@quotation
+@strong{Figure 3.35:} Signal-flow diagram for the solution to a second-order linear differential equation.
+
+@example
+               dy_0                y_0
+                |                   |
+                V                   V
+   ddy     +----------+    dy  +----------+    y
++--------->| integral +-----*--+ integral +--*--->
+|          +----------+     |  +----------+  |
+|                           |                |
+|            +----------+   |                |
+|     __/|<--+ scale: a |<--+                |
+|   _/   |   +----------+                    |
++--<_add |                                   |
+     \__ |   +----------+                    |
+        \|<--+ scale: b |<-------------------+
+             +----------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.35b,116mm,,,.std.svg}
+@caption{@strong{Figure 3.35:} Signal-flow diagram for the solution to a second-order linear differential equation.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.79}Exercise 3.79:} Tổng quát hóa thủ tục
+@code{solve-2nd} từ @ref{Exercise 3.78} sao cho nó có thể được dùng để giải
+các phương trình vi phân bậc hai tổng quát @math{{d^2 y / dt^2} =
+{f(dy / dt, y)}}.
+@end quotation
+
+@float
+@anchor{Figure 3.36}
+@ifinfo
+@quotation
+@strong{Figure 3.36:} A series RLC circuit.
+
+@example
+              + v_R -
+        i_R
+     +--->----'\/\/\,--------+
+     |                       |  i_L
+    \|/          R          \|/
+  +  |  i_C                  |_   +
+    -+-                       _)
+v_C -+- C                     _)  v_L
+     |                        _)
+  -  |                       |    -
+     +-----------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.36,102mm,,,.std.svg}
+@caption{@strong{Figure 3.36:} A series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.80}Exercise 3.80:} Một @newterm{mạch RLC nối tiếp}
+gồm một điện trở, một tụ điện và một cuộn cảm mắc nối tiếp, như thể hiện
+trong @ref{Figure 3.36}. Nếu @math{R}, @math{L} và @math{C} là điện trở,
+điện cảm và điện dung, thì các quan hệ giữa điện áp @math{{(v)}} và dòng
+điện @math{{(i)}} cho ba thành phần được mô tả bởi các phương trình
+@ifinfo
+
+@example
+v_R = i_R R
+
+         d i_L
+v_L = L -------
+          d t
+
+         d v_C
+i_C = C -------
+          d t
+@end example
+
+@end ifinfo
+@tex
+\[ % :75:
+\begin{eqnarray}
+  v_R 	&=&   i_R R, \\
+  v_L 	&=&   L\,{di_L \over dt}, \\
+  i_C 	&=&   C\,{dv_C \over dt},
+\end{eqnarray}
+\]
+@end tex
+và các kết nối mạch quy định các quan hệ
+@ifinfo
+
+@example
+i_R = i_L = -i_C
+
+v_C = v_L + v_R
+@end example
+
+@end ifinfo
+@tex
+\[ % :76:
+\begin{eqnarray}
+  i_R 	&=&   i_L = -i_C, \\
+  v_C 	&=&   v_L + v_R.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Kết hợp các phương trình này cho thấy trạng thái của mạch (được tóm tắt
+bởi @math{v_C}, điện áp qua tụ điện, và @math{i_L}, dòng điện trong cuộn
+cảm) được mô tả bởi cặp phương trình vi phân
+@ifinfo
+
+@example
+d v_C        i_L
+-----  =  -  ---
+ d t          C
+
+d i_L      1           R
+-----  =  --- v_C  -  --- i_L
+ d t       L           L
+@end example
+
+@end ifinfo
+@tex
+\[ % :77:
+\begin{eqnarray}
+  {dv_C \over dt}   &=&   -{i_L \over C}\,, \\
+  {di_L \over dt}   &=&    {1 \over L}\, v_C - {R \over L}\, i_L.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Sơ đồ dòng tín hiệu biểu diễn hệ phương trình vi phân này được thể hiện
+trong @ref{Figure 3.37}.
+@end quotation
+
+@float
+@anchor{Figure 3.37}
+@ifinfo
+@quotation
+@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.
+
+@example
+                 +-------------+
++----------------+  scale: l/L |<--+
+|                +-------------+   |
+|                                  |
+|                +-------------+   |  v_C
+|       dv_C +-->|   integral  +---*------>
+|            |   +-------------+
+|            |        ^
+|            |        | v_(C_0)
+|            |
+|            |   +-------------+
+|            +---+ scale: -l/C |<--+
+|                +-------------+   |
+|  |\__                            |
++->|   \_  di_L  +-------------+   |  i_L
+   | add_>------>|   integral  +---*------>
++->| __/         +-------------+   |
+|  |/                 ^            |
+|                     | i_(L_0)    |
+|                                  |
+|                +-------------+   |
++----------------+ scale: -R/L |<--+
+                 +-------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.37,110mm,,,.std.svg}
+@caption{@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+Viết một thủ tục @code{RLC} nhận các tham số @math{R}, @math{L} và @math{C}
+của mạch và bước thời gian @math{{dt}}. Theo cách tương tự như thủ tục
+@code{RC} từ @ref{Exercise 3.73}, @code{RLC} nên tạo ra một thủ tục nhận
+các giá trị ban đầu của các biến trạng thái, @math{v_{C_0}} và @math{i_{L_0}},
+và tạo ra một cặp (dùng @code{cons}) của các luồng trạng thái @math{v_C} và
+@math{i_L}. Dùng @code{RLC}, tạo ra cặp luồng mô hình hóa hành vi của một
+mạch RLC nối tiếp với @math{R} = 1 ohm, @math{C} = 0.2 farad, @math{L} = 1
+henry, @math{{dt}} = 0.1 giây và các giá trị ban đầu @math{i_{L_0}} = 0 amp
+và @math{v_{C_0}} = 10 volt.
+@end quotation
+
+@subsubheading Định giá theo thứ tự thông thường
+
+Các ví dụ trong phần này minh họa cách sử dụng tường minh @code{delay} và
+@code{force} cung cấp sự linh hoạt lập trình tuyệt vời, nhưng các ví dụ
+tương tự cũng cho thấy cách điều này có thể làm chương trình phức tạp hơn.
+Thủ tục @code{integral} mới của chúng ta, ví dụ, cho chúng ta khả năng mô
+hình hóa các hệ thống có vòng lặp, nhưng bây giờ chúng ta phải nhớ rằng
+@code{integral} nên được gọi với một tích phân trì hoãn, và mọi thủ tục
+dùng @code{integral} phải biết điều này. Thực chất, chúng ta đã tạo ra hai
+lớp thủ tục: các thủ tục thông thường và các thủ tục nhận các đối số trì
+hoãn. Nói chung, việc tạo ra các lớp thủ tục riêng biệt buộc chúng ta cũng
+phải tạo ra các lớp thủ tục bậc cao riêng biệt.@footnote{Đây là một phản
+ánh nhỏ, trong Lisp, về những khó khăn mà các ngôn ngữ kiểu mạnh thông
+thường như Pascal gặp phải khi xử lý các thủ tục bậc cao. Trong các ngôn
+ngữ như vậy, lập trình viên phải chỉ định kiểu dữ liệu của các đối số và
+kết quả của mỗi thủ tục: số, giá trị logic, dãy, v.v. Do đó, chúng ta
+không thể diễn đạt một trừu tượng như ``ánh xạ một thủ tục cho trước
+@code{proc} lên tất cả các phần tử trong một dãy'' bằng một thủ tục bậc
+cao duy nhất như @code{stream-map}. Thay vào đó, chúng ta sẽ cần một thủ
+tục ánh xạ khác nhau cho mỗi kết hợp khác nhau của kiểu dữ liệu đối số và
+kết quả có thể được chỉ định cho một @code{proc}. Duy trì khái niệm thực
+tế về ``kiểu dữ liệu'' khi có mặt các thủ tục bậc cao đặt ra nhiều vấn đề
+khó khăn. Một cách xử lý bài toán này được minh họa bởi ngôn ngữ ML
+(@ref{Gordon et al. 1979}), có ``kiểu dữ liệu đa hình'' bao gồm các mẫu
+cho các phép biến đổi bậc cao giữa các kiểu dữ liệu. Hơn nữa, các kiểu
+dữ liệu cho hầu hết các thủ tục trong ML không bao giờ được lập trình viên
+khai báo tường minh. Thay vào đó, ML bao gồm một cơ chế @newterm{suy luận
+kiểu} sử dụng thông tin trong môi trường để suy ra các kiểu dữ liệu cho
+các thủ tục mới được định nghĩa.}
+
+Một cách để tránh sự cần thiết có hai lớp thủ tục khác nhau là làm cho tất
+cả các thủ tục nhận các đối số trì hoãn. Chúng ta có thể áp dụng một mô
+hình định giá trong đó tất cả các đối số của thủ tục được tự động trì hoãn
+và các đối số chỉ được ép buộc khi chúng thực sự cần thiết (ví dụ, khi chúng
+được yêu cầu bởi một phép toán nguyên thủy). Điều này sẽ biến đổi ngôn ngữ
+của chúng ta để dùng định giá theo thứ tự thông thường, mà chúng ta đã mô
+tả đầu tiên khi giới thiệu mô hình thay thế để định giá trong @ref{1.1.5}.
+Chuyển sang định giá theo thứ tự thông thường cung cấp một cách thống nhất
+và tinh tế để đơn giản hóa việc sử dụng định giá trì hoãn, và đây sẽ là
+chiến lược tự nhiên cần áp dụng nếu chúng ta chỉ quan tâm đến xử lý luồng.
+Trong @ref{4.2}, sau khi chúng ta đã nghiên cứu trình định giá, chúng ta sẽ
+thấy cách biến đổi ngôn ngữ của chúng ta theo cách này. Thật không may, việc
+đưa các sự trì hoãn vào các lời gọi thủ tục gây ra hỗn loạn với khả năng
+thiết kế các chương trình phụ thuộc vào thứ tự các sự kiện, chẳng hạn như
+các chương trình sử dụng phép gán, biến đổi dữ liệu hoặc thực hiện đầu vào
+hay đầu ra. Ngay cả @code{delay} duy nhất trong @code{cons-stream} cũng có
+thể gây ra nhầm lẫn lớn, như được minh họa bởi @ref{Exercise 3.51} và
+@ref{Exercise 3.52}. Theo hiểu biết của bất kỳ ai, khả năng biến đổi và định
+giá trì hoãn không kết hợp tốt trong các ngôn ngữ lập trình, và việc tìm
+cách xử lý cả hai cùng một lúc là một lĩnh vực nghiên cứu đang hoạt động.

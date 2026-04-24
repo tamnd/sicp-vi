@@ -1,0 +1,66 @@
+@node 3.5, Chapter 4, 3.4, Chapter 3
+@section Luồng
+
+Chúng ta đã có hiểu biết tốt về phép gán như một công cụ trong mô hình hóa,
+cũng như đánh giá cao các vấn đề phức tạp mà phép gán đặt ra. Đã đến lúc hỏi
+xem liệu chúng ta có thể đã tiếp cận mọi thứ theo cách khác không, để tránh
+một số vấn đề này. Trong phần này, chúng ta khám phá một cách tiếp cận thay thế
+để mô hình hóa trạng thái, dựa trên các cấu trúc dữ liệu được gọi là
+@newterm{luồng}. Như chúng ta sẽ thấy, các luồng có thể giảm thiểu một số phức
+tạp của việc mô hình hóa trạng thái.
+
+Hãy lùi lại và xem xét nguồn gốc của sự phức tạp này. Trong nỗ lực mô hình
+hóa các hiện tượng thế giới thực, chúng ta đã đưa ra một số quyết định có vẻ
+hợp lý: Chúng ta mô hình hóa các đối tượng thế giới thực với trạng thái cục bộ
+bằng các đối tượng tính toán với các biến cục bộ. Chúng ta đồng nhất sự biến
+đổi theo thời gian trong thế giới thực với sự biến đổi theo thời gian trong máy
+tính. Chúng ta hiện thực sự biến đổi theo thời gian của các trạng thái của các
+đối tượng mô hình trong máy tính bằng các phép gán cho các biến cục bộ của các
+đối tượng mô hình.
+
+Có một cách tiếp cận khác không? Chúng ta có thể tránh đồng nhất thời gian trong
+máy tính với thời gian trong thế giới được mô hình hóa không? Chúng ta có phải
+làm cho mô hình thay đổi theo thời gian để mô hình hóa các hiện tượng trong một
+thế giới thay đổi không? Hãy suy nghĩ về vấn đề theo các hàm toán học. Chúng ta
+có thể mô tả hành vi thay đổi theo thời gian của một đại lượng @math{x} như một
+hàm của thời gian @math{{x(t)}}. Nếu chúng ta tập trung vào @math{x} từng thời
+điểm, chúng ta nghĩ đến nó như một đại lượng thay đổi. Tuy nhiên nếu chúng ta
+tập trung vào toàn bộ lịch sử thời gian của các giá trị, chúng ta không nhấn
+mạnh sự thay đổi---bản thân hàm không thay đổi.@footnote{Các nhà vật lý đôi khi
+áp dụng quan điểm này bằng cách giới thiệu ``đường thế giới'' của các hạt như
+một thiết bị để lý luận về chuyển động. Chúng ta cũng đã đề cập (@ref{2.2.3})
+rằng đây là cách tự nhiên để suy nghĩ về các hệ thống xử lý tín hiệu. Chúng ta
+sẽ khám phá các ứng dụng của luồng trong xử lý tín hiệu trong @ref{3.5.3}.}
+
+Nếu thời gian được đo theo các bước rời rạc, thì chúng ta có thể mô hình hóa
+một hàm thời gian như một dãy (có thể vô hạn). Trong phần này, chúng ta sẽ xem
+cách mô hình hóa sự thay đổi theo các dãy đại diện cho lịch sử thời gian của
+các hệ thống được mô hình hóa. Để thực hiện điều này, chúng ta giới thiệu các
+cấu trúc dữ liệu mới được gọi là @newterm{luồng}. Từ quan điểm trừu tượng, một
+luồng đơn giản là một dãy. Tuy nhiên, chúng ta sẽ thấy rằng hiện thực đơn giản
+các luồng như danh sách (như trong @ref{2.2.1}) không thể hiện đầy đủ sức mạnh
+của xử lý luồng. Như một thay thế, chúng ta giới thiệu kỹ thuật @newterm{định
+giá trì hoãn}, cho phép chúng ta biểu diễn các dãy rất lớn (thậm chí vô hạn)
+như các luồng.
+
+Xử lý luồng cho phép chúng ta mô hình hóa các hệ thống có trạng thái mà không
+bao giờ dùng phép gán hay dữ liệu có thể thay đổi. Điều này có ý nghĩa quan
+trọng, cả về lý thuyết lẫn thực tế, vì chúng ta có thể xây dựng các mô hình
+tránh được những hạn chế vốn có khi đưa vào phép gán. Mặt khác, khuôn khổ luồng
+đặt ra những khó khăn riêng của nó, và câu hỏi kỹ thuật mô hình hóa nào dẫn đến
+các hệ thống có tính mô-đun hơn và dễ bảo trì hơn vẫn còn mở.
+
+@menu
+* 3.5.1::            Streams Are Delayed Lists
+* 3.5.2::            Infinite Streams
+* 3.5.3::            Exploiting the Stream Paradigm
+* 3.5.4::            Streams and Delayed Evaluation
+* 3.5.5::            Modularity of Functional Programs and Modularity of
+                     Objects
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi
+@include ss04.texi
+@include ss05.texi

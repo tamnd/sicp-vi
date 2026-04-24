@@ -1,0 +1,820 @@
+@node	3.5.3, 3.5.4, 3.5.2, 3.5
+@subsection Khai Thác Mô Hình Luồng
+
+Các luồng với định giá trì hoãn có thể là một công cụ mô hình hóa mạnh mẽ,
+cung cấp nhiều lợi ích của trạng thái cục bộ và phép gán. Hơn nữa, chúng
+tránh được một số vướng mắc lý thuyết đi kèm với việc đưa phép gán vào một
+ngôn ngữ lập trình.
+
+Cách tiếp cận luồng có thể rất sáng tỏ vì nó cho phép chúng ta xây dựng
+các hệ thống với các ranh giới mô-đun khác với các hệ thống được tổ chức
+xung quanh phép gán cho các biến trạng thái. Ví dụ, chúng ta có thể nghĩ
+đến toàn bộ chuỗi thời gian (hay tín hiệu) như một tiêu điểm quan tâm, thay
+vì các giá trị của các biến trạng thái tại từng thời điểm riêng lẻ. Điều
+này giúp thuận tiện kết hợp và so sánh các thành phần của trạng thái từ
+các thời điểm khác nhau.
+
+@subsubheading Xây dựng các vòng lặp như các quá trình luồng
+
+Trong @ref{1.2.1}, chúng ta đã giới thiệu các quá trình lặp, tiến hành
+bằng cách cập nhật các biến trạng thái. Bây giờ chúng ta biết rằng chúng
+ta có thể biểu diễn trạng thái như một luồng giá trị ``phi thời gian'' thay
+vì như một tập hợp các biến cần cập nhật. Hãy áp dụng quan điểm này khi
+xem lại thủ tục căn bậc hai từ @ref{1.1.7}. Nhắc lại rằng ý tưởng là tạo
+ra một dãy các xấp xỉ ngày càng tốt hơn cho căn bậc hai của @math{x} bằng
+cách áp dụng lặp đi lặp lại thủ tục cải thiện xấp xỉ:
+
+@lisp
+(define (sqrt-improve guess x)
+  (average guess (/ x guess)))
+@end lisp
+
+@noindent
+Trong thủ tục @code{sqrt} ban đầu, chúng ta đã làm cho những xấp xỉ này
+trở thành các giá trị liên tiếp của một biến trạng thái. Thay vào đó, chúng
+ta có thể tạo ra luồng vô hạn các xấp xỉ, bắt đầu với xấp xỉ ban đầu là
+1:@footnote{Chúng ta không thể dùng @code{let} để ràng buộc biến cục bộ
+@code{guesses}, vì giá trị của @code{guesses} phụ thuộc vào chính
+@code{guesses}. @ref{Exercise 3.63} giải thích tại sao chúng ta muốn có
+một biến cục bộ ở đây.}
+
+@lisp
+(define (sqrt-stream x)
+  (define guesses
+    (cons-stream
+     1.0 (stream-map
+          (lambda (guess)
+            (sqrt-improve guess x))
+          guesses)))
+  guesses)
+
+(display-stream (sqrt-stream 2))
+@i{1.}
+@i{1.5}
+@i{1.4166666666666665}
+@i{1.4142156862745097}
+@i{1.4142135623746899}
+@r{…}
+@end lisp
+
+@noindent
+Chúng ta có thể tạo ra ngày càng nhiều phần tử của luồng để có được các
+xấp xỉ ngày càng tốt hơn. Nếu muốn, chúng ta có thể viết một thủ tục tiếp
+tục tạo ra các phần tử cho đến khi câu trả lời đủ tốt. (Xem @ref{Exercise 3.64}.)
+
+Một phép lặp khác mà chúng ta có thể xử lý theo cách tương tự là tạo ra
+một xấp xỉ của @math{\pi}, dựa trên chuỗi xen kẽ mà chúng ta đã thấy
+trong @ref{1.3.1}:
+@ifinfo
+
+@example
+[pi]        1     1     1
+---- = 1 - --- + --- - --- + ...
+  4         3     5     7
+@end example
+
+@end ifinfo
+@tex
+\[ % :66:
+  {\pi\over4} \,=\, 1 - {1\over3} + {1\over5} - {1\over7} + {\dots.}  \]
+@end tex
+Trước tiên, chúng ta tạo ra luồng các số hạng của chuỗi (nghịch đảo của
+các số nguyên lẻ, với dấu xen kẽ). Sau đó chúng ta lấy luồng các tổng từng
+phần của ngày càng nhiều số hạng (sử dụng thủ tục @code{partial-sums} từ
+@ref{Exercise 3.55}) và nhân kết quả với 4:
+
+@lisp
+(define (pi-summands n)
+  (cons-stream
+   (/ 1.0 n)
+   (stream-map - (pi-summands (+ n 2)))))
+
+(define pi-stream
+  (scale-stream
+   (partial-sums (pi-summands 1)) 4))
+
+(display-stream pi-stream)
+@i{4.}
+@i{2.666666666666667}
+@i{3.466666666666667}
+@i{2.8952380952380956}
+@i{3.3396825396825403}
+@i{2.9760461760461765}
+@i{3.2837384837384844}
+@i{3.017071817071818}
+@r{…}
+@end lisp
+
+@noindent
+Điều này cho chúng ta một luồng các xấp xỉ ngày càng tốt hơn của
+@math{\pi}, mặc dù các xấp xỉ hội tụ khá chậm. Tám số hạng của dãy giới
+hạn giá trị của @math{\pi} trong khoảng từ 3.284 đến 3.017.
+
+Cho đến nay, việc chúng ta sử dụng cách tiếp cận luồng trạng thái không
+khác nhiều so với cập nhật biến trạng thái. Nhưng các luồng cho chúng ta
+cơ hội thực hiện một số thủ thuật thú vị. Ví dụ, chúng ta có thể biến đổi
+một luồng bằng @newterm{bộ tăng tốc dãy} chuyển đổi một dãy các xấp xỉ
+thành một dãy mới hội tụ đến cùng giá trị như dãy ban đầu, nhưng nhanh hơn.
+
+Một bộ tăng tốc như vậy, do nhà toán học Thụy Sĩ Leonhard Euler phát triển
+vào thế kỷ 18, hoạt động tốt với các dãy là các tổng từng phần của các chuỗi
+xen kẽ (chuỗi có các số hạng với dấu xen kẽ). Trong kỹ thuật Euler, nếu
+@math{S_n} là số hạng thứ @math{n} của dãy tổng ban đầu, thì dãy tăng tốc
+có các số hạng
+@ifinfo
+
+@example
+             (S_(n+1) - S_n)^2
+S_(n+1) - ------------------------
+          S_(n-1) - 2S_n + S_(n+1)
+@end example
+
+@end ifinfo
+@tex
+\[ % :67:
+  S_{n+1} - {{(S_{n+1} - S_n)^2 \over S_{n-1} - 2S_n + S_{n+1}}.}  \]
+@end tex
+Như vậy, nếu dãy ban đầu được biểu diễn như một luồng giá trị, thì dãy
+biến đổi được cho bởi
+
+@lisp
+(define (euler-transform s)
+  (let ((s0 (stream-ref s 0))     ; @var{Sₙ}₋₁
+        (s1 (stream-ref s 1))     ; @var{Sₙ}
+        (s2 (stream-ref s 2)))    ; @var{Sₙ}₊₁
+    (cons-stream
+     (- s2 (/ (square (- s2 s1))
+              (+ s0 (* -2 s1) s2)))
+     (euler-transform (stream-cdr s)))))
+@end lisp
+
+@noindent
+Chúng ta có thể minh họa tăng tốc Euler với dãy xấp xỉ @math{\pi} của
+chúng ta:
+
+@lisp
+(display-stream
+ (euler-transform pi-stream))
+@i{3.166666666666667}
+@i{3.1333333333333337}
+@i{3.1452380952380956}
+@i{3.13968253968254}
+@i{3.1427128427128435}
+@i{3.1408813408813416}
+@i{3.142071817071818}
+@i{3.1412548236077655}
+@r{…}
+@end lisp
+
+@noindent
+Thậm chí tốt hơn, chúng ta có thể tăng tốc dãy đã được tăng tốc, và đệ
+quy tăng tốc tiếp, v.v. Cụ thể, chúng ta tạo ra một luồng các luồng (một
+cấu trúc mà chúng ta gọi là @newterm{bảng}) trong đó mỗi luồng là phép biến
+đổi của luồng trước:
+
+@lisp
+(define (make-tableau transform s)
+  (cons-stream
+   s
+   (make-tableau
+    transform
+    (transform s))))
+@end lisp
+
+@noindent
+Bảng có dạng
+@ifinfo
+
+@example
+s_00   s_01   s_02   s_03   s_04   ...
+       s_10   s_11   s_12   s_13   ...
+              s_20   s_21   s_22   ...
+                            ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :68:
+
+\begin{array}{cccccc}
+ s_{00} 	&   s_{01}  	&   s_{02}  	&   s_{03}  	&   s_{04}  	&   \dots  \\
+		&   s_{10}  	&   s_{11}  	&   s_{12}  	&   s_{13}  	&   \dots  \\
+		& 		&   s_{20}  	&   s_{21}  	&   s_{22}  	&   \dots  \\
+		& 		& 		&   \dots  	& 		&
+\end{array}
+\]
+@end tex
+Cuối cùng, chúng ta tạo ra một dãy bằng cách lấy số hạng đầu tiên trong
+mỗi hàng của bảng:
+
+@lisp
+(define (accelerated-sequence transform s)
+  (stream-map stream-car
+              (make-tableau transform s)))
+@end lisp
+
+@noindent
+Chúng ta có thể minh họa loại ``siêu tăng tốc'' này của dãy @math{\pi}:
+
+@lisp
+(display-stream
+ (accelerated-sequence euler-transform
+                       pi-stream))
+@i{4.}
+@i{3.166666666666667}
+@i{3.142105263157895}
+@i{3.141599357319005}
+@i{3.1415927140337785}
+@i{3.1415926539752927}
+@i{3.1415926535911765}
+@i{3.141592653589778}
+@r{…}
+@end lisp
+
+@noindent
+Kết quả thật ấn tượng. Lấy tám số hạng của dãy cho giá trị đúng của
+@math{\pi} đến 14 chữ số thập phân. Nếu chúng ta chỉ dùng dãy @math{\pi}
+ban đầu, chúng ta sẽ cần tính khoảng @math{10^{13}} số hạng (tức là mở rộng
+chuỗi đủ xa để các số hạng riêng lẻ nhỏ hơn @math{10^{-13}}) để đạt được
+độ chính xác đó!
+
+Chúng ta có thể đã hiện thực các kỹ thuật tăng tốc này mà không cần dùng
+luồng. Nhưng cách diễn đạt bằng luồng đặc biệt tinh tế và thuận tiện vì
+toàn bộ dãy trạng thái có sẵn cho chúng ta như một cấu trúc dữ liệu có
+thể thao tác với một tập hợp các phép toán thống nhất.
+
+@quotation
+@strong{@anchor{Exercise 3.63}Exercise 3.63:} Louis Reasoner hỏi tại sao
+thủ tục @code{sqrt-stream} không được viết theo cách đơn giản hơn sau đây,
+không có biến cục bộ @code{guesses}:
+
+@lisp
+(define (sqrt-stream x)
+  (cons-stream
+   1.0
+   (stream-map (lambda (guess)
+                 (sqrt-improve guess x))
+               (sqrt-stream x))))
+@end lisp
+
+Alyssa P. Hacker trả lời rằng phiên bản thủ tục này kém hiệu quả hơn đáng
+kể vì nó thực hiện tính toán dư thừa. Giải thích câu trả lời của Alyssa.
+Hai phiên bản có còn khác nhau về hiệu quả không nếu hiện thực @code{delay}
+của chúng ta chỉ dùng @code{(lambda () ⟨@var{exp}⟩)} mà không có tối ưu
+hóa từ @code{memo-proc} (@ref{3.5.1})?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.64}Exercise 3.64:} Viết một thủ tục
+@code{stream-limit} nhận vào một luồng và một số (dung sai). Nó phải kiểm
+tra luồng cho đến khi tìm thấy hai phần tử liên tiếp chênh lệch nhau theo
+giá trị tuyệt đối ít hơn dung sai, và trả về phần tử thứ hai trong hai
+phần tử đó. Sử dụng điều này, chúng ta có thể tính căn bậc hai đến một
+dung sai cho trước bởi
+
+@lisp
+(define (sqrt x tolerance)
+  (stream-limit (sqrt-stream x) tolerance))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.65}Exercise 3.65:} Dùng chuỗi
+@ifinfo
+
+@example
+            1     1     1
+ln 2 = 1 - --- + --- - --- + ...
+            2     3     4
+@end example
+
+@end ifinfo
+@tex
+\[ % :69:
+  \ln 2 \,=\, 1 - {1\over2} + {1\over3} - {1\over4} + \dots  \]
+@end tex
+@noindent
+để tính ba dãy xấp xỉ của logarithm tự nhiên của 2, theo cách tương tự
+chúng ta đã làm ở trên với @math{\pi}. Các dãy này hội tụ nhanh đến mức
+nào?
+@end quotation
+
+@subsubheading Luồng vô hạn các cặp
+
+Trong @ref{2.2.3}, chúng ta đã thấy cách mô hình dãy xử lý các vòng lặp
+lồng nhau truyền thống như các quá trình được định nghĩa trên các dãy cặp.
+Nếu chúng ta tổng quát hóa kỹ thuật này cho các luồng vô hạn, chúng ta có
+thể viết các chương trình không dễ dàng biểu diễn như các vòng lặp, vì
+``vòng lặp'' phải chạy qua một tập hợp vô hạn.
+
+Ví dụ, giả sử chúng ta muốn tổng quát hóa thủ tục @code{prime-sum-pairs}
+từ @ref{2.2.3} để tạo ra luồng các cặp của @emph{tất cả} các số nguyên
+@math{{(i, j)}} với @math{{i \le j}} sao cho @math{{i + j}} là số nguyên
+tố. Nếu @code{int-pairs} là dãy tất cả các cặp số nguyên @math{{(i, j)}}
+với @math{{i \le j}}, thì luồng yêu cầu của chúng ta đơn giản là@footnote{Như
+trong @ref{2.2.3}, chúng ta biểu diễn một cặp số nguyên như một danh sách
+thay vì một cặp Lisp.}
+
+@lisp
+(stream-filter
+ (lambda (pair)
+   (prime? (+ (car pair) (cadr pair))))
+ int-pairs)
+@end lisp
+
+@noindent
+Bài toán của chúng ta khi đó là tạo ra luồng @code{int-pairs}. Tổng quát
+hơn, giả sử chúng ta có hai luồng @math{{S = (S_i)}} và @math{{T = (T_j)}},
+và tưởng tượng mảng hình chữ nhật vô hạn
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+(S_1, T_0)  (S_1, T_1)  (S_1, T_2)  ...
+(S_2, T_0)  (S_2, T_1)  (S_2, T_2)  ...
+   ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :70:
+
+\begin{array}{cccc}
+	 (S_0, T_0)  &  (S_0, T_1)  &  (S_0, T_2)  &  \dots  \\
+	 (S_1, T_0)  &  (S_1, T_1)  &  (S_1, T_2)  &  \dots  \\
+	 (S_2, T_0)  &  (S_2, T_1)  &  (S_2, T_2)  &  \dots  \\
+	 \dots  & & &
+\end{array}
+\]
+@end tex
+Chúng ta muốn tạo ra một luồng chứa tất cả các cặp trong mảng nằm trên
+hoặc trên đường chéo, tức là các cặp
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+            (S_1, T_1)  (S_1, T_2)  ...
+                        (S_2, T_2)  ...
+                                    ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :71:
+
+\begin{array}{cccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots
+\end{array}
+\]
+@end tex
+@noindent
+(Nếu chúng ta lấy cả @math{S} và @math{T} là luồng các số nguyên, thì đây
+sẽ là luồng @code{int-pairs} mà chúng ta mong muốn.)
+
+Gọi luồng cặp tổng quát là @code{(pairs S T)}, và xem xét nó được tạo
+thành từ ba phần: cặp @math{{(S_0, T_0)}}, phần còn lại của các cặp trong
+hàng đầu tiên, và các cặp còn lại:@footnote{Xem @ref{Exercise 3.68} để
+hiểu tại sao chúng ta chọn phân rã này.}
+@ifinfo
+
+@example
+(S_0, T_0) | (S_0, T_1)  (S_0, T_2)  ...
+-----------+-----------------------------
+           | (S_1, T_1)  (S_1, T_2)  ...
+           |             (S_2, T_2)  ...
+           |                         ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :72:
+
+\begin{array}{c|ccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+\hline
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots
+\end{array}
+\]
+@end tex
+Quan sát rằng phần thứ ba trong phân rã này (các cặp không ở trong hàng
+đầu tiên) là (đệ quy) các cặp được tạo từ @code{(stream-cdr S)} và
+@code{(stream-cdr T)}. Cũng lưu ý rằng phần thứ hai (phần còn lại của
+hàng đầu tiên) là
+
+@lisp
+(stream-map (lambda (x)
+              (list (stream-car s) x))
+            (stream-cdr t))
+@end lisp
+
+@noindent
+Như vậy chúng ta có thể tạo luồng cặp của mình như sau:
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (⟨@var{combine-in-some-way}⟩
+    (stream-map (lambda (x)
+                  (list (stream-car s) x))
+                (stream-cdr t))
+    (pairs (stream-cdr s)
+           (stream-cdr t)))))
+@end lisp
+
+@noindent
+Để hoàn thiện thủ tục, chúng ta phải chọn một cách nào đó để kết hợp hai
+luồng bên trong. Một ý tưởng là dùng tương tự luồng của thủ tục @code{append}
+từ @ref{2.2.1}:
+
+@lisp
+(define (stream-append s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream
+       (stream-car s1)
+       (stream-append (stream-cdr s1) s2))))
+@end lisp
+
+@noindent
+Tuy nhiên điều này không phù hợp cho các luồng vô hạn, vì nó lấy tất cả
+các phần tử từ luồng đầu tiên trước khi kết hợp luồng thứ hai. Đặc biệt,
+nếu chúng ta cố gắng tạo tất cả các cặp số nguyên dương bằng
+
+@lisp
+(pairs integers integers)
+@end lisp
+
+@noindent
+luồng kết quả của chúng ta sẽ trước tiên cố chạy qua tất cả các cặp có
+số nguyên đầu tiên bằng 1, và do đó sẽ không bao giờ tạo ra các cặp với
+bất kỳ giá trị nào khác của số nguyên đầu tiên.
+
+Để xử lý các luồng vô hạn, chúng ta cần thiết kế một thứ tự kết hợp đảm
+bảo rằng mọi phần tử sẽ cuối cùng đạt được nếu chúng ta để chương trình
+chạy đủ lâu. Một cách tinh tế để thực hiện điều này là dùng thủ tục
+@code{interleave} sau đây:@footnote{Phát biểu chính xác của thuộc tính
+cần thiết về thứ tự kết hợp là: Phải có một hàm @math{f} của hai đối số
+sao cho cặp tương ứng với phần tử @math{i} của luồng đầu tiên và phần tử
+@math{j} của luồng thứ hai sẽ xuất hiện là phần tử số @math{{f(i, j)}}
+của luồng đầu ra. Thủ thuật dùng @code{interleave} để thực hiện điều này
+được David Turner chỉ cho chúng tôi, ông đã sử dụng nó trong ngôn ngữ KRC
+(@ref{Turner 1981}).}
+
+@lisp
+(define (interleave s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream
+       (stream-car s1)
+       (interleave s2 (stream-cdr s1)))))
+@end lisp
+
+@noindent
+Vì @code{interleave} lấy các phần tử luân phiên từ hai luồng, mỗi phần tử
+của luồng thứ hai sẽ cuối cùng tìm đường vào luồng xen kẽ, ngay cả khi
+luồng đầu tiên là vô hạn.
+
+Như vậy chúng ta có thể tạo ra luồng các cặp yêu cầu là
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (interleave
+    (stream-map (lambda (x)
+                  (list (stream-car s) x))
+                (stream-cdr t))
+    (pairs (stream-cdr s) (stream-cdr t)))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.66}Exercise 3.66:} Xem xét luồng @code{(pairs
+integers integers)}. Bạn có thể đưa ra nhận xét tổng quát nào về thứ tự
+mà các cặp được đặt vào luồng không? Ví dụ, xấp xỉ có bao nhiêu cặp đứng
+trước cặp (1, 100)? cặp (99, 100)? cặp (100, 100)? (Nếu bạn có thể đưa
+ra các phát biểu toán học chính xác ở đây thì càng tốt. Nhưng hãy thoải
+mái đưa ra các câu trả lời định tính hơn nếu bạn thấy mình bị sa lầy.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.67}Exercise 3.67:} Sửa đổi thủ tục @code{pairs}
+sao cho @code{(pairs integers integers)} sẽ tạo ra luồng của @emph{tất cả}
+các cặp số nguyên @math{{(i, j)}} (không có điều kiện @math{{i \le j)}}. Gợi
+ý: Bạn sẽ cần kết hợp thêm một luồng.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.68}Exercise 3.68:} Louis Reasoner nghĩ rằng
+việc xây dựng một luồng các cặp từ ba phần là phức tạp không cần thiết.
+Thay vì tách cặp @math{{(S_0, T_0)}} ra khỏi phần còn lại của các cặp trong
+hàng đầu tiên, ông đề xuất làm việc với toàn bộ hàng đầu tiên, như sau:
+
+@lisp
+(define (pairs s t)
+  (interleave
+   (stream-map
+    (lambda (x)
+      (list (stream-car s) x))
+    t)
+   (pairs (stream-cdr s)
+          (stream-cdr t))))
+@end lisp
+
+Điều này có hoạt động không? Hãy xem xét điều gì xảy ra nếu chúng ta định
+giá @code{(pairs integers integers)} bằng định nghĩa @code{pairs} của Louis.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.69}Exercise 3.69:} Viết một thủ tục @code{triples}
+nhận ba luồng vô hạn @math{S}, @math{T} và @math{U}, và tạo ra luồng các bộ
+ba @math{{(S_i, T_j, U_k)}} sao cho @math{{i \le j \le k}}. Dùng @code{triples}
+để tạo ra luồng tất cả các bộ ba Pythagore của các số nguyên dương, tức là
+các bộ ba @math{{(i, j, k)}} sao cho @math{{i \le j}} và @math{{i^2 + j^2 = k^2}}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.70}Exercise 3.70:} Sẽ thật tiện nếu có thể tạo
+ra các luồng mà các cặp xuất hiện theo một thứ tự hữu ích nào đó, thay vì
+theo thứ tự kết quả từ quá trình xen kẽ @emph{tùy tiện}. Chúng ta có thể
+dùng kỹ thuật tương tự thủ tục @code{merge} từ @ref{Exercise 3.56}, nếu
+chúng ta định nghĩa cách để nói rằng một cặp số nguyên ``nhỏ hơn'' một cặp
+khác. Một cách là định nghĩa ``hàm trọng số'' @math{{W(i, j)}} và quy định
+rằng @math{{(i_1, j_1)}} nhỏ hơn @math{{(i_2, j_2)}} nếu
+@math{{W(i_1, j_1) <} {W(i_2, j_2)}}. Viết một thủ tục @code{merge-weighted}
+giống như @code{merge}, ngoại trừ @code{merge-weighted} nhận thêm một đối
+số @code{weight} là một thủ tục tính trọng số của một cặp, và được dùng để
+xác định thứ tự xuất hiện của các phần tử trong luồng hợp nhất kết
+quả.@footnote{Chúng ta sẽ yêu cầu rằng hàm trọng số phải sao cho trọng số
+của một cặp tăng khi chúng ta di chuyển ra ngoài theo một hàng hoặc xuống
+theo một cột của mảng các cặp.} Sử dụng điều này, tổng quát hóa @code{pairs}
+thành một thủ tục @code{weighted-pairs} nhận hai luồng, cùng với một thủ
+tục tính hàm trọng số, và tạo ra luồng các cặp, được sắp xếp theo trọng số.
+Dùng thủ tục của bạn để tạo
+
+@enumerate a
+
+@item
+luồng tất cả các cặp số nguyên dương @math{{(i, j)}} với @math{{i \le j}}
+được sắp xếp theo tổng @math{{i + j}},
+
+@item
+luồng tất cả các cặp số nguyên dương @math{{(i, j)}} với @math{{i \le j}},
+trong đó cả @math{i} lẫn @math{j} đều không chia hết cho 2, 3, hoặc 5, và
+các cặp được sắp xếp theo tổng @math{{2i + 3j + 5ij}}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.71}Exercise 3.71:} Các số có thể biểu diễn là
+tổng của hai lập phương theo nhiều hơn một cách đôi khi được gọi là
+@newterm{số Ramanujan}, để tôn vinh nhà toán học Srinivasa Ramanujan.@footnote{Trích
+từ cáo phó của G. H. Hardy về Ramanujan (@ref{Hardy 1921}): ``Chính Mr.
+Littlewood (tôi tin) đã nhận xét rằng `mọi số nguyên dương đều là bạn của
+ông ấy.' Tôi nhớ một lần đến thăm ông khi ông đang nằm bệnh ở Putney. Tôi
+đã đi bằng taxi số 1729, và nhận xét rằng con số có vẻ khá nhàm chán với
+tôi, và tôi hy vọng nó không phải là điềm không may. `Không,' ông trả lời,
+`đó là một con số rất thú vị; đó là số nhỏ nhất có thể biểu diễn là tổng
+của hai lập phương theo hai cách khác nhau.''' Thủ thuật dùng các cặp có
+trọng số để tạo ra các số Ramanujan được Charles Leiserson chỉ cho chúng
+tôi.} Các luồng cặp có thứ tự cung cấp một giải pháp tinh tế cho bài toán
+tính các số này. Để tìm một số có thể viết là tổng của hai lập phương theo
+hai cách khác nhau, chúng ta chỉ cần tạo ra luồng các cặp số nguyên
+@math{{(i, j)}} có trọng số theo tổng @math{{i^3 + j^3}} (xem @ref{Exercise 3.70}),
+rồi tìm kiếm trong luồng hai cặp liên tiếp có cùng trọng số. Viết một thủ
+tục để tạo ra các số Ramanujan. Số như vậy đầu tiên là 1.729. Năm số tiếp
+theo là gì?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.72}Exercise 3.72:} Theo cách tương tự như
+@ref{Exercise 3.71}, tạo ra một luồng tất cả các số có thể viết là tổng của
+hai bình phương theo ba cách khác nhau (chỉ ra cách chúng có thể được viết
+như vậy).
+@end quotation
+
+@subsubheading Luồng như các tín hiệu
+
+Chúng ta đã bắt đầu thảo luận về luồng bằng cách mô tả chúng là các tương
+tự tính toán của ``tín hiệu'' trong các hệ thống xử lý tín hiệu. Trên thực
+tế, chúng ta có thể dùng các luồng để mô hình hóa các hệ thống xử lý tín
+hiệu theo một cách rất trực tiếp, biểu diễn các giá trị của một tín hiệu
+tại các khoảng thời gian liên tiếp như các phần tử liên tiếp của một luồng.
+Ví dụ, chúng ta có thể hiện thực một @newterm{bộ tích phân} hoặc @newterm{bộ
+cộng} mà, với một luồng đầu vào @math{{x = (x_i)}}, một giá trị ban đầu
+@math{C}, và một bước tăng nhỏ @math{{dt}}, tích lũy tổng
+@ifinfo
+
+@example
+           i
+          ---
+S_i = C + >   x_j dt
+          ---
+          j=1
+@end example
+
+@end ifinfo
+@tex
+\[ % :73:
+  S_i \,=\, C + {\sum_{j=1}^i x_j \, dt}  \]
+@end tex
+@noindent
+và trả về luồng các giá trị @math{{S = (S_i)}}. Thủ tục @code{integral} sau
+đây gợi nhớ đến định nghĩa theo ``kiểu ẩn'' của luồng các số nguyên
+(@ref{3.5.2}):
+
+@lisp
+(define (integral integrand initial-value dt)
+  (define int
+    (cons-stream
+     initial-value
+     (add-streams (scale-stream integrand dt)
+                  int)))
+  int)
+@end lisp
+
+@noindent
+@ref{Figure 3.32} là hình ảnh của một hệ thống xử lý tín hiệu tương ứng
+với thủ tục @code{integral}. Luồng đầu vào được nhân với @math{{dt}} và
+truyền qua một bộ cộng, đầu ra của bộ cộng được truyền ngược qua chính bộ
+cộng đó. Sự tự tham chiếu trong định nghĩa của @code{int} được phản ánh
+trong hình bởi vòng phản hồi kết nối đầu ra của bộ cộng với một trong các
+đầu vào.
+
+@float
+@anchor{Figure 3.32}
+@ifinfo
+@strong{Figure 3.32:} The @code{integral} procedure viewed as a signal-processing system.
+
+@example
+                             initial-value
+                                  |
+       +-----------+              |   |\__
+input  |           |      |\__    +-->|   \_  integral
+------>| scale: dt +----->|   \_      |cons_>--*------->
+       |           |      | add_>---->| __/    |
+       +-----------+  +-->| __/       |/       |
+                      |   |/                   |
+                      |                        |
+                      +------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.32a,143mm,,,.std.svg}
+@caption{@strong{Figure 3.32:} The @code{integral} procedure viewed as a signal-processing system.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.73}Exercise 3.73:} Chúng ta có thể mô hình hóa
+các mạch điện bằng luồng để biểu diễn các giá trị của dòng điện hoặc điện
+áp tại một chuỗi các thời điểm. Ví dụ, giả sử chúng ta có một @newterm{mạch
+RC} gồm một điện trở với điện trở @math{R} và một tụ điện với điện dung
+@math{C} mắc nối tiếp. Phản ứng điện áp @math{v} của mạch với dòng điện đầu
+vào @math{i} được xác định bởi công thức trong @ref{Figure 3.33}, cấu trúc
+của nó được thể hiện bởi sơ đồ dòng tín hiệu kèm theo.
+
+@float
+@anchor{Figure 3.33}
+@ifinfo
+@strong{Figure 3.33:} An RC circuit and the associated signal-flow diagram.
+
+@example
+  +        v        -
+
+ ->----'\/\/\,---| |---
+  i       R         C
+
+
+                  / t
+               1  |
+ v  =  v   +  --- |  i dt  +  R i
+        0      C  |
+                  / 0
+
+         +--------------+
+     +-->|   scale: R   |---------------------+   |\_
+     |   +--------------+                     |   |  \_
+     |                                        +-->|    \   v
+  i  |   +--------------+     +------------+      | add >--->
+ ----+-->|  scale: 1/C  |---->|  integral  |----->|   _/
+         +--------------+     +------------+      | _/
+                                    |             |/
+				   v
+				    0
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.33a,125mm,,,.std.svg}
+@caption{@strong{Figure 3.33:} An RC circuit and the associated signal-flow diagram.}
+@end iftex
+@end float
+
+Viết một thủ tục @code{RC} mô hình hóa mạch này. @code{RC} nên nhận vào
+các giá trị của @math{R}, @math{C} và @math{{dt}} và trả về một thủ tục
+nhận vào một luồng biểu diễn dòng điện @math{i} và một giá trị ban đầu cho
+điện áp tụ điện @math{v_0} và tạo ra luồng điện áp @math{v} đầu ra. Ví dụ,
+bạn nên có thể dùng @code{RC} để mô hình hóa một mạch RC với @math{R} = 5
+ohm, @math{C} = 1 farad, và bước thời gian 0.5 giây bằng cách định giá
+@code{(define RC1 (RC 5 1 0.5))}. Điều này định nghĩa @code{RC1} là một thủ
+tục nhận một luồng biểu diễn chuỗi thời gian của các dòng điện và điện áp
+tụ điện ban đầu và tạo ra luồng điện áp đầu ra.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.74}Exercise 3.74:} Alyssa P. Hacker đang thiết
+kế một hệ thống xử lý tín hiệu từ các cảm biến vật lý. Một tính năng quan
+trọng mà cô muốn tạo ra là một tín hiệu mô tả các @newterm{điểm qua không}
+của tín hiệu đầu vào. Tức là, tín hiệu kết quả phải là @math{{+1}} bất cứ
+khi nào tín hiệu đầu vào thay đổi từ âm sang dương, @math{{-1}} bất cứ khi
+nào tín hiệu đầu vào thay đổi từ dương sang âm, và @math{0} trong các trường
+hợp khác. (Giả sử dấu của đầu vào @math{0} là dương.) Ví dụ, một tín hiệu
+đầu vào điển hình với tín hiệu qua không liên quan sẽ là
+
+@lisp
+@r{…} 1 2 1.5 1 0.5 -0.1 -2 -3 -2 -0.5 0.2 3 4 @r{…}
+@r{…} 0 0  0  0  0   -1   0  0  0   0   1  0 0 @r{…}
+@end lisp
+
+Trong hệ thống của Alyssa, tín hiệu từ cảm biến được biểu diễn như một luồng
+@code{sense-data} và luồng @code{zero-crossings} là luồng tương ứng của các
+điểm qua không. Alyssa trước tiên viết một thủ tục @code{sign-change-detector}
+nhận hai giá trị làm đối số và so sánh dấu của các giá trị để tạo ra giá trị
+@math{0}, @math{1} hoặc @math{{-1}} thích hợp. Sau đó cô xây dựng luồng
+qua không như sau:
+
+@lisp
+(define (make-zero-crossings
+         input-stream last-value)
+  (cons-stream
+   (sign-change-detector
+    (stream-car input-stream)
+    last-value)
+   (make-zero-crossings
+    (stream-cdr input-stream)
+    (stream-car input-stream))))
+
+(define zero-crossings
+  (make-zero-crossings sense-data 0))
+@end lisp
+
+Sếp của Alyssa, Eva Lu Ator, đi ngang và gợi ý rằng chương trình này xấp
+xỉ tương đương với chương trình sau, sử dụng phiên bản tổng quát của
+@code{stream-map} từ @ref{Exercise 3.50}:
+
+@lisp
+(define zero-crossings
+  (stream-map sign-change-detector
+              sense-data
+              ⟨@var{expression}⟩))
+@end lisp
+
+Hoàn thiện chương trình bằng cách cung cấp @code{⟨}@var{expression}@code{⟩} được chỉ định.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.75}Exercise 3.75:} Thật không may, bộ phát hiện
+qua không của Alyssa trong @ref{Exercise 3.74} hóa ra không đủ, vì tín hiệu
+nhiễu từ cảm biến dẫn đến các điểm qua không giả. Lem E. Tweakit, một
+chuyên gia phần cứng, gợi ý Alyssa làm trơn tín hiệu để lọc bỏ nhiễu trước
+khi trích xuất các điểm qua không. Alyssa nghe theo lời khuyên của anh và
+quyết định trích xuất các điểm qua không từ tín hiệu được xây dựng bằng
+cách lấy trung bình mỗi giá trị của dữ liệu cảm biến với giá trị trước. Cô
+giải thích bài toán cho trợ lý của mình, Louis Reasoner, người cố gắng hiện
+thực ý tưởng, thay đổi chương trình của Alyssa như sau:
+
+@lisp
+(define (make-zero-crossings
+         input-stream last-value)
+  (let ((avpt
+         (/ (+ (stream-car input-stream)
+               last-value)
+            2)))
+    (cons-stream
+     (sign-change-detector avpt last-value)
+     (make-zero-crossings
+      (stream-cdr input-stream) avpt))))
+@end lisp
+
+Điều này không hiện thực đúng kế hoạch của Alyssa. Tìm lỗi mà Louis đã đưa
+vào và sửa nó mà không thay đổi cấu trúc của chương trình. (Gợi ý: Bạn sẽ
+cần tăng số lượng đối số của @code{make-zero-crossings}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.76}Exercise 3.76:} Eva Lu Ator có một phê bình
+về cách tiếp cận của Louis trong @ref{Exercise 3.75}. Chương trình anh viết
+không có tính mô-đun, vì nó pha trộn phép làm trơn với việc trích xuất điểm
+qua không. Ví dụ, bộ trích xuất không nên phải thay đổi nếu Alyssa tìm ra
+cách tốt hơn để điều chỉnh tín hiệu đầu vào. Hãy giúp Louis bằng cách viết
+một thủ tục @code{smooth} nhận một luồng làm đầu vào và tạo ra một luồng
+trong đó mỗi phần tử là trung bình của hai phần tử luồng đầu vào liên tiếp.
+Sau đó dùng @code{smooth} như một thành phần để hiện thực bộ phát hiện điểm
+qua không theo kiểu mô-đun hơn.
+@end quotation

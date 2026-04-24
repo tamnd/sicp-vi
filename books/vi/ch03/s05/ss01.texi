@@ -1,0 +1,508 @@
+@node	3.5.1, 3.5.2, 3.5, 3.5
+@subsection Luồng Là Các Danh Sách Trì Hoãn
+
+Như chúng ta đã thấy trong @ref{2.2.3}, các dãy có thể phục vụ như các giao
+diện chuẩn để kết hợp các mô-đun chương trình. Chúng ta đã hình thành các trừu
+tượng hóa mạnh mẽ để thao tác với các dãy, chẳng hạn như @code{map},
+@code{filter} và @code{accumulate}, nắm bắt một loạt các phép toán theo cách
+vừa súc tích vừa thanh lịch.
+
+Thật không may, nếu chúng ta biểu diễn các dãy như danh sách, sự thanh lịch này
+được mua với cái giá của sự kém hiệu quả nghiêm trọng liên quan đến cả thời
+gian và không gian cần thiết bởi các tính toán của chúng ta. Khi chúng ta biểu
+diễn các thao tác trên dãy như các biến đổi danh sách, các chương trình của
+chúng ta phải xây dựng và sao chép các cấu trúc dữ liệu (có thể rất lớn) tại
+mỗi bước của quá trình.
+
+Để thấy tại sao điều này đúng, hãy so sánh hai chương trình để tính tổng của
+tất cả các số nguyên tố trong một khoảng. Chương trình đầu tiên được viết theo
+phong cách lặp chuẩn:@footnote{Giả sử rằng chúng ta có một vị từ @code{prime?}
+(ví dụ, như trong @ref{1.2.6}) kiểm tra tính nguyên tố.}
+
+@lisp
+(define (sum-primes a b)
+  (define (iter count accum)
+    (cond ((> count b) accum)
+          ((prime? count)
+           (iter (+ count 1)
+                 (+ count accum)))
+          (else (iter (+ count 1) accum))))
+  (iter a 0))
+@end lisp
+
+@noindent
+Chương trình thứ hai thực hiện cùng tính toán dùng các phép toán dãy của
+@ref{2.2.3}:
+
+@lisp
+(define (sum-primes a b)
+  (accumulate
+   +
+   0
+   (filter prime? (enumerate-interval a b))))
+@end lisp
+
+@noindent
+Khi thực hiện tính toán, chương trình đầu tiên chỉ cần lưu trữ tổng đang được
+tích lũy. Ngược lại, bộ lọc trong chương trình thứ hai không thể thực hiện bất
+kỳ kiểm tra nào cho đến khi @code{enumerate-interval} đã xây dựng một danh sách
+đầy đủ các số trong khoảng. Bộ lọc tạo ra một danh sách khác, lần lượt được
+truyền cho @code{accumulate} trước khi được thu gọn thành một tổng. Kho lưu trữ
+trung gian lớn như vậy không cần thiết cho chương trình đầu tiên, mà chúng ta có
+thể coi như liệt kê khoảng dần dần, thêm mỗi số nguyên tố vào tổng khi nó được
+tạo ra.
+
+Sự kém hiệu quả khi dùng danh sách trở nên rõ ràng một cách đau đớn nếu chúng
+ta dùng mô hình dãy để tính số nguyên tố thứ hai trong khoảng từ 10.000 đến
+1.000.000 bằng cách định giá biểu thức
+
+@lisp
+(car (cdr
+      (filter
+       prime?
+       (enumerate-interval 10000 1000000))))
+@end lisp
+
+@noindent
+Biểu thức này thực sự tìm số nguyên tố thứ hai, nhưng chi phí tính toán là
+vô lý. Chúng ta xây dựng một danh sách gần một triệu số nguyên, lọc danh sách
+này bằng cách kiểm tra mỗi phần tử về tính nguyên tố, và sau đó bỏ qua hầu hết
+kết quả. Theo phong cách lập trình truyền thống hơn, chúng ta sẽ xen kẽ việc
+liệt kê và lọc, và dừng lại khi chúng ta đạt đến số nguyên tố thứ hai.
+
+Luồng là một ý tưởng thông minh cho phép sử dụng các thao tác dãy mà không chịu
+chi phí thao tác các dãy như danh sách. Với luồng chúng ta có thể đạt được điều
+tốt nhất của cả hai thế giới: Chúng ta có thể xây dựng các chương trình một cách
+thanh lịch như các thao tác dãy, trong khi đạt được hiệu quả của tính toán tăng
+dần. Ý tưởng cơ bản là sắp xếp để xây dựng một luồng chỉ một phần, và truyền
+xây dựng một phần cho chương trình tiêu thụ luồng. Nếu người tiêu dùng cố gắng
+truy cập một phần của luồng chưa được xây dựng, luồng sẽ tự động xây dựng thêm
+đủ để tạo ra phần được yêu cầu, do đó duy trì ảo giác rằng toàn bộ luồng tồn
+tại. Nói cách khác, mặc dù chúng ta sẽ viết các chương trình như thể chúng ta
+đang xử lý các dãy hoàn chỉnh, chúng ta thiết kế hiện thực luồng của mình để
+tự động và trong suốt xen kẽ việc xây dựng luồng với việc sử dụng nó.
+
+Trên bề mặt, các luồng chỉ là các danh sách với các tên khác nhau cho các thủ
+tục thao tác chúng. Có một bộ khởi tạo, @code{cons-stream}, và hai bộ chọn,
+@code{stream-car} và @code{stream-cdr}, thỏa mãn các ràng buộc
+
+@example
+(stream-car (cons-stream x y)) = x
+(stream-cdr (cons-stream x y)) = y
+@end example
+
+@noindent
+Có một đối tượng phân biệt, @code{the-empty-stream}, không thể là kết quả của
+bất kỳ phép toán @code{cons-stream} nào, và có thể được nhận biết với vị từ
+@code{stream-null?}.@footnote{Trong hiện thực @abbr{MIT}, @code{the-empty-stream}
+giống như danh sách rỗng @code{'()}, và @code{stream-null?} giống như
+@code{null?}.} Do đó, chúng ta có thể tạo và dùng các luồng, theo cùng cách
+chúng ta có thể tạo và dùng các danh sách, để biểu diễn dữ liệu tổng hợp được
+sắp xếp trong một dãy. Cụ thể, chúng ta có thể xây dựng các tương tự luồng của
+các phép toán danh sách từ @ref{Chapter 2}, chẳng hạn như @code{list-ref},
+@code{map} và @code{for-each}:@footnote{Điều này nên khiến bạn lo lắng. Thực
+tế là chúng ta đang định nghĩa các thủ tục tương tự như vậy cho cả luồng và
+danh sách cho thấy chúng ta đang thiếu một số trừu tượng hóa cơ bản. Thật không
+may, để khai thác trừu tượng hóa này, chúng ta sẽ cần kiểm soát tinh tế hơn
+quá trình định giá so với những gì chúng ta có thể hiện tại. Chúng ta sẽ thảo
+luận điểm này thêm ở cuối @ref{3.5.4}. Trong @ref{4.2}, chúng ta sẽ phát triển
+một khuôn khổ thống nhất các danh sách và luồng.}
+
+@lisp
+(define (stream-ref s n)
+  (if (= n 0)
+      (stream-car s)
+      (stream-ref (stream-cdr s) (- n 1))))
+
+(define (stream-map proc s)
+  (if (stream-null? s)
+      the-empty-stream
+      (cons-stream
+       (proc (stream-car s))
+       (stream-map proc (stream-cdr s)))))
+
+(define (stream-for-each proc s)
+  (if (stream-null? s)
+      'done
+      (begin
+        (proc (stream-car s))
+        (stream-for-each proc
+                         (stream-cdr s)))))
+@end lisp
+
+@noindent
+@code{Stream-for-each} hữu ích cho việc xem các luồng:
+
+@lisp
+(define (display-stream s)
+  (stream-for-each display-line s))
+
+(define (display-line x)
+  (newline)
+  (display x))
+@end lisp
+
+@noindent
+Để làm cho hiện thực luồng tự động và trong suốt xen kẽ việc xây dựng luồng
+với việc sử dụng nó, chúng ta sẽ sắp xếp để @code{cdr} của một luồng được định
+giá khi nó được truy cập bởi thủ tục @code{stream-cdr} thay vì khi luồng được
+xây dựng bởi @code{cons-stream}. Lựa chọn hiện thực này gợi nhớ đến thảo luận
+về các số hữu tỉ trong @ref{2.1.2}, nơi chúng ta đã thấy rằng chúng ta có thể
+chọn hiện thực các số hữu tỉ sao cho việc rút gọn tử số và mẫu số về dạng thu
+gọn nhất được thực hiện tại thời điểm xây dựng hoặc tại thời điểm chọn. Hai
+hiện thực số hữu tỉ tạo ra cùng một trừu tượng hóa dữ liệu, nhưng sự lựa chọn
+có ảnh hưởng đến hiệu quả. Có một mối quan hệ tương tự giữa các luồng và các
+danh sách thông thường. Như một trừu tượng hóa dữ liệu, các luồng giống như
+danh sách. Sự khác biệt là thời điểm các phần tử được định giá. Với các danh
+sách thông thường, cả @code{car} và @code{cdr} đều được định giá tại thời điểm
+xây dựng. Với các luồng, @code{cdr} được định giá tại thời điểm chọn.
+
+Hiện thực của chúng ta về các luồng sẽ dựa trên một hình thức đặc biệt gọi là
+@code{delay}. Định giá @code{(delay ⟨@var{exp}⟩)} không định giá biểu thức
+@code{⟨}@var{exp}@code{⟩}, mà thay vào đó trả về cái gọi là @newterm{đối tượng
+trì hoãn}, mà chúng ta có thể coi như một ``lời hứa'' để định giá
+@code{⟨}@var{exp}@code{⟩} vào một thời điểm trong tương lai. Là người bạn đồng
+hành của @code{delay}, có một thủ tục gọi là @code{force} nhận một đối tượng
+trì hoãn như đối số và thực hiện việc định giá---thực tế là buộc @code{delay}
+thực hiện lời hứa của nó. Chúng ta sẽ thấy bên dưới cách @code{delay} và
+@code{force} có thể được hiện thực, nhưng trước tiên hãy dùng chúng để xây dựng
+các luồng.
+
+@code{Cons-stream} là một hình thức đặc biệt được định nghĩa sao cho
+
+@lisp
+(cons-stream ⟨@var{a}⟩ ⟨@var{b}⟩)
+@end lisp
+
+@noindent
+tương đương với
+
+@lisp
+(cons ⟨@var{a}⟩ (delay ⟨@var{b}⟩))
+@end lisp
+
+@noindent
+Điều này có nghĩa là chúng ta sẽ xây dựng các luồng dùng các cặp. Tuy nhiên,
+thay vì đặt giá trị của phần còn lại của luồng vào @code{cdr} của cặp, chúng
+ta sẽ đặt vào đó một lời hứa để tính phần còn lại nếu nó được yêu cầu.
+@code{Stream-car} và @code{stream-cdr} bây giờ có thể được định nghĩa như các
+thủ tục:
+
+@lisp
+(define (stream-car stream)
+  (car stream))
+
+(define (stream-cdr stream)
+  (force (cdr stream)))
+@end lisp
+
+@noindent
+@code{Stream-car} chọn @code{car} của cặp; @code{stream-cdr} chọn @code{cdr}
+của cặp và định giá biểu thức trì hoãn tìm thấy ở đó để nhận được phần còn lại
+của luồng.@footnote{Mặc dù @code{stream-car} và @code{stream-cdr} có thể được
+định nghĩa như các thủ tục, @code{cons-stream} phải là một hình thức đặc biệt.
+Nếu @code{cons-stream} là một thủ tục, thì, theo mô hình định giá của chúng ta,
+định giá @code{(cons-stream ⟨@var{a}⟩ ⟨@var{b}⟩)} sẽ tự động khiến
+@code{⟨}@var{b}@code{⟩} được định giá, đó chính xác là những gì chúng ta không
+muốn xảy ra. Vì lý do tương tự, @code{delay} phải là một hình thức đặc biệt,
+mặc dù @code{force} có thể là một thủ tục thông thường.}
+
+@subsubheading The stream implementation in action
+
+Để xem hiện thực này hoạt động như thế nào, hãy phân tích tính toán số nguyên
+tố ``vô lý'' mà chúng ta đã thấy ở trên, được công thức lại theo các luồng:
+
+@lisp
+(stream-car
+ (stream-cdr
+  (stream-filter
+   prime? (stream-enumerate-interval
+           10000 1000000))))
+@end lisp
+
+@noindent
+Chúng ta sẽ thấy rằng nó thực sự hoạt động hiệu quả.
+
+Chúng ta bắt đầu bằng cách gọi @code{stream-enumerate-interval} với các đối số
+10.000 và 1.000.000. @code{Stream-enumerate-interval} là tương tự luồng của
+@code{enumerate-interval} (@ref{2.2.3}):
+
+@lisp
+(define (stream-enumerate-interval low high)
+  (if (> low high)
+      the-empty-stream
+      (cons-stream
+       low
+       (stream-enumerate-interval (+ low 1)
+                                  high))))
+@end lisp
+
+@noindent
+và do đó kết quả được trả về bởi @code{stream-enumerate-interval}, được hình
+thành bởi @code{cons-stream}, là@footnote{Các số được hiển thị ở đây không thực
+sự xuất hiện trong biểu thức trì hoãn. Những gì thực sự xuất hiện là biểu thức
+gốc, trong một môi trường mà các biến được ràng buộc với các số thích hợp. Ví
+dụ, @code{(+ low 1)} với @code{low} được ràng buộc với 10.000 thực sự xuất hiện
+nơi @code{10001} được hiển thị.}
+
+@lisp
+(cons 10000
+      (delay
+        (stream-enumerate-interval
+         10001
+         1000000)))
+@end lisp
+
+@noindent
+Tức là, @code{stream-enumerate-interval} trả về một luồng được biểu diễn như
+một cặp mà @code{car} của nó là 10.000 và @code{cdr} của nó là một lời hứa
+để liệt kê thêm khoảng nếu được yêu cầu. Luồng này bây giờ được lọc để tìm số
+nguyên tố, dùng tương tự luồng của thủ tục @code{filter} (@ref{2.2.3}):
+
+@lisp
+(define (stream-filter pred stream)
+  (cond ((stream-null? stream)
+         the-empty-stream)
+        ((pred (stream-car stream))
+         (cons-stream
+          (stream-car stream)
+          (stream-filter
+           pred
+           (stream-cdr stream))))
+        (else (stream-filter
+               pred
+               (stream-cdr stream)))))
+@end lisp
+
+@noindent
+@code{Stream-filter} kiểm tra @code{stream-car} của luồng (@code{car} của cặp,
+là 10.000). Vì đây không phải là số nguyên tố, @code{stream-filter} kiểm tra
+@code{stream-cdr} của luồng đầu vào của nó. Lời gọi @code{stream-cdr} buộc
+định giá @code{stream-enumerate-interval} trì hoãn, bây giờ trả về
+
+@lisp
+(cons 10001
+      (delay
+        (stream-enumerate-interval
+         10002
+         1000000)))
+@end lisp
+
+@noindent
+@code{Stream-filter} bây giờ nhìn vào @code{stream-car} của luồng này, 10.001,
+thấy rằng đây cũng không phải là số nguyên tố, buộc @code{stream-cdr} khác, và
+tiếp tục như vậy, cho đến khi @code{stream-enumerate-interval} cho ra số nguyên
+tố 10.007, tại đó @code{stream-filter}, theo định nghĩa của nó, trả về
+
+@lisp
+(cons-stream
+ (stream-car stream)
+ (stream-filter pred (stream-cdr stream)))
+@end lisp
+
+@noindent
+mà trong trường hợp này là
+
+@lisp
+(cons 10007
+      (delay
+        (stream-filter
+         prime?
+         (cons 10008
+               (delay
+                 (stream-enumerate-interval
+                  10009 1000000))))))
+@end lisp
+
+@noindent
+Kết quả này bây giờ được truyền cho @code{stream-cdr} trong biểu thức gốc của
+chúng ta. Điều này buộc @code{stream-filter} trì hoãn, lần lượt tiếp tục buộc
+@code{stream-enumerate-interval} trì hoãn cho đến khi nó tìm thấy số nguyên tố
+tiếp theo, là 10.009. Cuối cùng, kết quả được truyền cho @code{stream-car} trong
+biểu thức gốc của chúng ta là
+
+@lisp
+(cons 10009
+      (delay
+        (stream-filter
+         prime?
+         (cons 10010
+               (delay
+                 (stream-enumerate-interval
+                  10011 1000000))))))
+@end lisp
+
+@noindent
+@code{Stream-car} trả về 10.009, và tính toán hoàn tất. Chỉ có nhiều số nguyên
+cần kiểm tra về tính nguyên tố như cần thiết để tìm số nguyên tố thứ hai, và
+khoảng chỉ được liệt kê xa đến mức cần thiết để cung cấp cho bộ lọc số nguyên
+tố.
+
+Nói chung, chúng ta có thể nghĩ về định giá trì hoãn như lập trình ``theo nhu
+cầu'', theo đó mỗi giai đoạn trong quá trình luồng chỉ được kích hoạt đủ để
+thỏa mãn giai đoạn tiếp theo. Những gì chúng ta đã làm là tách rời thứ tự thực
+tế của các sự kiện trong tính toán khỏi cấu trúc bề mặt của các thủ tục của
+chúng ta. Chúng ta viết các thủ tục như thể các luồng tồn tại ``tất cả cùng một
+lúc'' khi, trên thực tế, tính toán được thực hiện dần dần, như trong các phong
+cách lập trình truyền thống.
+
+@subsubheading Implementing @code{delay} and @code{force}
+
+Mặc dù @code{delay} và @code{force} có thể trông như các phép toán bí ẩn, hiện
+thực của chúng thực sự khá đơn giản. @code{Delay} phải đóng gói một biểu thức
+sao cho nó có thể được định giá sau theo nhu cầu, và chúng ta có thể thực hiện
+điều này đơn giản bằng cách xử lý biểu thức như thân của một thủ tục. @code{Delay}
+có thể là một hình thức đặc biệt sao cho
+
+@lisp
+(delay ⟨@var{exp}⟩)
+@end lisp
+
+@noindent
+là đường dẫn cú pháp cho
+
+@lisp
+(lambda () ⟨@var{exp}⟩)
+@end lisp
+
+@noindent
+@code{Force} đơn giản gọi thủ tục (không có đối số) được tạo bởi @code{delay},
+vì vậy chúng ta có thể hiện thực @code{force} như một thủ tục:
+
+@lisp
+(define (force delayed-object)
+  (delayed-object))
+@end lisp
+
+@noindent
+Hiện thực này đủ để @code{delay} và @code{force} hoạt động như đã quảng cáo,
+nhưng có một tối ưu hóa quan trọng mà chúng ta có thể bao gồm. Trong nhiều ứng
+dụng, chúng ta kết thúc bằng cách buộc cùng một đối tượng trì hoãn nhiều lần.
+Điều này có thể dẫn đến sự kém hiệu quả nghiêm trọng trong các chương trình đệ
+quy liên quan đến luồng. (Xem @ref{Exercise 3.57}.) Giải pháp là xây dựng các
+đối tượng trì hoãn sao cho lần đầu tiên chúng được buộc, chúng lưu trữ giá trị
+được tính toán. Các lần buộc tiếp theo sẽ chỉ đơn giản trả về giá trị được lưu
+trữ mà không lặp lại tính toán. Nói cách khác, chúng ta hiện thực @code{delay}
+như một thủ tục được ghi nhớ có mục đích đặc biệt tương tự như thủ tục được mô
+tả trong @ref{Exercise 3.27}. Một cách để thực hiện điều này là dùng thủ tục sau,
+nhận như đối số một thủ tục (không có đối số) và trả về phiên bản được ghi nhớ
+của thủ tục. Lần đầu tiên thủ tục được ghi nhớ chạy, nó lưu kết quả được tính
+toán. Trong các định giá tiếp theo, nó chỉ đơn giản trả về kết quả.
+
+@lisp
+(define (memo-proc proc)
+  (let ((already-run? false) (result false))
+    (lambda ()
+      (if (not already-run?)
+          (begin (set! result (proc))
+                 (set! already-run? true)
+                 result)
+          result))))
+@end lisp
+
+@noindent
+@code{Delay} sau đó được định nghĩa sao cho @code{(delay ⟨@var{exp}⟩)} tương
+đương với
+
+@lisp
+(memo-proc (lambda () ⟨@var{exp}⟩))
+@end lisp
+
+@noindent
+và @code{force} như được định nghĩa trước đó.@footnote{Có nhiều hiện thực có
+thể của các luồng khác với hiện thực được mô tả trong phần này. Định giá trì
+hoãn, là chìa khóa để làm cho các luồng thực tế, vốn có trong phương pháp
+truyền tham số @newterm{call-by-name} của Algol 60. Việc dùng cơ chế này để
+hiện thực các luồng lần đầu tiên được mô tả bởi @ref{Landin (1965)}. Định giá
+trì hoãn cho các luồng được đưa vào Lisp bởi @ref{Friedman and Wise (1976)}.
+Trong hiện thực của họ, @code{cons} luôn trì hoãn định giá các đối số của nó,
+để các danh sách tự động hoạt động như các luồng. Tối ưu hóa ghi nhớ cũng được
+biết đến như @newterm{call-by-need}. Cộng đồng Algol sẽ gọi các đối tượng trì
+hoãn gốc của chúng ta là @newterm{call-by-name thunks} và các phiên bản tối ưu
+hóa là @newterm{call-by-need thunks}.}
+
+@quotation
+@strong{@anchor{Exercise 3.50}Bài tập 3.50:} Hoàn thiện định nghĩa sau, tổng
+quát hóa @code{stream-map} để cho phép các thủ tục nhận nhiều đối số, tương tự
+như @code{map} trong @ref{2.2.1}, @ref{Footnote 78}.
+
+@lisp
+(define (stream-map proc . argstreams)
+  (if (⟨??⟩ (car argstreams))
+      the-empty-stream
+      (⟨??⟩
+       (apply proc (map ⟨??⟩ argstreams))
+       (apply stream-map
+              (cons proc
+                    (map ⟨??⟩
+                         argstreams))))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.51}Bài tập 3.51:} Để xem xét định giá trì hoãn kỹ
+hơn, chúng ta sẽ dùng thủ tục sau, chỉ đơn giản trả về đối số của nó sau khi
+in nó:
+
+@lisp
+(define (show x)
+  (display-line x)
+  x)
+@end lisp
+
+Trình thông dịch in gì để đáp lại khi định giá mỗi biểu thức trong chuỗi
+sau?@footnote{Các bài tập như @ref{Exercise 3.51} và @ref{Exercise 3.52} có giá
+trị để kiểm tra hiểu biết của chúng ta về cách @code{delay} hoạt động. Mặt khác,
+việc trộn lẫn định giá trì hoãn với in ấn---và, thậm chí tệ hơn, với phép gán---
+cực kỳ gây nhầm lẫn, và các giảng viên các khóa học về ngôn ngữ máy tính theo
+truyền thống đã tra tấn sinh viên với các câu hỏi kiểm tra như những câu trong
+phần này. Không cần phải nói, việc viết các chương trình phụ thuộc vào những
+sự tinh tế như vậy là phong cách lập trình đáng ghét. Một phần sức mạnh của xử
+lý luồng là nó cho phép chúng ta bỏ qua thứ tự mà các sự kiện thực sự xảy ra
+trong các chương trình của chúng ta. Thật không may, đây chính xác là những gì
+chúng ta không thể làm khi có phép gán, điều buộc chúng ta phải lo lắng về
+thời gian và thay đổi.}
+
+@lisp
+(define x
+  (stream-map
+   show
+   (stream-enumerate-interval 0 10)))
+
+(stream-ref x 5)
+(stream-ref x 7)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.52}Bài tập 3.52:} Hãy xem xét chuỗi biểu thức
+
+@lisp
+(define sum 0)
+
+(define (accum x)
+  (set! sum (+ x sum))
+  sum)
+
+(define seq
+  (stream-map
+   accum
+   (stream-enumerate-interval 1 20)))
+
+(define y (stream-filter even? seq))
+
+(define z
+  (stream-filter
+   (lambda (x)
+     (= (remainder x 5) 0)) seq))
+
+(stream-ref y 7)
+(display-stream z)
+@end lisp
+
+Giá trị của @code{sum} sau khi mỗi biểu thức trên được định giá là bao nhiêu?
+Phản hồi được in ra khi định giá các biểu thức @code{stream-ref} và
+@code{display-stream} là gì? Các phản hồi này có khác nhau không nếu chúng ta
+đã hiện thực @code{(delay ⟨@var{exp}⟩)} đơn giản như @code{(lambda () ⟨@var{exp}⟩)}
+mà không dùng tối ưu hóa được cung cấp bởi @code{memo-proc}? Hãy giải thích.
+@end quotation
