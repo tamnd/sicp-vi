@@ -1,0 +1,217 @@
+@node	5.4.1, 5.4.2, 5.4, 5.4
+@subsection Lõi của Trình Định Giá Điều Khiển Tường Minh
+
+Phần tử trung tâm trong trình định giá là chuỗi các lệnh bắt đầu tại @code{eval-dispatch}. Điều này tương ứng với thủ tục @code{eval} của trình định giá siêu tròn được mô tả trong @ref{4.1.1}. Khi bộ điều khiển bắt đầu tại @code{eval-dispatch}, nó định giá biểu thức được chỉ định bởi @code{exp} trong môi trường được chỉ định bởi @code{env}. Khi việc định giá hoàn tất, bộ điều khiển sẽ đến điểm nhập được lưu trữ trong @code{continue}, và thanh ghi @code{val} sẽ giữ giá trị của biểu thức. Như với @code{eval} siêu tròn, cấu trúc của @code{eval-dispatch} là một phân tích trường hợp về loại cú pháp của biểu thức cần định giá.@footnote{Trong bộ điều khiển của ta, việc điều phối được viết như một chuỗi các lệnh @code{test} và @code{branch}. Ngoài ra, nó có thể đã được viết theo phong cách hướng dữ liệu (và trong một hệ thống thực sự, nó có thể đã được như vậy) để tránh phải thực hiện các bài kiểm tra tuần tự và để tạo điều kiện cho việc định nghĩa các loại biểu thức mới. Một máy được thiết kế để chạy Lisp có thể bao gồm một lệnh @code{dispatch-on-type} thực thi hiệu quả các điều phối hướng dữ liệu như vậy.}
+
+@lisp
+eval-dispatch
+  (test (op self-evaluating?) (reg exp))
+  (branch (label ev-self-eval))
+  (test (op variable?) (reg exp))
+  (branch (label ev-variable))
+  (test (op quoted?) (reg exp))
+  (branch (label ev-quoted))
+  (test (op assignment?) (reg exp))
+  (branch (label ev-assignment))
+  (test (op definition?) (reg exp))
+  (branch (label ev-definition))
+  (test (op if?) (reg exp))
+  (branch (label ev-if))
+  (test (op lambda?) (reg exp))
+  (branch (label ev-lambda))
+  (test (op begin?) (reg exp))
+  (branch (label ev-begin))
+  (test (op application?) (reg exp))
+  (branch (label ev-application))
+  (goto (label unknown-expression-type))
+@end lisp
+
+@subsubheading Định giá các biểu thức đơn giản
+
+Các số và chuỗi (tự định giá), biến, trích dẫn, và biểu thức @code{lambda} không có các biểu thức con cần định giá. Đối với chúng, trình định giá chỉ đơn giản đặt giá trị đúng vào thanh ghi @code{val} và tiếp tục thực thi tại điểm nhập được chỉ định bởi @code{continue}. Việc định giá các biểu thức đơn giản được thực hiện bởi mã bộ điều khiển sau:
+
+@lisp
+ev-self-eval
+  (assign val (reg exp))
+  (goto (reg continue))
+ev-variable
+  (assign val
+          (op lookup-variable-value)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+ev-quoted
+  (assign val
+          (op text-of-quotation)
+          (reg exp))
+  (goto (reg continue))
+ev-lambda
+  (assign unev
+          (op lambda-parameters)
+          (reg exp))
+  (assign exp
+          (op lambda-body)
+          (reg exp))
+  (assign val
+          (op make-procedure)
+          (reg unev)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Hãy chú ý cách @code{ev-lambda} sử dụng các thanh ghi @code{unev} và @code{exp} để giữ các tham số và thân của biểu thức lambda để chúng có thể được truyền cho phép toán @code{make-procedure}, cùng với môi trường trong @code{env}.
+
+@subsubheading Định giá các ứng dụng thủ tục
+
+Một ứng dụng thủ tục được chỉ định bởi một tổ hợp chứa một toán tử và các toán hạng. Toán tử là một biểu thức con có giá trị là một thủ tục, và các toán hạng là các biểu thức con có giá trị là các đối số mà thủ tục nên được áp dụng. @code{Eval} siêu tròn xử lý các ứng dụng bằng cách gọi chính nó đệ quy để định giá mỗi phần tử của tổ hợp, rồi truyền các kết quả cho @code{apply}, thực hiện ứng dụng thủ tục thực sự. Trình định giá điều khiển tường minh làm điều tương tự; các lời gọi đệ quy này được hiện thực hóa bởi các lệnh @code{goto}, cùng với việc sử dụng ngăn xếp để lưu các thanh ghi sẽ được khôi phục sau khi lời gọi đệ quy trả về. Trước mỗi lời gọi ta sẽ cẩn thận xác định những thanh ghi nào phải được lưu (vì giá trị của chúng sẽ cần sau).@footnote{Đây là điểm quan trọng nhưng tinh tế trong việc dịch các thuật toán từ ngôn ngữ thủ tục, chẳng hạn như Lisp, sang ngôn ngữ máy thanh ghi. Thay thế cho việc chỉ lưu những gì cần thiết, ta có thể lưu tất cả các thanh ghi (ngoại trừ @code{val}) trước mỗi lời gọi đệ quy. Đây được gọi là kỷ luật @newterm{ngăn xếp có khung}. Điều này sẽ hoạt động nhưng có thể lưu nhiều thanh ghi hơn cần thiết; đây có thể là một cân nhắc quan trọng trong một hệ thống nơi các phép toán ngăn xếp tốn kém. Việc lưu các thanh ghi có nội dung sẽ không cần sau này cũng có thể giữ lại dữ liệu vô ích mà nếu không có thể được thu gom rác, giải phóng không gian để tái sử dụng.}
+
+Ta bắt đầu định giá một ứng dụng bằng cách định giá toán tử để tạo ra một thủ tục, sau đó sẽ được áp dụng cho các toán hạng đã được định giá. Để định giá toán tử, ta di chuyển nó vào thanh ghi @code{exp} và đến @code{eval-dispatch}. Môi trường trong thanh ghi @code{env} đã là môi trường đúng để định giá toán tử. Tuy nhiên, ta lưu @code{env} vì ta sẽ cần nó sau để định giá các toán hạng. Ta cũng trích xuất các toán hạng vào @code{unev} và lưu cái này trên ngăn xếp. Ta thiết lập @code{continue} để @code{eval-dispatch} sẽ tiếp tục tại @code{ev-appl-did-operator} sau khi toán tử đã được định giá. Nhưng trước tiên, ta lưu giá trị cũ của @code{continue}, cho bộ điều khiển biết phải tiếp tục ở đâu sau ứng dụng.
+
+@lisp
+ev-application
+  (save continue)
+  (save env)
+  (assign unev (op operands) (reg exp))
+  (save unev)
+  (assign exp (op operator) (reg exp))
+  (assign
+   continue (label ev-appl-did-operator))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+Sau khi trả về từ việc định giá biểu thức con toán tử, ta tiến hành định giá các toán hạng của tổ hợp và tích lũy các đối số kết quả vào một danh sách, được giữ trong @code{argl}. Đầu tiên ta khôi phục các toán hạng chưa được định giá và môi trường. Ta khởi tạo @code{argl} thành danh sách rỗng. Sau đó ta gán cho thanh ghi @code{proc} thủ tục được tạo ra bằng cách định giá toán tử. Nếu không có toán hạng, ta đi trực tiếp đến @code{apply-dispatch}. Nếu không ta lưu @code{proc} trên ngăn xếp và bắt đầu vòng lặp định giá đối số:@footnote{Ta thêm vào các thủ tục cấu trúc dữ liệu trình định giá trong @ref{4.1.3} hai thủ tục sau để thao tác danh sách đối số:
+
+@lisp
+(define (empty-arglist) '())
+(define (adjoin-arg arg arglist)
+  (append arglist (list arg)))
+@end lisp
+
+@noindent
+Ta cũng sử dụng một thủ tục cú pháp bổ sung để kiểm tra toán hạng cuối cùng trong một tổ hợp:
+
+@lisp
+(define (last-operand? ops) (null? (cdr ops)))
+@end lisp
+}
+
+@lisp
+ev-appl-did-operator
+  (restore unev)             @r{; các toán hạng}
+  (restore env)
+  (assign argl (op empty-arglist))
+  (assign proc (reg val))    @r{; toán tử}
+  (test (op no-operands?) (reg unev))
+  (branch (label apply-dispatch))
+  (save proc)
+@end lisp
+
+@noindent
+Mỗi chu kỳ của vòng lặp định giá đối số định giá một toán hạng từ danh sách trong @code{unev} và tích lũy kết quả vào @code{argl}. Để định giá một toán hạng, ta đặt nó vào thanh ghi @code{exp} và đến @code{eval-dispatch}, sau khi thiết lập @code{continue} để việc thực thi sẽ tiếp tục với pha tích lũy đối số. Nhưng trước tiên ta lưu các đối số đã tích lũy được cho đến nay (được giữ trong @code{argl}), môi trường (được giữ trong @code{env}), và các toán hạng còn lại cần định giá (được giữ trong @code{unev}). Trường hợp đặc biệt được tạo ra cho việc định giá toán hạng cuối cùng, được xử lý tại @code{ev-appl-last-arg}.
+
+@lisp
+ev-appl-operand-loop
+  (save argl)
+  (assign exp
+          (op first-operand)
+          (reg unev))
+  (test (op last-operand?) (reg unev))
+  (branch (label ev-appl-last-arg))
+  (save env)
+  (save unev)
+  (assign continue
+          (label ev-appl-accumulate-arg))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+Khi một toán hạng đã được định giá, giá trị được tích lũy vào danh sách được giữ trong @code{argl}. Toán hạng sau đó được xóa khỏi danh sách các toán hạng chưa được định giá trong @code{unev}, và việc định giá đối số tiếp tục.
+
+@lisp
+ev-appl-accumulate-arg
+  (restore unev)
+  (restore env)
+  (restore argl)
+  (assign argl
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (assign unev
+          (op rest-operands)
+          (reg unev))
+  (goto (label ev-appl-operand-loop))
+@end lisp
+
+@noindent
+Việc định giá đối số cuối cùng được xử lý khác nhau. Không cần lưu môi trường hoặc danh sách các toán hạng chưa được định giá trước khi đến @code{eval-dispatch}, vì chúng sẽ không cần thiết sau khi toán hạng cuối cùng được định giá. Do đó, ta trả về từ việc định giá đến một điểm nhập đặc biệt @code{ev-appl-accum-last-arg}, khôi phục danh sách đối số, tích lũy đối số mới, khôi phục thủ tục đã được lưu, và thực hiện ứng dụng.@footnote{Tối ưu hóa xử lý toán hạng cuối cùng đặc biệt được gọi là @newterm{đệ quy đuôi evlis} (xem @ref{Wand 1980}). Ta có thể hiệu quả hơn đôi chút trong vòng lặp định giá đối số nếu ta cũng làm cho việc định giá toán hạng đầu tiên thành trường hợp đặc biệt. Điều này sẽ cho phép ta trì hoãn việc khởi tạo @code{argl} cho đến sau khi định giá toán hạng đầu tiên, để tránh lưu @code{argl} trong trường hợp này. Trình biên dịch trong @ref{5.5} thực hiện tối ưu hóa này. (So sánh thủ tục @code{construct-arglist} trong @ref{5.5.3}.)}
+
+@lisp
+ev-appl-last-arg
+  (assign continue
+          (label ev-appl-accum-last-arg))
+  (goto (label eval-dispatch))
+ev-appl-accum-last-arg
+  (restore argl)
+  (assign argl
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (restore proc)
+  (goto (label apply-dispatch))
+@end lisp
+
+@noindent
+Các chi tiết của vòng lặp định giá đối số xác định thứ tự mà trình thông dịch định giá các toán hạng của một tổ hợp (ví dụ, từ trái sang phải hoặc từ phải sang trái---xem @ref{Exercise 3.8}). Thứ tự này không được xác định bởi trình định giá siêu tròn, vốn kế thừa cấu trúc điều khiển của nó từ Scheme cơ bản mà nó được hiện thực hóa trong đó.@footnote{Thứ tự định giá toán hạng trong trình định giá siêu tròn được xác định bởi thứ tự định giá các đối số cho @code{cons} trong thủ tục @code{list-of-values} trong @ref{4.1.1} (xem @ref{Exercise 4.1}).} Vì selector @code{first-operand} (được sử dụng trong @code{ev-appl-operand-loop} để trích xuất các toán hạng liên tiếp từ @code{unev}) được hiện thực hóa như @code{car} và selector @code{rest-operands} được hiện thực hóa như @code{cdr}, trình định giá điều khiển tường minh sẽ định giá các toán hạng của một tổ hợp theo thứ tự từ trái sang phải.
+
+@subsubheading Ứng dụng thủ tục
+
+Điểm nhập @code{apply-dispatch} tương ứng với thủ tục @code{apply} của trình định giá siêu tròn. Đến thời điểm ta đến @code{apply-dispatch}, thanh ghi @code{proc} chứa thủ tục cần áp dụng và @code{argl} chứa danh sách các đối số đã được định giá mà nó phải được áp dụng cho. Giá trị đã lưu của @code{continue} (ban đầu được truyền cho @code{eval-dispatch} và được lưu tại @code{ev-application}), cho biết phải trả về đâu với kết quả của ứng dụng thủ tục, nằm trên ngăn xếp. Khi ứng dụng hoàn tất, bộ điều khiển chuyển đến điểm nhập được chỉ định bởi @code{continue} đã lưu, với kết quả của ứng dụng trong @code{val}. Như với @code{apply} siêu tròn, có hai trường hợp cần xem xét. Thủ tục cần áp dụng là nguyên thủy hoặc là thủ tục phức hợp.
+
+@lisp
+apply-dispatch
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-apply))
+  (test (op compound-procedure?) (reg proc))
+  (branch (label compound-apply))
+  (goto (label unknown-procedure-type))
+@end lisp
+
+@noindent
+Ta giả sử rằng mỗi nguyên thủy được hiện thực hóa để lấy các đối số của nó từ @code{argl} và đặt kết quả của nó vào @code{val}. Để chỉ định cách máy xử lý các nguyên thủy, ta sẽ phải cung cấp một chuỗi các lệnh bộ điều khiển để hiện thực hóa mỗi nguyên thủy và sắp xếp để @code{primitive-apply} điều phối đến các lệnh cho nguyên thủy được xác định bởi nội dung của @code{proc}. Vì ta quan tâm đến cấu trúc của quá trình định giá hơn là các chi tiết của các nguyên thủy, ta sẽ thay vào đó chỉ sử dụng một phép toán @code{apply-primitive-procedure} áp dụng thủ tục trong @code{proc} cho các đối số trong @code{argl}. Để mô phỏng trình định giá với bộ mô phỏng của @ref{5.2}, ta sử dụng thủ tục @code{apply-primitive-procedure}, gọi hệ thống Scheme cơ bản để thực hiện ứng dụng, giống như ta đã làm cho trình định giá siêu tròn trong @ref{4.1.4}. Sau khi tính toán giá trị của ứng dụng nguyên thủy, ta khôi phục @code{continue} và đến điểm nhập được chỉ định.
+
+@lisp
+primitive-apply
+  (assign val (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl))
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Để áp dụng một thủ tục phức hợp, ta tiến hành như với trình định giá siêu tròn. Ta xây dựng một khung ràng buộc các tham số của thủ tục với các đối số, sử dụng khung này để mở rộng môi trường mang bởi thủ tục, và định giá trong môi trường mở rộng này chuỗi các biểu thức tạo thành thân của thủ tục. @code{Ev-sequence}, được mô tả bên dưới trong @ref{5.4.2}, xử lý việc định giá chuỗi.
+
+@lisp
+compound-apply
+  (assign unev
+          (op procedure-parameters)
+          (reg proc))
+  (assign env
+          (op procedure-environment)
+          (reg proc))
+  (assign env
+          (op extend-environment)
+          (reg unev)
+          (reg argl)
+          (reg env))
+  (assign unev
+          (op procedure-body)
+          (reg proc))
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+@code{Compound-apply} là nơi duy nhất trong trình thông dịch mà thanh ghi @code{env} bao giờ được gán một giá trị mới. Giống như trong trình định giá siêu tròn, môi trường mới được xây dựng từ môi trường mang bởi thủ tục, cùng với danh sách đối số và danh sách tương ứng các biến cần ràng buộc.

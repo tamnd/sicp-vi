@@ -1,0 +1,40 @@
+@node	5.4, 5.5, 5.3, Chapter 5
+@section Trình Định Giá Điều Khiển Tường Minh
+
+Trong @ref{5.1} ta đã thấy cách biến đổi các chương trình Scheme đơn giản thành các mô tả của các máy thanh ghi. Bây giờ ta sẽ thực hiện sự biến đổi này trên một chương trình phức tạp hơn, trình định giá siêu tròn của @ref{4.1.1}--@ref{4.1.4}, chỉ ra cách hành vi của một trình thông dịch Scheme có thể được mô tả theo các thủ tục @code{eval} và @code{apply}. @newterm{Trình định giá điều khiển tường minh} mà ta phát triển trong phần này chỉ ra cách các cơ chế gọi thủ tục và truyền đối số cơ bản được sử dụng trong quá trình định giá có thể được mô tả theo các phép toán trên thanh ghi và ngăn xếp. Ngoài ra, trình định giá điều khiển tường minh có thể phục vụ như là một hiện thực hóa của một trình thông dịch Scheme, được viết bằng một ngôn ngữ rất giống với ngôn ngữ máy gốc của các máy tính thông thường. Trình định giá có thể được thực thi bởi bộ mô phỏng máy thanh ghi của @ref{5.2}. Ngoài ra, nó có thể được sử dụng như là điểm xuất phát để xây dựng một hiện thực hóa ngôn ngữ máy của một trình định giá Scheme, hoặc thậm chí một máy chuyên dụng để định giá các biểu thức Scheme. @ref{Figure 5.16} thể hiện một hiện thực hóa phần cứng như vậy: một chip silicon hoạt động như một trình định giá cho Scheme. Các nhà thiết kế chip bắt đầu với các đặc tả đường dữ liệu và bộ điều khiển cho một máy thanh ghi tương tự như trình định giá được mô tả trong phần này và sử dụng các chương trình tự động hóa thiết kế để xây dựng bố cục mạch tích hợp.@footnote{Xem @ref{Batali et al. 1982} để biết thêm thông tin về chip và phương pháp thiết kế của nó.}
+
+@float
+@anchor{Figure 5.16}
+@ifinfo
+@quotation
+@strong{Figure 5.16:} A silicon-chip implementation of an evaluator for Scheme.
+
+[A photograph of chip layout]
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/chip,,,,.std.svg}
+@caption{@strong{Figure 5.16:} A silicon-chip implementation of an evaluator for Scheme.}
+@end iftex
+@end float
+
+@subsubheading Các thanh ghi và phép toán
+
+Khi thiết kế trình định giá điều khiển tường minh, ta phải chỉ định các phép toán sẽ được sử dụng trong máy thanh ghi của ta. Ta đã mô tả trình định giá siêu tròn theo cú pháp trừu tượng, sử dụng các thủ tục như @code{quoted?} và @code{make-procedure}. Khi hiện thực hóa máy thanh ghi, ta có thể mở rộng các thủ tục này thành các chuỗi các phép toán bộ nhớ có cấu trúc danh sách cơ bản, và hiện thực hóa các phép toán này trên máy thanh ghi của ta. Tuy nhiên, điều này sẽ làm cho trình định giá của ta rất dài, che khuất cấu trúc cơ bản với các chi tiết. Để làm rõ phần trình bày, ta sẽ bao gồm làm các phép toán nguyên thủy của máy thanh ghi các thủ tục cú pháp được đưa ra trong @ref{4.1.2} và các thủ tục biểu diễn môi trường và dữ liệu thời gian chạy khác được đưa ra trong @ref{4.1.3} và @ref{4.1.4}. Để hoàn toàn chỉ định một trình định giá có thể được lập trình trong ngôn ngữ máy cấp thấp hoặc được hiện thực hóa bằng phần cứng, ta sẽ thay thế các phép toán này bằng các phép toán cơ bản hơn, sử dụng hiện thực hóa cấu trúc danh sách ta đã mô tả trong @ref{5.3}.
+
+Máy thanh ghi trình định giá Scheme của ta bao gồm một ngăn xếp và bảy thanh ghi: @code{exp}, @code{env}, @code{val}, @code{continue}, @code{proc}, @code{argl}, và @code{unev}. @code{Exp} được sử dụng để giữ biểu thức cần định giá, và @code{env} chứa môi trường trong đó việc định giá sẽ được thực hiện. Ở cuối một lần định giá, @code{val} chứa giá trị thu được bằng cách định giá biểu thức trong môi trường được chỉ định. Thanh ghi @code{continue} được sử dụng để hiện thực hóa đệ quy, như được giải thích trong @ref{5.1.4}. (Trình định giá cần gọi chính nó đệ quy, vì định giá một biểu thức đòi hỏi định giá các biểu thức con của nó.) Các thanh ghi @code{proc}, @code{argl}, và @code{unev} được sử dụng khi định giá các tổ hợp.
+
+Ta sẽ không cung cấp sơ đồ đường dữ liệu để chỉ ra cách các thanh ghi và phép toán của trình định giá được kết nối, cũng sẽ không đưa ra danh sách đầy đủ các phép toán máy. Chúng được ngụ ý trong bộ điều khiển của trình định giá, sẽ được trình bày chi tiết.
+
+@menu
+* 5.4.1::            Lõi của Trình Định Giá Điều Khiển Tường Minh
+* 5.4.2::            Định Giá Chuỗi và Đệ Quy Đuôi
+* 5.4.3::            Điều Kiện, Gán Giá Trị, và Định Nghĩa
+* 5.4.4::            Chạy Trình Định Giá
+@end menu
+
+@include ss01.texi
+@include ss02.texi
+@include ss03.texi
+@include ss04.texi

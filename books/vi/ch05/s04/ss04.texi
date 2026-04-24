@@ -1,0 +1,251 @@
+@node	5.4.4, 5.5, 5.3, 5.4
+@subsection Chạy Trình Định Giá
+
+Với hiện thực hóa trình định giá điều khiển tường minh, ta đến cuối một sự phát triển, bắt đầu trong @ref{Chapter 1}, trong đó ta đã khám phá các mô hình chính xác hơn ngày càng tăng về quá trình định giá. Ta bắt đầu với mô hình thay thế tương đối không chính thức, sau đó mở rộng cái này trong @ref{Chapter 3} thành mô hình môi trường, cho phép ta xử lý trạng thái và thay đổi. Trong trình định giá siêu tròn của @ref{Chapter 4}, ta đã sử dụng chính Scheme như một ngôn ngữ để làm rõ hơn cấu trúc môi trường được xây dựng trong quá trình định giá một biểu thức. Bây giờ, với các máy thanh ghi, ta đã xem xét kỹ các cơ chế của trình định giá để quản lý bộ nhớ, truyền đối số, và điều khiển. Ở mỗi mức độ mô tả mới, ta đã phải nêu ra các vấn đề và giải quyết các sự mơ hồ không rõ ràng ở mức độ xử lý ít chính xác hơn trước đó. Để hiểu hành vi của trình định giá điều khiển tường minh, ta có thể mô phỏng nó và theo dõi hiệu suất của nó.
+
+Ta sẽ cài đặt một vòng lặp điều khiển trong máy trình định giá của ta. Điều này đóng vai trò của thủ tục @code{driver-loop} trong @ref{4.1.4}. Trình định giá sẽ liên tục in một dấu nhắc, đọc một biểu thức, định giá biểu thức bằng cách đến @code{eval-dispatch}, và in kết quả. Các lệnh sau tạo thành phần đầu của chuỗi bộ điều khiển của trình định giá điều khiển tường minh:@footnote{Ta giả sử ở đây rằng @code{read} và các phép toán in ấn khác nhau có sẵn như là các phép toán máy nguyên thủy, điều này hữu ích cho mô phỏng của ta, nhưng hoàn toàn không thực tế trong thực tế. Đây thực sự là các phép toán cực kỳ phức tạp. Trong thực tế, chúng sẽ được hiện thực hóa bằng cách sử dụng các phép toán nhập-xuất cấp thấp như chuyển các ký tự đơn lẻ đến và từ một thiết bị.
+
+Để hỗ trợ phép toán @code{get-global-environment} ta định nghĩa
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(define (get-global-environment)
+  the-global-environment)
+@end lisp
+}
+
+@lisp
+read-eval-print-loop
+  (perform (op initialize-stack))
+  (perform (op prompt-for-input)
+           (const ";;; EC-Eval input:"))
+  (assign exp (op read))
+  (assign env (op get-global-environment))
+  (assign continue (label print-result))
+  (goto (label eval-dispatch))
+print-result
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+Khi ta gặp lỗi trong một thủ tục (chẳng hạn như lỗi ``loại thủ tục không xác định'' được chỉ ra tại @code{apply-dispatch}), ta in một thông báo lỗi và trả về vòng lặp điều khiển.@footnote{Có các lỗi khác mà ta muốn trình thông dịch xử lý, nhưng chúng không đơn giản như vậy. Xem @ref{Exercise 5.30}.}
+
+@lisp
+unknown-expression-type
+  (assign
+   val
+   (const unknown-expression-type-error))
+  (goto (label signal-error))
+unknown-procedure-type
+  @r{; dọn dẹp ngăn xếp (từ @code{apply-dispatch}):}
+  (restore continue)
+  (assign
+   val
+   (const unknown-procedure-type-error))
+  (goto (label signal-error))
+signal-error
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+Để mô phỏng, ta khởi tạo ngăn xếp mỗi lần qua vòng lặp điều khiển, vì nó có thể không rỗng sau một lỗi (chẳng hạn như biến chưa được định nghĩa) làm gián đoạn một lần định giá.@footnote{Ta có thể thực hiện khởi tạo ngăn xếp chỉ sau các lỗi, nhưng việc thực hiện nó trong vòng lặp điều khiển sẽ thuận tiện cho việc theo dõi hiệu suất của trình định giá, như được mô tả bên dưới.}
+
+Nếu ta kết hợp tất cả các đoạn mã được trình bày trong @ref{5.4.1}--@ref{5.4.4}, ta có thể tạo ra một mô hình máy trình định giá mà ta có thể chạy bằng cách sử dụng bộ mô phỏng máy thanh ghi của @ref{5.2}.
+
+@lisp
+(define eceval
+  (make-machine
+   '(exp env val proc argl continue unev)
+   eceval-operations
+   '(read-eval-print-loop
+     ⟨@emph{toàn bộ bộ điều khiển máy}
+      @emph{như được cho ở trên}⟩)))
+@end lisp
+
+@noindent
+Ta phải định nghĩa các thủ tục Scheme để mô phỏng các phép toán được sử dụng như nguyên thủy bởi trình định giá. Đây là các thủ tục tương tự mà ta đã sử dụng cho trình định giá siêu tròn trong @ref{4.1}, cùng với một số thủ tục bổ sung được định nghĩa trong các chú thích cuối trang trong @ref{5.4}.
+
+@lisp
+(define eceval-operations
+  (list (list 'self-evaluating?
+              self-evaluating)
+        ⟨@emph{danh sách đầy đủ các phép toán}
+         @emph{cho máy eceval}⟩))
+@end lisp
+
+@noindent
+Cuối cùng, ta có thể khởi tạo môi trường toàn cục và chạy trình định giá:
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(start eceval)
+
+@i{;;; EC-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; EC-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@noindent
+Tất nhiên, việc định giá các biểu thức theo cách này sẽ mất nhiều thời gian hơn nhiều so với việc ta đã nhập chúng trực tiếp vào Scheme, vì các mức độ mô phỏng nhiều liên quan. Các biểu thức của ta được định giá bởi máy trình định giá điều khiển tường minh, đang được mô phỏng bởi một chương trình Scheme, bản thân nó đang được định giá bởi trình thông dịch Scheme.
+
+@subsubheading Theo dõi hiệu suất của trình định giá
+
+Mô phỏng có thể là một công cụ mạnh mẽ để hướng dẫn việc hiện thực hóa các trình định giá. Mô phỏng giúp dễ dàng không chỉ khám phá các biến thể của thiết kế máy thanh ghi mà còn theo dõi hiệu suất của trình định giá mô phỏng. Ví dụ, một yếu tố quan trọng trong hiệu suất là cách trình định giá sử dụng ngăn xếp hiệu quả. Ta có thể quan sát số lượng phép toán ngăn xếp cần thiết để định giá các biểu thức khác nhau bằng cách định nghĩa máy thanh ghi trình định giá với phiên bản bộ mô phỏng thu thập thống kê về việc sử dụng ngăn xếp (@ref{5.2.4}), và thêm một lệnh tại điểm nhập @code{print-result} của trình định giá để in thống kê:
+
+@lisp
+print-result
+  @r{; lệnh được thêm vào:}
+  (perform (op print-stack-statistics))
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  @r{…} @r{; như trước}
+@end lisp
+
+@noindent
+Các tương tác với trình định giá bây giờ trông như thế này:
+
+@lisp
+@i{;;; EC-Eval input:}
+(define (factorial n)
+  (if (= n 1) 1 (* (factorial (- n 1)) n)))
+@i{(total-pushes = 3, maximum-depth = 3)}
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+@i{(total-pushes = 144, maximum-depth = 28)}
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+Lưu ý rằng vòng lặp điều khiển của trình định giá khởi tạo lại ngăn xếp ở đầu mỗi tương tác, vì vậy thống kê được in sẽ chỉ liên quan đến các phép toán ngăn xếp được sử dụng để định giá biểu thức trước đó.
+
+@quotation
+@strong{@anchor{Exercise 5.26}Bài tập 5.26:} Sử dụng ngăn xếp được theo dõi để khám phá tính chất đệ quy đuôi của trình định giá (@ref{5.4.2}). Khởi động trình định giá và định nghĩa thủ tục @code{factorial} lặp từ @ref{1.2.1}:
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+Chạy thủ tục với một số giá trị nhỏ của @math{n}. Ghi lại độ sâu ngăn xếp tối đa và số lần đẩy cần thiết để tính @math{{n!}} cho mỗi giá trị này.
+
+@enumerate a
+
+@item
+Bạn sẽ thấy rằng độ sâu tối đa cần thiết để định giá @math{{n!}} độc lập với @math{n}. Độ sâu đó là bao nhiêu?
+
+@item
+Xác định từ dữ liệu của bạn một công thức theo @math{n} cho tổng số phép toán đẩy được sử dụng khi định giá @math{{n!}} với bất kỳ @math{{n \ge 1}}. Lưu ý rằng số lượng phép toán được sử dụng là hàm tuyến tính của @math{n} và do đó được xác định bởi hai hằng số.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.27}Bài tập 5.27:} Để so sánh với @ref{Exercise 5.26}, hãy khám phá hành vi của thủ tục sau để tính giai thừa theo cách đệ quy:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+Bằng cách chạy thủ tục này với ngăn xếp được theo dõi, hãy xác định, như là hàm của @math{n}, độ sâu tối đa của ngăn xếp và tổng số lần đẩy được sử dụng khi định giá @math{{n!}} với @math{{n \ge 1}}. (Một lần nữa, các hàm này sẽ là tuyến tính.) Tóm tắt các thí nghiệm của bạn bằng cách điền vào bảng sau với các biểu thức thích hợp theo @math{n}:
+@ifinfo
+
+@example
+               Maximum depth       Number of pushes
+
+Recursive
+factorial
+
+Iterative
+factorial
+@end example
+
+@end ifinfo
+@tex
+\[ % :82:
+
+\begin{array}{l|l|l}
+                	& \text{Maximum} 	& \text{Number of} 	\\
+                	& \text{depth} 	        & \text{pushes} 	\\
+\hline
+\text{Recursive} 	&	                &  \\
+\text{factorial} 	&  	                &  \\
+\hline
+\text{Iterative} 	&               	&  \\
+\text{factorial} 	&  	                &
+\end{array}
+\]
+@end tex
+Độ sâu tối đa là thước đo lượng không gian được sử dụng bởi trình định giá trong khi thực hiện phép tính, và số lần đẩy tương quan tốt với thời gian cần thiết.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.28}Bài tập 5.28:} Sửa đổi định nghĩa của trình định giá bằng cách thay đổi @code{eval-sequence} như được mô tả trong @ref{5.4.2} để trình định giá không còn đệ quy đuôi nữa. Chạy lại các thí nghiệm của bạn từ @ref{Exercise 5.26} và @ref{Exercise 5.27} để chứng minh rằng cả hai phiên bản của thủ tục @code{factorial} bây giờ đều yêu cầu không gian tăng tuyến tính với đầu vào của chúng.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.29}Bài tập 5.29:} Theo dõi các phép toán ngăn xếp trong phép tính Fibonacci đệ quy cây:
+
+@lisp
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@enumerate a
+
+@item
+Đưa ra một công thức theo @math{n} cho độ sâu tối đa của ngăn xếp cần thiết để tính @math{{\text{Fib}(n)}} với @math{{n \ge 2}}. Gợi ý: Trong @ref{1.2.2} ta đã lập luận rằng không gian được sử dụng bởi quá trình này tăng tuyến tính với @math{n}.
+
+@item
+Đưa ra một công thức cho tổng số lần đẩy được sử dụng để tính @math{{\text{Fib}(n)}} với @math{{n \ge 2}}. Bạn sẽ thấy rằng số lần đẩy (tương quan tốt với thời gian được sử dụng) tăng theo hàm mũ với @math{n}. Gợi ý: Gọi @math{{S(n)}} là số lần đẩy được sử dụng khi tính @math{{\text{Fib}(n)}}. Bạn nên có thể lập luận rằng có một công thức biểu diễn @math{{S(n)}} theo @math{{S(n - 1)}}, @math{{S(n - 2)}}, và một số ``chi phí chung'' cố định @math{k} độc lập với @math{n}. Đưa ra công thức và nói @math{k} là gì. Sau đó chỉ ra rằng @math{{S(n)}} có thể được biểu diễn như @math{{a\cdot\text{Fib}(n + 1) + b}} và đưa ra các giá trị của @math{a} và @math{b}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.30}Bài tập 5.30:} Trình định giá của ta hiện tại chỉ bắt và báo hiệu hai loại lỗi---các loại biểu thức không xác định và các loại thủ tục không xác định. Các lỗi khác sẽ đưa ta ra khỏi vòng lặp đọc-định giá-in của trình định giá. Khi ta chạy trình định giá bằng bộ mô phỏng máy thanh ghi, những lỗi này bị bắt bởi hệ thống Scheme cơ bản. Điều này tương tự như máy tính bị treo khi một chương trình người dùng gây ra lỗi.@footnote{Thật đáng tiếc, đây là trạng thái bình thường của các hệ thống ngôn ngữ dựa trên trình biên dịch thông thường như C. Trong @abbr{UNIX}(tm) hệ thống ``đổ lõi'', và trong @abbr{DOS}/Windows(tm) nó trở nên tê liệt. Macintosh(tm) hiển thị hình ảnh của một quả bom nổ và cung cấp cho bạn cơ hội để khởi động lại máy tính---nếu bạn may mắn.} Đây là một dự án lớn để làm cho một hệ thống lỗi thực sự hoạt động, nhưng rất đáng công sức để hiểu những gì liên quan ở đây.
+
+@enumerate a
+
+@item
+Các lỗi xảy ra trong quá trình định giá, chẳng hạn như cố gắng truy cập một biến không ràng buộc, có thể được bắt bằng cách thay đổi phép toán tra cứu để trả về một mã điều kiện đặc biệt, không thể là giá trị có thể của bất kỳ biến người dùng nào. Trình định giá có thể kiểm tra mã điều kiện này và sau đó làm những gì cần thiết để đến @code{signal-error}. Tìm tất cả các nơi trong trình định giá mà một thay đổi như vậy là cần thiết và sửa chúng. Đây là nhiều công việc.
+
+@item
+Tệ hơn nhiều là vấn đề xử lý các lỗi được báo hiệu bởi việc áp dụng các thủ tục nguyên thủy, chẳng hạn như cố gắng chia cho không hoặc cố gắng trích xuất @code{car} của một ký hiệu. Trong một hệ thống chất lượng cao được viết chuyên nghiệp, mỗi ứng dụng nguyên thủy được kiểm tra tính an toàn như một phần của nguyên thủy. Ví dụ, mỗi lời gọi @code{car} có thể kiểm tra trước xem đối số có phải là cặp không. Nếu đối số không phải là cặp, ứng dụng sẽ trả về một mã điều kiện đặc biệt cho trình định giá, sau đó báo cáo lỗi. Ta có thể sắp xếp điều này trong bộ mô phỏng máy thanh ghi của ta bằng cách làm cho mỗi thủ tục nguyên thủy kiểm tra khả năng áp dụng và trả về một mã điều kiện đặc biệt thích hợp khi thất bại. Sau đó mã @code{primitive-apply} trong trình định giá có thể kiểm tra mã điều kiện và đến @code{signal-error} nếu cần thiết. Xây dựng cấu trúc này và làm cho nó hoạt động. Đây là một dự án lớn.
+
+@end enumerate
+@end quotation

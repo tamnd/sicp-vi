@@ -1,0 +1,108 @@
+@node	5.4.3, 5.4.4, 5.4.2, 5.4
+@subsection Điều Kiện, Gán Giá Trị, và Định Nghĩa
+
+Như với trình định giá siêu tròn, các dạng đặc biệt được xử lý bằng cách định giá có chọn lọc các mảnh của biểu thức. Đối với biểu thức @code{if}, ta phải định giá vị từ và quyết định, dựa trên giá trị của vị từ, liệu có định giá hệ quả hay lựa chọn thay thế không.
+
+Trước khi định giá vị từ, ta lưu bản thân biểu thức @code{if} để ta có thể sau đó trích xuất hệ quả hoặc lựa chọn thay thế. Ta cũng lưu môi trường, mà ta sẽ cần sau để định giá hệ quả hoặc lựa chọn thay thế, và ta lưu @code{continue}, mà ta sẽ cần sau để trả về cho việc định giá biểu thức đang chờ giá trị của @code{if}.
+
+@lisp
+ev-if
+  (save exp)   @r{; lưu biểu thức cho sau}
+  (save env)
+  (save continue)
+  (assign continue (label ev-if-decide))
+  (assign exp (op if-predicate) (reg exp))
+  @r{; định giá vị từ:}
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+Khi ta trở về từ việc định giá vị từ, ta kiểm tra xem nó là đúng hay sai và, tùy thuộc vào kết quả, đặt hệ quả hoặc lựa chọn thay thế vào @code{exp} trước khi đến @code{eval-dispatch}. Lưu ý rằng việc khôi phục @code{env} và @code{continue} ở đây thiết lập @code{eval-dispatch} để có môi trường đúng và tiếp tục ở đúng vị trí để nhận giá trị của biểu thức @code{if}.
+
+@lisp
+ev-if-decide
+  (restore continue)
+  (restore env)
+  (restore exp)
+  (test (op true?) (reg val))
+  (branch (label ev-if-consequent))
+ev-if-alternative
+  (assign exp (op if-alternative) (reg exp))
+  (goto (label eval-dispatch))
+ev-if-consequent
+  (assign exp (op if-consequent) (reg exp))
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Gán giá trị và định nghĩa
+
+Các gán giá trị được xử lý bởi @code{ev-assignment}, được đến từ @code{eval-dispatch} với biểu thức gán trong @code{exp}. Mã tại @code{ev-assignment} trước tiên định giá phần giá trị của biểu thức và sau đó cài đặt giá trị mới trong môi trường. @code{Set-variable-value!} được giả sử có sẵn như là một phép toán máy.
+
+@lisp
+ev-assignment
+  (assign unev
+          (op assignment-variable)
+          (reg exp))
+  (save unev)   @r{; lưu biến cho sau}
+  (assign exp
+          (op assignment-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue
+          (label ev-assignment-1))
+  @r{; định giá giá trị gán:}
+  (goto (label eval-dispatch))
+ev-assignment-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op set-variable-value!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val
+          (const ok))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Các định nghĩa được xử lý theo cách tương tự:
+
+@lisp
+ev-definition
+  (assign unev
+          (op definition-variable)
+          (reg exp))
+  (save unev)   @r{; lưu biến cho sau}
+  (assign exp
+          (op definition-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue (label ev-definition-1))
+  @r{; định giá giá trị định nghĩa:}
+  (goto (label eval-dispatch))
+ev-definition-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op define-variable!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+  (goto (reg continue))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.23}Bài tập 5.23:} Mở rộng trình định giá để xử lý các biểu thức dẫn xuất như @code{cond}, @code{let}, v.v. (@ref{4.1.2}). Bạn có thể ``gian lận'' và giả sử rằng các bộ biến đổi cú pháp như @code{cond->if} có sẵn như là các phép toán máy.@footnote{Đây không thực sự là gian lận. Trong một hiện thực hóa thực sự được xây dựng từ đầu, ta sẽ sử dụng trình định giá điều khiển tường minh của ta để thông dịch một chương trình Scheme thực hiện các biến đổi cấp nguồn như @code{cond->if} trong một pha cú pháp chạy trước khi thực thi.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.24}Bài tập 5.24:} Hiện thực hóa @code{cond} như một dạng đặc biệt cơ bản mới mà không rút gọn nó thành @code{if}. Bạn sẽ phải xây dựng một vòng lặp kiểm tra các vị từ của các mệnh đề @code{cond} liên tiếp cho đến khi bạn tìm thấy một cái đúng, và sau đó sử dụng @code{ev-sequence} để định giá các hành động của mệnh đề.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.25}Bài tập 5.25:} Sửa đổi trình định giá để nó sử dụng định giá bình thường, dựa trên trình định giá lười biếng của @ref{4.2}.
+@end quotation
