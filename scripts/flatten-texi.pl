@@ -15,7 +15,9 @@ sub flatten {
     my $dir  = dirname($abs);
     open my $fh, '<:encoding(UTF-8)', $abs or die "Cannot open $abs: $!\n";
     while (my $line = <$fh>) {
-        if ($line =~ /^\@include\s+(\S+)\s*$/) {
+        if ($line =~ /^\\input texinfo\b/) {
+            # Texinfo file header — not needed in the flattened output
+        } elsif ($line =~ /^\@include\s+(\S+)\s*$/) {
             flatten("$dir/$1");
         } else {
             print $line;
