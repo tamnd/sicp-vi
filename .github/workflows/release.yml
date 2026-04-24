@@ -12,25 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build builder image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          load: true
-          tags: sicp-vi-builder:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Pull build image
+        run: docker pull ghcr.io/tamnd/sicp-docker:latest
 
       - name: Build PDF
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
-            sicp-vi-builder:latest \
+            ghcr.io/tamnd/sicp-docker:latest \
             make -C /workspace/src/pdf
 
       - name: Build epub
@@ -38,7 +29,7 @@ jobs:
           touch src/en_US/*.xhtml
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
-            sicp-vi-builder:latest \
+            ghcr.io/tamnd/sicp-docker:latest \
             make -C /workspace/src epub
 
       - name: Package HTML
