@@ -1,0 +1,149 @@
+@node	4.2.3, 4.3, 4.1, 4.2
+@subsection Luồng như Các Danh Sách Lười
+
+Trong @ref{3.5.1}, chúng ta đã chỉ ra cách hiện thực các luồng như các danh
+sách trì hoãn. Chúng ta đã giới thiệu các dạng đặc biệt @code{delay} và
+@code{cons-stream}, cho phép chúng ta xây dựng một ``lời hứa'' để tính
+@code{cdr} của một luồng, mà không thực sự thực hiện lời hứa đó cho đến sau.
+Chúng ta có thể dùng kỹ thuật chung về giới thiệu các dạng đặc biệt bất cứ
+khi nào chúng ta cần kiểm soát nhiều hơn quá trình định giá, nhưng điều này
+thật bất tiện. Trước hết, một dạng đặc biệt không phải là đối tượng hạng nhất
+như một thủ tục, vì vậy chúng ta không thể dùng nó cùng với các thủ tục bậc
+cao hơn.@footnote{Đây chính xác là vấn đề với thủ tục @code{unless}, như trong
+@ref{Exercise 4.26}.} Ngoài ra, chúng ta buộc phải tạo các luồng như một loại
+đối tượng dữ liệu mới tương tự nhưng không giống hệt với các danh sách, và
+điều này yêu cầu chúng ta phải hiện thực lại nhiều thao tác danh sách thông
+thường (@code{map}, @code{append}, v.v.) để dùng với các luồng.
+
+Với định giá lười, các luồng và danh sách có thể giống hệt nhau, vì vậy không
+cần các dạng đặc biệt hay các thao tác danh sách và luồng riêng biệt. Tất cả
+những gì chúng ta cần là sắp xếp để @code{cons} không chặt. Một cách để thực
+hiện điều này là mở rộng trình định giá lười để cho phép các nguyên thủy không
+chặt, và hiện thực @code{cons} như một trong số đó. Một cách dễ hơn là nhớ
+lại (@ref{2.1.3}) rằng không có nhu cầu cơ bản nào để hiện thực @code{cons}
+như một nguyên thủy. Thay vào đó, chúng ta có thể biểu diễn các cặp như các
+thủ tục:@footnote{Đây là biểu diễn thủ tục được mô tả trong @ref{Exercise 2.4}.
+Về cơ bản bất kỳ biểu diễn thủ tục nào (ví dụ: hiện thực truyền tin nhắn) đều
+có thể hoạt động tốt. Lưu ý rằng chúng ta có thể cài đặt các định nghĩa này
+trong trình định giá lười đơn giản bằng cách gõ chúng tại vòng điều khiển.
+Nếu chúng ta ban đầu đã bao gồm @code{cons}, @code{car} và @code{cdr} như các
+nguyên thủy trong môi trường toàn cục, chúng sẽ được định nghĩa lại. (Xem
+thêm @ref{Exercise 4.33} và @ref{Exercise 4.34}.)}
+
+@lisp
+(define (cons x y) (lambda (m) (m x y)))
+(define (car z) (z (lambda (p q) p)))
+(define (cdr z) (z (lambda (p q) q)))
+@end lisp
+
+@noindent
+Theo các thao tác cơ bản này, các định nghĩa chuẩn của các thao tác danh sách
+sẽ hoạt động với cả danh sách vô hạn (luồng) lẫn hữu hạn, và các thao tác
+luồng có thể được hiện thực như các thao tác danh sách. Đây là một số ví dụ:
+
+@lisp
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items) (- n 1))))
+
+(define (map proc items)
+  (if (null? items)
+      '()
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(define (scale-list items factor)
+  (map (lambda (x) (* x factor))
+       items))
+
+(define (add-lists list1 list2)
+  (cond ((null? list1) list2)
+        ((null? list2) list1)
+        (else (cons (+ (car list1)
+                       (car list2))
+                    (add-lists
+                     (cdr list1)
+                     (cdr list2))))))
+
+(define ones (cons 1 ones))
+
+(define integers
+  (cons 1 (add-lists ones integers)))
+
+@i{;;; L-Eval input:}
+(list-ref integers 17)
+
+@i{;;; L-Eval value:}
+@i{18}
+@end lisp
+
+@noindent
+Lưu ý rằng các danh sách lười này thậm chí còn lười hơn các luồng của
+@ref{Chapter 3}: @code{car} của danh sách, cũng như @code{cdr}, bị trì hoãn.@footnote{Điều
+này cho phép chúng ta tạo ra các phiên bản trì hoãn của các loại cấu trúc
+danh sách tổng quát hơn, không chỉ các dãy. @ref{Hughes 1990} thảo luận về
+một số ứng dụng của ``cây lười.''}  Trên thực tế, ngay cả việc truy cập
+@code{car} hoặc @code{cdr} của một cặp lười không cần thiết phải ép buộc giá
+trị của một phần tử danh sách. Giá trị sẽ chỉ bị ép buộc khi thực sự cần
+thiết---ví dụ, để dùng như đối số của một nguyên thủy, hoặc để được in như
+một câu trả lời.
+
+Các cặp lười cũng giúp ích cho vấn đề phát sinh với các luồng trong
+@ref{3.5.4}, nơi chúng ta thấy rằng việc công thức hóa các mô hình luồng của
+các hệ thống với các vòng lặp có thể yêu cầu chúng ta rải rác chương trình
+với các phép toán @code{delay} rõ ràng, ngoài những phép toán được cung cấp
+bởi @code{cons-stream}. Với định giá lười, tất cả các đối số cho các thủ tục
+đều được trì hoãn đồng đều. Ví dụ, chúng ta có thể hiện thực các thủ tục
+tích phân danh sách và giải các phương trình vi phân như chúng ta ban đầu dự
+định trong @ref{3.5.4}:
+
+@lisp
+(define (integral integrand initial-value dt)
+  (define int
+    (cons initial-value
+          (add-lists (scale-list integrand dt)
+                     int)))
+  int)
+
+(define (solve f y0 dt)
+  (define y (integral dy y0 dt))
+  (define dy (map f y))
+  y)
+
+@i{;;; L-Eval input:}
+(list-ref (solve (lambda (x) x) 1 0.001) 1000)
+
+@i{;;; L-Eval value:}
+@i{2.716924}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.32}Exercise 4.32:} Đưa ra một số ví dụ minh họa
+sự khác biệt giữa các luồng của @ref{Chapter 3} và các danh sách lười ``lười
+hơn'' được mô tả trong phần này. Bạn có thể tận dụng sự lười biếng thêm này
+như thế nào?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.33}Exercise 4.33:} Ben Bitdiddle kiểm tra hiện thực
+danh sách lười được đưa ra ở trên bằng cách định giá biểu thức
+
+@lisp
+(car '(a b c))
+@end lisp
+
+Thật ngạc nhiên, điều này tạo ra lỗi. Sau một thời gian suy nghĩ, anh nhận ra
+rằng các ``danh sách'' thu được bằng cách đọc các biểu thức được trích dẫn
+khác với các danh sách được thao tác bởi các định nghĩa mới của @code{cons},
+@code{car} và @code{cdr}. Sửa đổi cách trình định giá xử lý các biểu thức
+được trích dẫn để các danh sách được trích dẫn được gõ tại vòng điều khiển
+sẽ tạo ra các danh sách lười thực sự.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.34}Exercise 4.34:} Sửa đổi vòng điều khiển cho
+trình định giá để các cặp lười và danh sách sẽ được in theo một cách hợp lý.
+(Bạn sẽ làm gì với các danh sách vô hạn?) Bạn cũng có thể cần sửa đổi biểu
+diễn của các cặp lười để trình định giá có thể nhận dạng chúng để in chúng.
+@end quotation

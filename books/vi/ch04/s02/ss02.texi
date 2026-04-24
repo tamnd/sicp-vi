@@ -1,0 +1,462 @@
+@node	4.2.2, 4.2.3, 4.2.1, 4.2
+@subsection Một Trình Thông Dịch với Định Giá Lười
+
+Trong phần này chúng ta sẽ hiện thực một ngôn ngữ thứ tự thông thường giống
+Scheme ngoại trừ rằng các thủ tục phức hợp là không chặt trong mỗi đối số.
+Các thủ tục nguyên thủy vẫn sẽ là chặt. Không khó để sửa đổi trình định giá
+của @ref{4.1.1} để ngôn ngữ mà nó thông dịch hoạt động theo cách này. Hầu
+hết tất cả các thay đổi cần thiết xoay quanh việc áp dụng thủ tục.
+
+Ý tưởng cơ bản là, khi áp dụng một thủ tục, trình thông dịch phải xác định
+các đối số nào sẽ được định giá và các đối số nào sẽ bị trì hoãn. Các đối số
+bị trì hoãn không được định giá; thay vào đó, chúng được biến đổi thành các
+đối tượng gọi là @newterm{thunk}.@footnote{Từ @newterm{thunk} được tạo ra bởi
+một nhóm làm việc không chính thức đang thảo luận về hiện thực call-by-name
+trong Algol 60. Họ nhận thấy rằng hầu hết việc phân tích (``suy nghĩ về'')
+biểu thức có thể được thực hiện tại thời điểm biên dịch; do đó, tại thời
+điểm chạy, biểu thức đã được ``thunk'' xong (@ref{Ingerman et al. 1960}).}
+Thunk phải chứa thông tin cần thiết để tạo ra giá trị của đối số khi cần, như
+thể nó đã được định giá tại thời điểm áp dụng. Do đó, thunk phải chứa biểu
+thức đối số và môi trường mà ứng dụng thủ tục đang được định giá.
+
+Quá trình định giá biểu thức trong một thunk được gọi là @newterm{ép buộc}.@footnote{Điều
+này tương tự với việc dùng @code{force} trên các đối tượng trì hoãn được giới
+thiệu trong @ref{Chapter 3} để biểu diễn các luồng. Sự khác biệt quan trọng
+giữa những gì chúng ta đang làm ở đây và những gì chúng ta đã làm trong
+@ref{Chapter 3} là chúng ta đang xây dựng trì hoãn và ép buộc vào trình định
+giá, và do đó làm cho điều này thống nhất và tự động trong toàn bộ ngôn ngữ.}
+Nói chung, một thunk sẽ chỉ bị ép buộc khi giá trị của nó cần thiết: khi nó
+được truyền cho một thủ tục nguyên thủy sẽ dùng giá trị của thunk; khi nó là
+giá trị của một vị từ điều kiện; và khi nó là giá trị của một toán tử sắp
+được áp dụng như một thủ tục. Một lựa chọn thiết kế mà chúng ta có là liệu
+có @newterm{ghi nhớ} các thunk hay không, như chúng ta đã làm với các đối
+tượng trì hoãn trong @ref{3.5.1}. Với ghi nhớ, lần đầu tiên một thunk bị ép
+buộc, nó lưu trữ giá trị được tính toán. Các lần ép buộc tiếp theo đơn giản
+trả về giá trị đã lưu mà không lặp lại tính toán. Chúng ta sẽ làm cho trình
+thông dịch của mình ghi nhớ, vì điều này hiệu quả hơn cho nhiều ứng dụng. Tuy
+nhiên, có những cân nhắc phức tạp ở đây.@footnote{Định giá lười kết hợp với
+ghi nhớ đôi khi được gọi là truyền đối số @newterm{call-by-need}, trái với
+truyền đối số @newterm{call-by-name}. (Call-by-name, được giới thiệu trong
+Algol 60, tương tự như định giá lười không ghi nhớ.) Là người thiết kế ngôn
+ngữ, chúng ta có thể xây dựng trình định giá của mình để ghi nhớ, không ghi
+nhớ, hoặc để điều này như một tùy chọn cho lập trình viên (@ref{Exercise 4.31}).
+Như bạn có thể mong đợi từ @ref{Chapter 3}, những lựa chọn này nảy sinh các
+vấn đề trở nên cả tinh tế lẫn gây nhầm lẫn khi có sự gán. (Xem @ref{Exercise 4.27}
+và @ref{Exercise 4.29}.) Một bài báo xuất sắc của @ref{Clinger (1982)} cố
+gắng làm rõ nhiều chiều của sự nhầm lẫn phát sinh ở đây.}
+
+@subsubheading Sửa đổi trình định giá
+
+Sự khác biệt chính giữa trình định giá lười và trình định giá trong @ref{4.1}
+là trong việc xử lý các ứng dụng thủ tục trong @code{eval} và @code{apply}.
+
+Mệnh đề @code{application?} của @code{eval} trở thành
+
+@lisp
+((application? exp)
+ (apply (actual-value (operator exp) env)
+        (operands exp)
+        env))
+@end lisp
+
+@noindent
+Điều này gần giống như mệnh đề @code{application?} của @code{eval} trong
+@ref{4.1.1}. Tuy nhiên, để định giá lười, chúng ta gọi @code{apply} với các
+biểu thức toán hạng, thay vì các đối số được tạo ra bằng cách định giá chúng.
+Vì chúng ta sẽ cần môi trường để xây dựng các thunk nếu các đối số bị trì
+hoãn, chúng ta cũng phải truyền nó. Chúng ta vẫn định giá toán tử, vì
+@code{apply} cần thủ tục thực sự cần áp dụng để phân phối theo loại của nó
+(nguyên thủy so với phức hợp) và áp dụng nó.
+
+Bất cứ khi nào chúng ta cần giá trị thực sự của một biểu thức, chúng ta dùng
+
+@lisp
+(define (actual-value exp env)
+  (force-it (eval exp env)))
+@end lisp
+
+@noindent
+thay vì chỉ @code{eval}, để nếu giá trị của biểu thức là một thunk, nó sẽ bị
+ép buộc.
+
+Phiên bản mới của @code{apply} của chúng ta cũng gần giống với phiên bản
+trong @ref{4.1.1}. Sự khác biệt là @code{eval} đã truyền vào các biểu thức
+toán hạng chưa được định giá: Đối với các thủ tục nguyên thủy (chặt), chúng
+ta định giá tất cả các đối số trước khi áp dụng nguyên thủy; đối với các thủ
+tục phức hợp (không chặt), chúng ta trì hoãn tất cả các đối số trước khi áp
+dụng thủ tục.
+
+@lisp
+(define (apply procedure arguments env)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values
+           arguments
+           env)))  @r{; đã thay đổi}
+        ((compound-procedure? procedure)
+         (eval-sequence
+          (procedure-body procedure)
+          (extend-environment
+           (procedure-parameters procedure)
+           (list-of-delayed-args
+            arguments
+            env)   @r{; đã thay đổi}
+           (procedure-environment procedure))))
+        (else (error "Unknown procedure
+                      type: APPLY"
+                     procedure))))
+@end lisp
+
+@noindent
+Các thủ tục xử lý các đối số giống như @code{list-of-values} từ @ref{4.1.1},
+ngoại trừ @code{list-of-delayed-args} trì hoãn các đối số thay vì định giá
+chúng, và @code{list-of-arg-values} dùng @code{actual-value} thay vì
+@code{eval}:
+
+@lisp
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value
+             (first-operand exps)
+             env)
+            (list-of-arg-values
+             (rest-operands exps)
+             env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it
+             (first-operand exps)
+             env)
+            (list-of-delayed-args
+             (rest-operands exps)
+             env))))
+@end lisp
+
+@noindent
+Nơi khác chúng ta phải thay đổi trình định giá là trong việc xử lý @code{if},
+nơi chúng ta phải dùng @code{actual-value} thay vì @code{eval} để lấy giá trị
+của biểu thức vị từ trước khi kiểm tra xem nó là true hay false:
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (actual-value (if-predicate exp)
+                           env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+Cuối cùng, chúng ta phải thay đổi thủ tục @code{driver-loop} (@ref{4.1.4})
+để dùng @code{actual-value} thay vì @code{eval}, để nếu một giá trị bị trì
+hoãn được truyền ngược lại vòng đọc-định giá-in, nó sẽ bị ép buộc trước khi
+được in. Chúng ta cũng thay đổi các lời nhắc để chỉ ra rằng đây là trình định
+giá lười:
+
+@lisp
+(define input-prompt  ";;; L-Eval input:")
+(define output-prompt ";;; L-Eval value:")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (actual-value
+                   input
+                   the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+@end lisp
+
+@noindent
+Với những thay đổi này được thực hiện, chúng ta có thể khởi động trình định
+giá và kiểm tra nó. Việc định giá thành công biểu thức @code{try} được thảo
+luận trong @ref{4.2.1} chỉ ra rằng trình thông dịch đang thực hiện định giá
+lười:
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; L-Eval input:}
+(define (try a b) (if (= a 0) 1 b))
+
+@i{;;; L-Eval value:}
+@i{ok}
+
+@i{;;; L-Eval input:}
+(try 0 (/ 1 0))
+
+@i{;;; L-Eval value:}
+@i{1}
+@end lisp
+
+@subsubheading Biểu diễn các thunk
+
+Trình định giá của chúng ta phải sắp xếp để tạo ra các thunk khi các thủ tục
+được áp dụng cho các đối số và để ép buộc các thunk này sau. Một thunk phải
+đóng gói một biểu thức cùng với môi trường, để đối số có thể được tạo ra sau.
+Để ép buộc thunk, chúng ta đơn giản trích xuất biểu thức và môi trường từ
+thunk và định giá biểu thức trong môi trường. Chúng ta dùng @code{actual-value}
+thay vì @code{eval} để trong trường hợp giá trị của biểu thức tự nó là một
+thunk, chúng ta sẽ ép buộc cái đó, v.v., cho đến khi chúng ta đạt đến thứ
+không phải là thunk:
+
+@lisp
+(define (force-it obj)
+  (if (thunk? obj)
+      (actual-value (thunk-exp obj)
+                    (thunk-env obj))
+      obj))
+@end lisp
+
+@noindent
+Một cách dễ dàng để đóng gói một biểu thức với một môi trường là tạo một
+danh sách chứa biểu thức và môi trường. Như vậy, chúng ta tạo một thunk như
+sau:
+
+@lisp
+(define (delay-it exp env)
+  (list 'thunk exp env))
+(define (thunk? obj) (tagged-list? obj 'thunk))
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+@end lisp
+
+@noindent
+Thực ra, những gì chúng ta muốn cho trình thông dịch của mình không hẳn là
+như vậy, mà là các thunk đã được ghi nhớ. Khi một thunk bị ép buộc, chúng ta
+sẽ biến nó thành một thunk đã được định giá bằng cách thay thế biểu thức đã
+lưu bằng giá trị của nó và thay đổi thẻ @code{thunk} để nó có thể được nhận
+ra là đã được định giá.@footnote{Lưu ý rằng chúng ta cũng xóa @code{env} khỏi
+thunk một khi giá trị của biểu thức đã được tính toán. Điều này không tạo ra
+sự khác biệt trong các giá trị được trả về bởi trình thông dịch. Tuy nhiên,
+nó giúp tiết kiệm không gian, vì việc loại bỏ tham chiếu từ thunk đến
+@code{env} khi nó không còn cần thiết nữa cho phép cấu trúc này được
+@newterm{thu gom rác} và không gian của nó được tái chế, như chúng ta sẽ thảo
+luận trong @ref{5.3}.
+
+Tương tự, chúng ta có thể cho phép các môi trường không cần thiết trong các
+đối tượng trì hoãn đã ghi nhớ của @ref{3.5.1} được thu gom rác, bằng cách
+cho @code{memo-proc} làm gì đó như @code{(set! proc '())} để loại bỏ thủ tục
+@code{proc} (bao gồm môi trường trong đó @code{delay} được định giá) sau khi
+lưu trữ giá trị của nó.}
+
+@lisp
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk)
+  (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result
+                (actual-value
+                 (thunk-exp obj)
+                 (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           ;; @r{thay thế @code{exp} bằng giá trị của nó:}
+           (set-car! (cdr obj) result)
+           ;; @r{quên @code{env} không còn cần:}
+           (set-cdr! (cdr obj) '())
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
+@end lisp
+
+@noindent
+Lưu ý rằng cùng một thủ tục @code{delay-it} hoạt động cả khi có và không có
+ghi nhớ.
+
+@quotation
+@strong{@anchor{Exercise 4.27}Exercise 4.27:} Giả sử chúng ta gõ vào các định
+nghĩa sau cho trình định giá lười:
+
+@lisp
+(define count 0)
+(define (id x) (set! count (+ count 1)) x)
+@end lisp
+
+Cho các giá trị bị thiếu trong chuỗi tương tác sau, và giải thích câu trả lời
+của bạn.@footnote{Bài tập này chứng minh rằng sự tương tác giữa định giá lười
+và các hiệu ứng phụ có thể rất gây nhầm lẫn. Đây chính xác là những gì bạn
+có thể mong đợi từ cuộc thảo luận trong @ref{Chapter 3}.}
+
+@lisp
+(define w (id (id 10)))
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+w
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.28}Exercise 4.28:} @code{Eval} dùng
+@code{actual-value} thay vì @code{eval} để định giá toán tử trước khi truyền
+nó cho @code{apply}, nhằm ép buộc giá trị của toán tử. Đưa ra một ví dụ chứng
+minh sự cần thiết của việc ép buộc này.
+
+@noindent
+@strong{@anchor{Exercise 4.29}Exercise 4.29:} Trình bày một chương trình mà
+bạn mong đợi sẽ chạy chậm hơn nhiều khi không có ghi nhớ so với khi có ghi
+nhớ. Ngoài ra, hãy xem xét tương tác sau đây, trong đó thủ tục @code{id}
+được định nghĩa như trong @ref{Exercise 4.27} và @code{count} bắt đầu từ 0:
+
+@lisp
+(define (square x) (* x x))
+
+@i{;;; L-Eval input:}
+(square (id 10))
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+
+Cho các phản hồi cả khi trình định giá ghi nhớ và khi không ghi nhớ.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.30}Exercise 4.30:} Cy D. Fect, một lập trình viên
+C cải tà, lo lắng rằng một số hiệu ứng phụ có thể không bao giờ xảy ra, vì
+trình định giá lười không ép buộc các biểu thức trong một dãy. Vì giá trị của
+một biểu thức trong một dãy khác với biểu thức cuối cùng không được dùng (biểu
+thức ở đó chỉ vì hiệu ứng của nó, như gán cho một biến hoặc in ấn), không
+thể có việc dùng tiếp theo của giá trị này (ví dụ, như một đối số cho một thủ
+tục nguyên thủy) sẽ khiến nó bị ép buộc. Cy vì vậy nghĩ rằng khi định giá các
+dãy, chúng ta phải ép buộc tất cả các biểu thức trong dãy ngoại trừ biểu thức
+cuối. Anh đề xuất sửa đổi @code{eval-sequence} từ @ref{4.1.1} để dùng
+@code{actual-value} thay vì @code{eval}:
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps)
+         (eval (first-exp exps) env))
+        (else
+         (actual-value (first-exp exps)
+                       env)
+         (eval-sequence (rest-exps exps)
+                        env))))
+@end lisp
+
+@enumerate a
+
+@item
+Ben Bitdiddle nghĩ Cy sai. Anh chỉ cho Cy thủ tục @code{for-each} được mô tả
+trong @ref{Exercise 2.23}, đưa ra một ví dụ quan trọng về một dãy với các
+hiệu ứng phụ:
+
+@lisp
+(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc
+                       (cdr items)))))
+@end lisp
+
+Anh khẳng định rằng trình định giá trong văn bản (với @code{eval-sequence}
+ban đầu) xử lý điều này một cách chính xác:
+
+@lisp
+@i{;;; L-Eval input:}
+(for-each
+ (lambda (x) (newline) (display x))
+ (list 57 321 88))
+@i{57}
+@i{321}
+@i{88}
+
+@i{;;; L-Eval value:}
+@i{done}
+@end lisp
+
+Giải thích tại sao Ben đúng về hành vi của @code{for-each}.
+
+@item
+Cy đồng ý rằng Ben đúng về ví dụ @code{for-each}, nhưng nói rằng đó không
+phải loại chương trình anh đang nghĩ đến khi đề xuất thay đổi
+@code{eval-sequence}. Anh định nghĩa hai thủ tục sau trong trình định giá lười:
+
+@lisp
+(define (p1 x)
+  (set! x (cons x '(2))) x)
+
+(define (p2 x)
+  (define (p e) e x)
+  (p (set! x (cons x '(2)))))
+@end lisp
+
+Các giá trị của @code{(p1 1)} và @code{(p2 1)} với @code{eval-sequence} ban
+đầu là gì? Các giá trị sẽ là gì với thay đổi đề xuất của Cy cho
+@code{eval-sequence}?
+
+@item
+Cy cũng chỉ ra rằng việc thay đổi @code{eval-sequence} như anh đề xuất không
+ảnh hưởng đến hành vi của ví dụ trong phần a. Giải thích tại sao điều này
+đúng.
+
+@item
+Bạn nghĩ các dãy nên được xử lý như thế nào trong trình định giá lười? Bạn
+thích cách tiếp cận của Cy, cách tiếp cận trong văn bản, hay một cách tiếp
+cận nào khác?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.31}Exercise 4.31:} Cách tiếp cận được thực hiện
+trong phần này có phần khó chịu, vì nó tạo ra một thay đổi không tương thích
+với Scheme. Sẽ tốt hơn nếu hiện thực định giá lười như một @newterm{mở rộng
+tương thích ngược}, tức là, để các chương trình Scheme thông thường vẫn hoạt
+động như trước. Chúng ta có thể làm điều này bằng cách mở rộng cú pháp của
+các khai báo thủ tục để cho phép người dùng kiểm soát liệu các đối số có bị
+trì hoãn hay không. Trong khi chúng ta đang làm, chúng ta cũng có thể cho
+người dùng lựa chọn giữa trì hoãn có và không có ghi nhớ. Ví dụ, định nghĩa
+
+@lisp
+(define (f a (b lazy) c (d lazy-memo))
+  @r{…})
+@end lisp
+
+@noindent
+sẽ định nghĩa @code{f} là một thủ tục bốn đối số, trong đó đối số thứ nhất
+và thứ ba được định giá khi thủ tục được gọi, đối số thứ hai bị trì hoãn, và
+đối số thứ tư vừa bị trì hoãn vừa được ghi nhớ. Như vậy, các định nghĩa thủ
+tục thông thường sẽ tạo ra cùng hành vi như Scheme thông thường, trong khi
+thêm khai báo @code{lazy-memo} vào mỗi tham số của mỗi thủ tục phức hợp sẽ
+tạo ra hành vi của trình định giá lười được định nghĩa trong phần này. Thiết
+kế và hiện thực các thay đổi cần thiết để tạo ra tiện ích mở rộng như vậy
+cho Scheme. Bạn sẽ phải hiện thực các thủ tục cú pháp mới để xử lý cú pháp
+mới cho @code{define}. Bạn cũng phải sắp xếp cho @code{eval} hoặc @code{apply}
+xác định khi nào các đối số bị trì hoãn, và ép buộc hoặc trì hoãn các đối số
+tương ứng, và bạn phải sắp xếp để ép buộc có ghi nhớ hoặc không, tùy trường
+hợp.
+@end quotation
