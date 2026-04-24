@@ -113,11 +113,7 @@ $(NEXUS): $(SRC) $(CONV) $(MATH)
 	@#   * self-close void elements (link/meta/br/hr/img/...)
 	@#   * replace named &nbsp; (undefined in XHTML) with numeric &#160;
 	@for file in $(HTML); do \
-	  perl -0p -i -e ' \
-	    s/^<!DOC/<?xml version="1.0" encoding="utf-8"?>\n<!DOC/; \
-	    s{&nbsp;}{&#160;}g; \
-	    s{(<(?:link|meta|br|hr|img|input|area|base|col|embed|param|source|track|wbr)\b[^>]*?)(?<!/)>}{$$1 />}g; \
-	  ' $$file; \
+	  perl -0p -i -e 's/^<!DOC/<?xml version="1.0" encoding="utf-8"?>\n<!DOC/; s{&nbsp;}{&#160;}g; s{(<(?:link|meta|br|hr|img|input|area|base|col|embed|param|source|track|wbr)\b[^>]*?)(?<!/)>}{$$1 />}g;' $$file; \
 	done
 	@perl -0p -i -e \
 	  's{\.\./dir/index\.xhtml}{../index.xhtml}g' $(NEXUS)
