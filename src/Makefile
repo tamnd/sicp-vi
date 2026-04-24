@@ -81,21 +81,22 @@ endif
 $(NEXUS): $(SRC) $(CONV) $(MATH)
 	@echo "Converting Texinfo to HTML (LANG=$(LANG))..."
 	@# Texinfo 5.2 does not resolve nested @include paths relative to the
-	@# including file — a chapter's "@include s01/index.texi" only works if
-	@# texi2any runs from the book's root. We cd into the book dir and call
-	@# system texi2any (installed to /usr/local in the build image).
-	@# Our modified Texinfo::Convert::HTML.pm (produces .xhtml output) is
-	@# overlaid onto the system install so `use Texinfo::Convert::HTML`
-	@# picks it up — we can't rely on @INC order because BEGIN blocks in
-	@# texi2any unshift /usr/local/share/texinfo ahead of PERL5LIB.
+	@# including file. We stage a copy of the book and rewrite every
+	@# "@include RELPATH" to be relative to the book root, then run
+	@# texi2any from that staging root.
+	@# We also overlay our modified Texinfo::Convert::HTML.pm (produces
+	@# .xhtml output) onto the system install — @INC ordering in
+	@# texi2any's BEGIN block would otherwise pick up the stock file.
 	@SYS_HTML=/usr/local/share/texinfo/Texinfo/Convert/HTML.pm; \
 	 if [ -w $$SYS_HTML ] && ! cmp -s lib/Texinfo/Convert/HTML.pm $$SYS_HTML; then \
 	   cp lib/Texinfo/Convert/HTML.pm $$SYS_HTML; \
 	 fi
 	@SRC_ABS=$$(cd $(dir $(SRC)) && pwd); \
+	 STAGE=$$(pwd)/build-$(LANG); \
 	 OUT_ABS=$$(pwd)/$(DIR); \
-	 mkdir -p $$OUT_ABS; \
-	 (cd $$SRC_ABS && texi2any \
+	 rm -rf $$STAGE && mkdir -p $$OUT_ABS; \
+	 ./stage-texi.pl $$SRC_ABS $$STAGE; \
+	 (cd $$STAGE && texi2any \
 	   --no-warn --html --split=section --no-headers --iftex \
 	   --force --output $$OUT_ABS $(notdir $(SRC))) || true
 	@test -f $(NEXUS) || { echo "texi2any failed to produce $(NEXUS)"; exit 1; }
