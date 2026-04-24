@@ -23,12 +23,20 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-extra \
             fonts-linuxlibertine \
-            fonts-inconsolata \
             inkscape \
             perl \
             ruby \
             ruby-nokogiri \
+            unzip \
             zip
+
+      - name: Install Inconsolata LGC font
+        run: |
+          sudo mkdir -p /usr/local/share/fonts/inconsolata-lgc
+          curl -fsSL "https://github.com/MihaiPopescu/Inconsolata-LGC/releases/download/1.3/Inconsolata-LGC.zip" \
+            -o /tmp/inconsolata-lgc.zip
+          sudo unzip -q /tmp/inconsolata-lgc.zip -d /usr/local/share/fonts/inconsolata-lgc/
+          sudo fc-cache -fv
 
       - name: Build PDF
         run: make -C src/pdf
