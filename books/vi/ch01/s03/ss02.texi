@@ -1,0 +1,258 @@
+@node	1.3.2, 1.3.3, 1.3.1, 1.3
+@subsection Xây Dựng Thủ Tục Dùng @code{Lambda}
+
+Khi dùng @code{sum} như trong @ref{1.3.1}, có vẻ thật khó chịu khi phải định nghĩa các thủ tục tầm thường như @code{pi-term} và @code{pi-next} chỉ để có thể dùng chúng làm đối số cho thủ tục bậc cao.  Thay vì định nghĩa @code{pi-next} và @code{pi-term}, sẽ thuận tiện hơn nếu có cách trực tiếp chỉ định ``thủ tục trả về đầu vào của nó được tăng thêm 4'' và ``thủ tục trả về nghịch đảo của đầu vào nhân với đầu vào cộng 2.''  Ta có thể làm điều này bằng cách đưa vào dạng đặc biệt @code{lambda}, tạo ra các thủ tục.  Dùng @code{lambda} ta có thể mô tả những gì ta muốn là
+
+@lisp
+(lambda (x) (+ x 4))
+@end lisp
+
+@noindent
+và
+
+@lisp
+(lambda (x) (/ 1.0 (* x (+ x 2))))
+@end lisp
+
+@noindent
+Khi đó thủ tục @code{pi-sum} của ta có thể được biểu diễn mà không cần định nghĩa bất kỳ thủ tục phụ nào là
+
+@lisp
+(define (pi-sum a b)
+  (sum (lambda (x) (/ 1.0 (* x (+ x 2))))
+       a
+       (lambda (x) (+ x 4))
+       b))
+@end lisp
+
+@noindent
+Một lần nữa dùng @code{lambda}, ta có thể viết thủ tục @code{integral} mà không cần định nghĩa thủ tục phụ @code{add-dx}:
+
+@lisp
+(define (integral f a b dx)
+  (* (sum f (+ a (/ dx 2.0))
+            (lambda (x) (+ x dx))
+            b)
+     dx))
+@end lisp
+
+@noindent
+Nói chung, @code{lambda} được dùng để tạo thủ tục theo cách tương tự như @code{define}, ngoại trừ không có tên nào được chỉ định cho thủ tục:
+
+@lisp
+(lambda (⟨@var{formal-parameters}⟩) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+Thủ tục kết quả cũng là một thủ tục đúng như một thủ tục được tạo ra bằng @code{define}.  Sự khác biệt duy nhất là nó không được liên kết với bất kỳ tên nào trong môi trường.  Thực ra,
+
+@lisp
+(define (plus4 x) (+ x 4))
+@end lisp
+
+@noindent
+tương đương với
+
+@lisp
+(define plus4 (lambda (x) (+ x 4)))
+@end lisp
+
+@noindent
+Ta có thể đọc một biểu thức @code{lambda} như sau:
+
+@example
+(lambda                     (x)     (+   x     4))
+    |                        |       |   |     |
+the procedure of an argument x that adds x and 4
+@end example
+
+@noindent
+Giống như bất kỳ biểu thức nào có giá trị là thủ tục, một biểu thức @code{lambda} có thể được dùng làm toán tử trong một tổ hợp như
+
+@lisp
+((lambda (x y z) (+ x y (square z))) 1 2 3)
+@i{12}
+@end lisp
+
+@noindent
+hay, tổng quát hơn, trong bất kỳ ngữ cảnh nào ta thường dùng tên thủ tục.@footnote{Sẽ rõ ràng hơn và ít gây sợ hãi hơn cho người học Lisp nếu một tên hiển nhiên hơn @code{lambda}, chẳng hạn như @code{make-procedure}, được sử dụng.  Nhưng quy ước đã ăn sâu.  Ký hiệu được chấp nhận từ λ-tính, một hệ hình thức toán học được đưa vào bởi nhà logic toán học Alonzo @ref{Church (1941)}.  Church đã phát triển λ-tính để cung cấp nền tảng chặt chẽ cho việc nghiên cứu các khái niệm hàm và áp dụng hàm.  λ-tính đã trở thành một công cụ cơ bản cho các nghiên cứu toán học về ngữ nghĩa của các ngôn ngữ lập trình.}
+
+@subsubheading Dùng @code{let} để tạo biến cục bộ
+
+Một công dụng khác của @code{lambda} là trong việc tạo các biến cục bộ.  Ta thường cần các biến cục bộ trong các thủ tục của mình ngoài những biến đã được ràng buộc như các tham số hình thức.  Chẳng hạn, giả sử ta muốn tính hàm
+@ifinfo
+
+@example
+f(x,y) = x(1 + xy)^2 + y(1 - y) + (1 + xy)(1 - y)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :22:
+
+{f(x,y)} \,=\, {x(1 + xy)^2} + {y(1 - y)} + {(1 + xy)(1 - y),}
+\]
+
+@end tex
+@noindent
+mà ta cũng có thể biểu diễn là
+@ifinfo
+
+@example
+     a = 1 + xy
+     b = 1 - y
+f(x,y) = xa^2 + yb + ab
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :23:
+
+\begin{eqnarray}
+  a                     &=&   {1 + xy,}  \\
+  \hphantom{(x,y)} b    &=&   {1 - y,}   \\
+  {f(x,y)}              &=&   {xa^2} + {yb} + {ab.}
+\end{eqnarray}
+\]
+
+@end tex
+Khi viết một thủ tục để tính @math{f}, ta muốn bao gồm như các biến cục bộ không chỉ @math{x} và @math{y} mà cả các tên của các đại lượng trung gian như @math{a} và @math{b}.  Một cách để thực hiện điều này là dùng một thủ tục phụ để ràng buộc các biến cục bộ:
+
+@lisp
+(define (f x y)
+  (define (f-helper a b)
+    (+ (* x (square a))
+       (* y b)
+       (* a b)))
+  (f-helper (+ 1 (* x y))
+            (- 1 y)))
+@end lisp
+
+@noindent
+Dĩ nhiên ta có thể dùng một biểu thức @code{lambda} để chỉ định một thủ tục vô danh để ràng buộc các biến cục bộ của ta.  Thân của @code{f} khi đó trở thành một lời gọi duy nhất tới thủ tục đó:
+
+@lisp
+(define (f x y)
+  ((lambda (a b)
+     (+ (* x (square a))
+        (* y b)
+        (* a b)))
+   (+ 1 (* x y))
+   (- 1 y)))
+@end lisp
+
+@noindent
+Cấu trúc này rất hữu ích đến nỗi có một dạng đặc biệt gọi là @code{let} để làm cho việc sử dụng nó thuận tiện hơn.  Dùng @code{let}, thủ tục @code{f} có thể được viết là
+
+@lisp
+(define (f x y)
+  (let ((a (+ 1 (* x y)))
+        (b (- 1 y)))
+    (+ (* x (square a))
+       (* y b)
+       (* a b))))
+@end lisp
+
+@noindent
+Dạng tổng quát của biểu thức @code{let} là
+
+@lisp
+(let ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩)
+      (⟨@var{var₂}⟩ ⟨@var{exp₂}⟩)
+      @r{…}
+      (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+có thể được hiểu là
+
+@example
+let ⟨@var{var₁}⟩ @r{have the value} ⟨@var{exp₁}⟩ @r{and}
+    ⟨@var{var₂}⟩ @r{have the value} ⟨@var{exp₂}⟩ @r{and}
+    @r{…}
+    ⟨@var{varₙ}⟩ @r{have the value} ⟨@var{expₙ}⟩
+  @r{in} ⟨@var{body}⟩
+@end example
+
+@noindent
+Phần đầu của biểu thức @code{let} là một danh sách các cặp tên-biểu thức.  Khi @code{let} được đánh giá, mỗi tên được liên kết với giá trị của biểu thức tương ứng.  Thân của @code{let} được đánh giá với các tên này được ràng buộc như các biến cục bộ.  Điều này xảy ra vì biểu thức @code{let} được thông dịch như một cú pháp thay thế cho
+
+@lisp
+((lambda (⟨@var{var₁}⟩ @r{…} ⟨@var{varₙ}⟩)
+   ⟨@var{body}⟩)
+ ⟨@var{exp₁}⟩
+ @r{…}
+ ⟨@var{expₙ}⟩)
+@end lisp
+
+@noindent
+Không cần cơ chế mới nào trong trình thông dịch để cung cấp các biến cục bộ.  Biểu thức @code{let} đơn giản là đường cú pháp cho ứng dụng @code{lambda} cơ bản.
+
+Ta có thể thấy từ sự tương đương này rằng phạm vi của một biến được chỉ định bởi biểu thức @code{let} là thân của @code{let}.  Điều này có nghĩa là:
+
+@itemize @bullet
+
+@item
+@code{Let} cho phép ràng buộc các biến cục bộ nhất có thể với nơi chúng được sử dụng.  Chẳng hạn, nếu giá trị của @code{x} là 5, giá trị của biểu thức
+
+@lisp
+(+ (let ((x 3))
+     (+ x (* x 10)))
+   x)
+@end lisp
+
+@noindent
+là 38.  Ở đây, @code{x} trong thân của @code{let} là 3, vì vậy giá trị của biểu thức @code{let} là 33.  Mặt khác, @code{x} là đối số thứ hai của @code{+} ngoài cùng vẫn là 5.
+
+@item
+Các giá trị của biến được tính bên ngoài @code{let}.  Điều này quan trọng khi các biểu thức cung cấp giá trị cho các biến cục bộ phụ thuộc vào các biến có cùng tên với chính các biến cục bộ đó.  Chẳng hạn, nếu giá trị của @code{x} là 2, biểu thức
+
+@lisp
+(let ((x 3)
+      (y (+ x 2)))
+  (* x y))
+@end lisp
+
+@noindent
+sẽ có giá trị 12 vì, bên trong thân của @code{let}, @code{x} sẽ là 3 và @code{y} sẽ là 4 (là @code{x} bên ngoài cộng 2).
+
+@end itemize
+
+@noindent
+Đôi khi ta có thể dùng các định nghĩa nội tại để đạt được hiệu ứng tương tự như với @code{let}.  Chẳng hạn, ta có thể định nghĩa thủ tục @code{f} ở trên là
+
+@lisp
+(define (f x y)
+  (define a
+    (+ 1 (* x y)))
+  (define b (- 1 y))
+  (+ (* x (square a))
+     (* y b)
+     (* a b)))
+@end lisp
+
+@noindent
+Tuy nhiên, ta ưu tiên dùng @code{let} trong các tình huống như thế này và chỉ dùng @code{define} nội tại cho các thủ tục nội tại.@footnote{Hiểu các định nghĩa nội tại đủ để chắc chắn rằng chương trình có nghĩa như ta dự định đòi hỏi một mô hình quá trình đánh giá phức tạp hơn những gì ta đã trình bày trong chương này.  Tuy nhiên, những điều tinh tế này không phát sinh với các định nghĩa nội tại của các thủ tục.  Chúng ta sẽ quay lại vấn đề này trong @ref{4.1.6}, sau khi ta tìm hiểu thêm về đánh giá.}
+
+@quotation
+@strong{@anchor{Exercise 1.34}Bài tập 1.34:} Giả sử ta định nghĩa thủ tục
+
+@lisp
+(define (f g) (g 2))
+@end lisp
+
+Khi đó ta có
+
+@lisp
+(f square)
+@i{4}
+
+(f (lambda (z) (* z (+ z 1))))
+@i{6}
+@end lisp
+
+Điều gì xảy ra nếu ta (một cách kỳ quặc) yêu cầu trình thông dịch đánh giá tổ hợp @code{(f f)}?  Giải thích.
+@end quotation
