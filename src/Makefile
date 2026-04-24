@@ -96,6 +96,7 @@ $(NEXUS): $(SRC) $(CONV) $(MATH)
 	 OUT_ABS=$$(pwd)/$(DIR); \
 	 rm -rf $$STAGE && mkdir -p $$OUT_ABS; \
 	 ./stage-texi.pl $$SRC_ABS $$STAGE; \
+	 ln -s $$(pwd)/en_US/fig $$STAGE/fig; \
 	 (cd $$STAGE && texi2any \
 	   --no-warn --html --split=section --no-headers --iftex \
 	   --force --output $$OUT_ABS $(notdir $(SRC))) || true
