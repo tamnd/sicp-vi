@@ -5,6 +5,7 @@
 
 use 5.012;
 use warnings;
+use open ':std', ':encoding(UTF-8)';
 use File::Basename qw(dirname);
 use Cwd qw(abs_path);
 
