@@ -7,12 +7,15 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Pull build image
         run: docker pull ghcr.io/tamnd/sicp-docker:latest
@@ -33,7 +36,7 @@ jobs:
             make -C /workspace/src epub
 
       - name: Package HTML
-        run: cd src && zip -r ../sicp-html.zip html/
+        run: cd src && zip -r ../sicp-html.zip en_US/
 
       - name: Attach assets to release
         run: |
