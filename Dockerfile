@@ -9,6 +9,9 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     latexmk \
     texlive-xetex \
     texlive-latex-extra \
+    texlive-latex-recommended \
+    texlive-fonts-recommended \
+    texlive-plain-generic \
     texlive-fonts-extra \
     fonts-linuxlibertine \
     inkscape \
