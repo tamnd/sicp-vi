@@ -1,0 +1,227 @@
+@node	5.3.1, 5.3.2, 5.3, 5.3
+@subsection Bộ Nhớ Như Các Vectơ
+
+Một bộ nhớ máy tính thông thường có thể được xem như một mảng các ô nhỏ, mỗi ô có thể chứa một mảnh thông tin. Mỗi ô có một tên duy nhất, gọi là @newterm{địa chỉ} hoặc @newterm{vị trí} của nó. Các hệ thống bộ nhớ thông thường cung cấp hai phép toán nguyên thủy: một cái lấy dữ liệu được lưu trữ tại một vị trí được chỉ định và một cái gán dữ liệu mới vào một vị trí được chỉ định. Các địa chỉ bộ nhớ có thể được tăng dần để hỗ trợ truy cập tuần tự vào một tập hợp các ô. Tổng quát hơn, nhiều phép toán dữ liệu quan trọng yêu cầu các địa chỉ bộ nhớ được xử lý như dữ liệu, có thể được lưu trữ trong các vị trí bộ nhớ và thao tác trong các thanh ghi máy. Biểu diễn cấu trúc danh sách là một ứng dụng của @newterm{số học địa chỉ} như vậy.
+
+Để mô hình hóa bộ nhớ máy tính, ta sử dụng một loại cấu trúc dữ liệu mới gọi là @newterm{vectơ}. Về mặt trừu tượng, một vectơ là một đối tượng dữ liệu phức hợp có các phần tử riêng lẻ có thể được truy cập bằng chỉ số nguyên trong một lượng thời gian độc lập với chỉ số đó.@footnote{Ta có thể biểu diễn bộ nhớ như các danh sách các mục. Tuy nhiên, thời gian truy cập sẽ không độc lập với chỉ số, vì việc truy cập phần tử thứ @math{n^{\text{th}}} của một danh sách yêu cầu @math{{n - 1}} phép toán @code{cdr}.} Để mô tả các phép toán bộ nhớ, ta sử dụng hai thủ tục Scheme nguyên thủy để thao tác các vectơ:
+
+@itemize @bullet
+
+@item
+@code{(vector-ref ⟨@var{vector}⟩ ⟨@var{n}⟩)} trả về phần tử thứ @math{n^{\text{th}}} của vectơ.
+
+@item
+@code{(vector-set! ⟨@var{vector}⟩ ⟨@var{n}⟩ ⟨@var{value}⟩)}
+đặt phần tử thứ @math{n^{\text{th}}} của vectơ thành giá trị được chỉ định.
+
+@end itemize
+
+@noindent
+Ví dụ, nếu @code{v} là một vectơ, thì @code{(vector-ref v 5)} lấy mục thứ năm trong vectơ @code{v} và @code{(vector-set! v 5 7)} thay đổi giá trị của mục thứ năm của vectơ @code{v} thành 7.@footnote{Để hoàn chỉnh, ta nên chỉ định một phép toán @code{make-vector} để xây dựng các vectơ. Tuy nhiên, trong ứng dụng hiện tại ta sẽ chỉ sử dụng các vectơ để mô hình hóa các phân vùng cố định của bộ nhớ máy tính.} Đối với bộ nhớ máy tính, việc truy cập này có thể được thực hiện thông qua việc sử dụng số học địa chỉ để kết hợp một @newterm{địa chỉ cơ sở} chỉ định vị trí bắt đầu của một vectơ trong bộ nhớ với một @newterm{chỉ số} chỉ định độ lệch của một phần tử cụ thể của vectơ.
+
+@subsubheading Biểu diễn dữ liệu Lisp
+
+Ta có thể sử dụng các vectơ để hiện thực hóa các cấu trúc cặp cơ bản cần thiết cho bộ nhớ có cấu trúc danh sách. Hãy tưởng tượng rằng bộ nhớ máy tính được chia thành hai vectơ: @code{the-cars} và @code{the-cdrs}. Ta sẽ biểu diễn cấu trúc danh sách như sau: Con trỏ đến một cặp là một chỉ số vào hai vectơ. @code{Car} của cặp là mục trong @code{the-cars} với chỉ số được chỉ định, và @code{cdr} của cặp là mục trong @code{the-cdrs} với chỉ số được chỉ định. Ta cũng cần một biểu diễn cho các đối tượng khác ngoài các cặp (chẳng hạn như số và ký hiệu) và một cách để phân biệt loại dữ liệu này với loại khác. Có nhiều phương pháp để thực hiện điều này, nhưng tất cả đều quy về việc sử dụng @newterm{con trỏ có kiểu}, tức là mở rộng khái niệm ``con trỏ'' để bao gồm thông tin về kiểu dữ liệu.@footnote{Đây chính xác là ý tưởng ``dữ liệu có gắn thẻ'' mà ta đã giới thiệu trong @ref{Chapter 2} để xử lý các phép toán tổng quát. Tuy nhiên, ở đây các kiểu dữ liệu được bao gồm ở cấp độ máy nguyên thủy chứ không được xây dựng thông qua việc sử dụng danh sách.} Kiểu dữ liệu cho phép hệ thống phân biệt con trỏ đến một cặp (bao gồm kiểu dữ liệu ``pair'' và một chỉ số vào các vectơ bộ nhớ) với các con trỏ đến các loại dữ liệu khác (bao gồm một số kiểu dữ liệu khác và bất kỳ thứ gì đang được sử dụng để biểu diễn dữ liệu của loại đó). Hai đối tượng dữ liệu được coi là giống nhau (@code{eq?}) nếu các con trỏ của chúng giống hệt nhau.@footnote{Thông tin kiểu có thể được mã hóa theo nhiều cách khác nhau, tùy thuộc vào chi tiết của máy mà hệ thống Lisp sẽ được hiện thực hóa. Hiệu quả thực thi của các chương trình Lisp sẽ phụ thuộc rất nhiều vào cách lựa chọn này được thực hiện một cách khéo léo như thế nào, nhưng rất khó để xây dựng các quy tắc thiết kế chung cho các lựa chọn tốt. Cách đơn giản nhất để hiện thực hóa con trỏ có kiểu là phân bổ một tập hợp bit cố định trong mỗi con trỏ làm @newterm{trường kiểu} mã hóa kiểu dữ liệu. Các câu hỏi quan trọng cần giải quyết khi thiết kế biểu diễn như vậy bao gồm: Cần bao nhiêu bit kiểu? Các chỉ số vectơ phải lớn đến mức nào? Các lệnh máy nguyên thủy có thể được sử dụng hiệu quả để thao tác các trường kiểu của con trỏ như thế nào? Các máy bao gồm phần cứng đặc biệt để xử lý hiệu quả các trường kiểu được gọi là có @newterm{kiến trúc gắn thẻ}.}
+@ref{Figure 5.14} minh họa việc sử dụng phương pháp này để biểu diễn danh sách @code{((1 2) 3 4)}, sơ đồ hộp-và-con-trỏ của nó cũng được thể hiện. Ta sử dụng tiền tố chữ cái để biểu thị thông tin kiểu dữ liệu. Do đó, con trỏ đến cặp có chỉ số 5 được ký hiệu là @code{p5}, danh sách rỗng được ký hiệu bởi con trỏ @code{e0}, và con trỏ đến số 4 được ký hiệu là @code{n4}. Trong sơ đồ hộp-và-con-trỏ, ta đã chỉ ra ở góc dưới bên trái của mỗi cặp chỉ số vectơ chỉ định nơi @code{car} và @code{cdr} của cặp được lưu trữ. Các vị trí trống trong @code{the-cars} và @code{the-cdrs} có thể chứa các phần của các cấu trúc danh sách khác (không quan tâm ở đây).
+
+@float
+@anchor{Figure 5.14}
+@ifinfo
+@strong{Figure 5.14:} Box-and-pointer and memory-vector representations of the list @code{((1 2) 3 4)}.
+
+@example
+               +---+---+               +---+---+    +---+---+
+((1 2) 3 4) -->| * | *-+-------------->| * | *-+--->| * | / |
+               +-|-+---+               +-|-+---+    +-|-+---+
+              1  |                    2  |         4  |
+                 V                       V            V
+               +---+---+    +---+---+  +---+        +---+
+               | * | *-+--->| * | / |  | 3 |        | 4 |
+               +-|-+---+    +-|-+---+  +---+        +---+
+              5  |         7  |
+                 V            V
+               +---+        +---+
+               | 1 |        | 2 |
+               +---+        +---+
+
+   Index   0    1    2    3    4    5    6    7    8    ...
+         +----+----+----+----+----+----+----+----+----+----
+the-cars |    | p5 | n3 |    | n4 | n1 |    | n2 |    | ...
+         +----+----+----+----+----+----+----+----+----+----
+the-cdrs |    | p2 | p4 |    | e0 | p7 |    | e0 |    | ...
+         +----+----+----+----+----+----+----+----+----+----
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.14b,137mm,,,.std.svg}
+@caption{@strong{Figure 5.14:} Box-and-pointer and memory-vector representations of the list @code{((1 2) 3 4)}.}
+@end iftex
+@end float
+
+@noindent
+Con trỏ đến một số, chẳng hạn như @code{n4}, có thể bao gồm kiểu chỉ ra dữ liệu số cùng với biểu diễn thực sự của số 4.@footnote{Quyết định này về biểu diễn số xác định xem @code{eq?}, kiểm tra sự bằng nhau của các con trỏ, có thể được sử dụng để kiểm tra sự bằng nhau của các số hay không. Nếu con trỏ chứa chính số đó, thì các số bằng nhau sẽ có cùng con trỏ. Nhưng nếu con trỏ chứa chỉ số của vị trí nơi số được lưu trữ, các số bằng nhau sẽ được đảm bảo có con trỏ bằng nhau chỉ khi ta cẩn thận không bao giờ lưu trữ cùng một số ở nhiều vị trí.} Để xử lý các số quá lớn để biểu diễn trong lượng không gian cố định được phân bổ cho một con trỏ duy nhất, ta có thể sử dụng kiểu dữ liệu @newterm{bignum} riêng biệt, trong đó con trỏ chỉ định một danh sách trong đó các phần của số được lưu trữ.@footnote{Điều này giống như việc viết một số như một chuỗi các chữ số, ngoại trừ mỗi ``chữ số'' là một số từ 0 đến số lớn nhất có thể được lưu trữ trong một con trỏ duy nhất.}
+
+Một ký hiệu có thể được biểu diễn như một con trỏ có kiểu chỉ định một chuỗi các ký tự tạo thành biểu diễn in của ký hiệu. Chuỗi này được xây dựng bởi bộ đọc Lisp khi chuỗi ký tự lần đầu tiên được gặp trong đầu vào. Vì ta muốn hai trường hợp của một ký hiệu được nhận ra là ký hiệu ``giống nhau'' bởi @code{eq?} và ta muốn @code{eq?} là một bài kiểm tra đơn giản về sự bằng nhau của con trỏ, ta phải đảm bảo rằng nếu bộ đọc thấy cùng một chuỗi ký tự hai lần, nó sẽ sử dụng cùng một con trỏ (đến cùng một chuỗi ký tự) để biểu diễn cả hai lần xuất hiện. Để thực hiện điều này, bộ đọc duy trì một bảng, theo truyền thống được gọi là @newterm{obarray}, của tất cả các ký hiệu mà nó đã gặp. Khi bộ đọc gặp một chuỗi ký tự và sắp xây dựng một ký hiệu, nó kiểm tra obarray để xem liệu nó đã từng gặp cùng một chuỗi ký tự trước đó chưa. Nếu chưa, nó sử dụng các ký tự để xây dựng một ký hiệu mới (con trỏ có kiểu đến một chuỗi ký tự mới) và nhập con trỏ này vào obarray. Nếu bộ đọc đã thấy chuỗi trước đó, nó trả về con trỏ ký hiệu được lưu trữ trong obarray. Quá trình thay thế các chuỗi ký tự bằng các con trỏ duy nhất này được gọi là @newterm{nội trú} ký hiệu.
+
+@subsubheading Hiện thực hóa các phép toán danh sách nguyên thủy
+
+Với sơ đồ biểu diễn trên, ta có thể thay thế mỗi phép toán danh sách ``nguyên thủy'' của một máy thanh ghi bằng một hoặc nhiều phép toán vectơ nguyên thủy. Ta sẽ sử dụng hai thanh ghi, @code{the-cars} và @code{the-cdrs}, để xác định các vectơ bộ nhớ, và sẽ giả sử rằng @code{vector-ref} và @code{vector-set!} có sẵn như là các phép toán nguyên thủy. Ta cũng giả sử rằng các phép toán số học trên con trỏ (chẳng hạn như tăng dần con trỏ, sử dụng con trỏ cặp để lập chỉ mục vectơ, hoặc cộng hai số) chỉ sử dụng phần chỉ số của con trỏ có kiểu.
+
+Ví dụ, ta có thể làm cho một máy thanh ghi hỗ trợ các lệnh
+
+@lisp
+(assign ⟨@var{reg₁}⟩ (op car) (reg ⟨@var{reg₂}⟩))
+(assign ⟨@var{reg₁}⟩ (op cdr) (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+nếu ta hiện thực hóa chúng, tương ứng, như
+
+@lisp
+(assign ⟨@var{reg₁}⟩
+        (op vector-ref)
+        (reg the-cars)
+        (reg ⟨@var{reg₂}⟩))
+(assign ⟨@var{reg₁}⟩
+        (op vector-ref)
+        (reg the-cdrs)
+        (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+Các lệnh
+
+@lisp
+(perform (op set-car!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+(perform (op set-cdr!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+được hiện thực hóa như
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+@code{Cons} được thực hiện bằng cách cấp phát một chỉ số chưa sử dụng và lưu trữ các đối số cho @code{cons} trong @code{the-cars} và @code{the-cdrs} tại vị trí vectơ được lập chỉ mục đó. Ta giả sử rằng có một thanh ghi đặc biệt, @code{free}, luôn giữ một con trỏ cặp chứa chỉ số có sẵn tiếp theo, và ta có thể tăng dần phần chỉ số của con trỏ đó để tìm vị trí tự do tiếp theo.@footnote{Có những cách khác để tìm bộ nhớ tự do. Ví dụ, ta có thể liên kết tất cả các cặp chưa sử dụng thành một @newterm{danh sách tự do}. Các vị trí tự do của ta là liên tiếp (và do đó có thể được truy cập bằng cách tăng dần con trỏ) vì ta đang sử dụng bộ thu gom rác nén, như ta sẽ thấy trong @ref{5.3.2}.} Ví dụ, lệnh
+
+@lisp
+(assign ⟨@var{reg₁}⟩
+        (op cons)
+        (reg ⟨@var{reg₂}⟩)
+        (reg ⟨@var{reg₃}⟩))
+@end lisp
+
+@noindent
+được hiện thực hóa như chuỗi các phép toán vectơ sau:@footnote{Đây về cơ bản là hiện thực hóa @code{cons} theo @code{set-car!} và @code{set-cdr!}, như được mô tả trong @ref{3.3.1}. Phép toán @code{get-new-pair} được sử dụng trong hiện thực hóa đó được thực hiện ở đây bởi con trỏ @code{free}.}
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg free)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg free)
+         (reg ⟨@var{reg₃}⟩))
+(assign ⟨@var{reg₁}⟩ (reg free))
+(assign free (op +) (reg free) (const 1))
+@end lisp
+
+@noindent
+Phép toán @code{eq?}
+
+@lisp
+(op eq?) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩)
+@end lisp
+
+@noindent
+đơn giản kiểm tra sự bằng nhau của tất cả các trường trong các thanh ghi, và các vị từ như @code{pair?}, @code{null?}, @code{symbol?}, và @code{number?} chỉ cần kiểm tra trường kiểu.
+
+@subsubheading Hiện thực hóa các ngăn xếp
+
+Mặc dù các máy thanh ghi của ta sử dụng ngăn xếp, ta không cần làm gì đặc biệt ở đây, vì các ngăn xếp có thể được mô hình hóa theo danh sách. Ngăn xếp có thể là một danh sách các giá trị đã lưu, được trỏ đến bởi một thanh ghi đặc biệt @code{the-stack}. Do đó, @code{(save ⟨@var{reg}⟩)} có thể được hiện thực hóa như
+
+@lisp
+(assign the-stack
+        (op cons)
+        (reg ⟨@var{reg}⟩)
+        (reg the-stack))
+@end lisp
+
+@noindent
+Tương tự, @code{(restore ⟨@var{reg}⟩)} có thể được hiện thực hóa như
+
+@lisp
+(assign ⟨@var{reg}⟩ (op car) (reg the-stack))
+(assign the-stack (op cdr) (reg the-stack))
+@end lisp
+
+@noindent
+và @code{(perform (op initialize-stack))} có thể được hiện thực hóa như
+
+@lisp
+(assign the-stack (const ()))
+@end lisp
+
+@noindent
+Các phép toán này có thể được mở rộng thêm theo các phép toán vectơ được đưa ra ở trên. Tuy nhiên, trong các kiến trúc máy tính thông thường, thường có lợi khi cấp phát ngăn xếp như một vectơ riêng biệt. Khi đó, việc đẩy và bật ngăn xếp có thể được thực hiện bằng cách tăng hoặc giảm một chỉ số vào vectơ đó.
+
+@quotation
+@strong{@anchor{Exercise 5.20}Bài tập 5.20:} Vẽ biểu diễn hộp-và-con-trỏ và biểu diễn vectơ-bộ nhớ (như trong @ref{Figure 5.14}) của cấu trúc danh sách được tạo ra bởi
+
+@lisp
+(define x (cons 1 2))
+(define y (list x x))
+@end lisp
+
+@noindent
+với con trỏ @code{free} ban đầu là @code{p1}. Giá trị cuối cùng của @code{free} là gì? Các con trỏ nào biểu diễn các giá trị của @code{x} và @code{y}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.21}Bài tập 5.21:} Hiện thực hóa các máy thanh ghi cho các thủ tục sau. Giả sử rằng các phép toán bộ nhớ có cấu trúc danh sách có sẵn như là các phép toán nguyên thủy của máy.
+
+@enumerate a
+
+@item
+@code{count-leaves} đệ quy:
+
+@lisp
+(define (count-leaves tree)
+  (cond ((null? tree) 0)
+        ((not (pair? tree)) 1)
+        (else
+         (+ (count-leaves (car tree))
+            (count-leaves (cdr tree))))))
+@end lisp
+
+@item
+@code{count-leaves} đệ quy với bộ đếm tường minh:
+
+@lisp
+(define (count-leaves tree)
+  (define (count-iter tree n)
+    (cond ((null? tree) n)
+          ((not (pair? tree)) (+ n 1))
+          (else
+           (count-iter
+            (cdr tree)
+            (count-iter (car tree)
+                        n)))))
+  (count-iter tree 0))
+@end lisp
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.22}Bài tập 5.22:} @ref{Exercise 3.12} trong @ref{3.3.1} trình bày một thủ tục @code{append} nối hai danh sách để tạo thành một danh sách mới và một thủ tục @code{append!} ghép hai danh sách lại với nhau. Thiết kế một máy thanh ghi để hiện thực hóa mỗi thủ tục này. Giả sử rằng các phép toán bộ nhớ có cấu trúc danh sách có sẵn như là các phép toán nguyên thủy.
+@end quotation

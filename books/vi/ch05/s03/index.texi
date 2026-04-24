@@ -1,0 +1,14 @@
+@node	5.3, 5.4, 5.2, Chapter 5
+@section Cấp Phát Bộ Nhớ và Thu Gom Rác
+
+Trong @ref{5.4}, ta sẽ chỉ ra cách hiện thực hóa một trình định giá Scheme như một máy thanh ghi. Để đơn giản hóa thảo luận, ta sẽ giả sử rằng các máy thanh ghi của ta có thể được trang bị một @newterm{bộ nhớ có cấu trúc danh sách}, trong đó các phép toán cơ bản để thao tác dữ liệu có cấu trúc danh sách là nguyên thủy. Việc giả định sự tồn tại của một bộ nhớ như vậy là một sự trừu tượng hữu ích khi ta tập trung vào các cơ chế điều khiển trong một trình thông dịch Scheme, nhưng điều này không phản ánh cái nhìn thực tế về các phép toán dữ liệu nguyên thủy thực sự của các máy tính hiện đại. Để có được một bức tranh hoàn chỉnh hơn về cách một hệ thống Lisp hoạt động, ta phải điều tra cách cấu trúc danh sách có thể được biểu diễn theo cách tương thích với các bộ nhớ máy tính thông thường.
+
+Có hai vấn đề cần xem xét trong việc hiện thực hóa cấu trúc danh sách. Vấn đề đầu tiên hoàn toàn là vấn đề biểu diễn: làm thế nào để biểu diễn cấu trúc ``hộp-và-con-trỏ'' của các cặp Lisp, chỉ sử dụng khả năng lưu trữ và định địa chỉ của các bộ nhớ máy tính thông thường. Vấn đề thứ hai liên quan đến việc quản lý bộ nhớ khi một phép tính tiến hành. Hoạt động của một hệ thống Lisp phụ thuộc rất nhiều vào khả năng liên tục tạo ra các đối tượng dữ liệu mới. Chúng bao gồm các đối tượng được tạo ra rõ ràng bởi các thủ tục Lisp đang được thông dịch cũng như các cấu trúc được tạo ra bởi chính trình thông dịch, chẳng hạn như các môi trường và danh sách đối số. Mặc dù việc liên tục tạo ra các đối tượng dữ liệu mới sẽ không gây ra vấn đề gì trên một máy tính với lượng bộ nhớ có thể địa chỉ nhanh chóng vô hạn, các bộ nhớ máy tính chỉ có sẵn với kích thước hữu hạn (thật tiếc). Các hệ thống Lisp do đó cung cấp một cơ chế @newterm{cấp phát bộ nhớ tự động} để hỗ trợ ảo giác về một bộ nhớ vô hạn. Khi một đối tượng dữ liệu không còn cần thiết nữa, bộ nhớ được cấp phát cho nó sẽ được tự động tái sử dụng và dùng để xây dựng các đối tượng dữ liệu mới. Có nhiều kỹ thuật để cung cấp cấp phát bộ nhớ tự động như vậy. Phương pháp ta sẽ thảo luận trong phần này được gọi là @newterm{thu gom rác}.
+
+@menu
+* 5.3.1::            Bộ Nhớ Như Các Vectơ
+* 5.3.2::            Duy Trì Ảo Giác về Bộ Nhớ Vô Hạn
+@end menu
+
+@include ss01.texi
+@include ss02.texi
