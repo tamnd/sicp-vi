@@ -80,11 +80,24 @@ endif
 
 $(NEXUS): $(SRC) $(CONV) $(MATH)
 	@echo "Converting Texinfo to HTML (LANG=$(LANG))..."
-	@# --force lets texi2any write output even when a translation has @ref
-	@# to a node that hasn't been translated yet. We still inspect the
-	@# result: the build fails only if $(NEXUS) was not produced.
-	@./texi2any --no-warn --html --split=section --no-headers --iftex \
-	  --force --output $(DIR) $(SRC) || true
+	@# Texinfo 5.2 does not resolve nested @include paths relative to the
+	@# including file — a chapter's "@include s01/index.texi" only works if
+	@# texi2any runs from the book's root. We cd into the book dir and call
+	@# system texi2any (installed to /usr/local in the build image).
+	@# Our modified Texinfo::Convert::HTML.pm (produces .xhtml output) is
+	@# overlaid onto the system install so `use Texinfo::Convert::HTML`
+	@# picks it up — we can't rely on @INC order because BEGIN blocks in
+	@# texi2any unshift /usr/local/share/texinfo ahead of PERL5LIB.
+	@SYS_HTML=/usr/local/share/texinfo/Texinfo/Convert/HTML.pm; \
+	 if [ -w $$SYS_HTML ] && ! cmp -s lib/Texinfo/Convert/HTML.pm $$SYS_HTML; then \
+	   cp lib/Texinfo/Convert/HTML.pm $$SYS_HTML; \
+	 fi
+	@SRC_ABS=$$(cd $(dir $(SRC)) && pwd); \
+	 OUT_ABS=$$(pwd)/$(DIR); \
+	 mkdir -p $$OUT_ABS; \
+	 (cd $$SRC_ABS && texi2any \
+	   --no-warn --html --split=section --no-headers --iftex \
+	   --force --output $$OUT_ABS $(notdir $(SRC))) || true
 	@test -f $(NEXUS) || { echo "texi2any failed to produce $(NEXUS)"; exit 1; }
 	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f -- || true
 	@echo "Replacing LaTeX with MathML..."
