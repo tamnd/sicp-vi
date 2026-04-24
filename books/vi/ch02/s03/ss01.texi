@@ -1,0 +1,210 @@
+@node	2.3.1, 2.3.2, 2.3, 2.3
+@subsection Trích Dẫn
+
+Nếu chúng ta có thể tạo dữ liệu phức hợp bằng cách dùng ký hiệu, chúng ta có
+thể có các danh sách như
+
+@lisp
+(a b c d)
+(23 45 17)
+((Norah 12)
+ (Molly 9)
+ (Anna 7)
+ (Lauren 6)
+ (Charlotte 4))
+@end lisp
+
+@noindent
+Các danh sách chứa ký hiệu có thể trông giống hệt các biểu thức trong ngôn ngữ
+của chúng ta:
+
+@lisp
+(* (+ 23 45) (+ x 9))
+(define (fact n)
+  (if (= n 1)
+      1
+      (* n (fact (- n 1)))))
+@end lisp
+
+@noindent
+Để thao tác các ký hiệu, chúng ta cần một yếu tố mới trong ngôn ngữ: khả năng
+@newterm{trích dẫn} một đối tượng dữ liệu. Giả sử chúng ta muốn xây dựng danh
+sách @code{(a b)}. Chúng ta không thể thực hiện điều này với @code{(list a b)},
+vì biểu thức này xây dựng một danh sách các @newterm{giá trị} của @code{a} và
+@code{b} chứ không phải bản thân các ký hiệu. Vấn đề này quen thuộc trong ngữ
+cảnh ngôn ngữ tự nhiên, nơi các từ và câu có thể được coi là các thực thể ngữ
+nghĩa hoặc là các chuỗi ký tự (thực thể cú pháp). Thông lệ phổ biến trong
+ngôn ngữ tự nhiên là dùng dấu ngoặc kép để chỉ ra rằng một từ hay một câu phải
+được hiểu theo nghĩa đen như một chuỗi ký tự. Chẳng hạn, chữ cái đầu tiên của
+``John'' rõ ràng là ``J.'' Nếu chúng ta bảo ai đó ``hãy nói tên của bạn thành
+tiếng'', chúng ta kỳ vọng nghe thấy tên của người đó. Tuy nhiên, nếu chúng ta
+bảo ai đó ``hãy nói `tên của bạn' thành tiếng'', chúng ta kỳ vọng nghe thấy các
+từ ``tên của bạn.'' Lưu ý rằng chúng ta buộc phải lồng dấu ngoặc kép để mô tả
+những gì người khác có thể nói.@footnote{Cho phép trích dẫn trong một ngôn ngữ
+gây ra sự hỗn loạn cho khả năng suy luận về ngôn ngữ theo các thuật ngữ đơn
+giản, bởi vì nó phá hủy khái niệm rằng các thứ bằng nhau có thể được thay thế
+cho nhau. Ví dụ, ba là một cộng hai, nhưng từ ``ba'' không phải là cụm từ ``một
+cộng hai.'' Trích dẫn là mạnh mẽ vì nó cho chúng ta một cách để xây dựng các
+biểu thức thao tác các biểu thức khác (như chúng ta sẽ thấy khi viết một trình
+thông dịch trong @ref{Chapter 4}). Nhưng cho phép các câu lệnh trong một ngôn
+ngữ nói về các câu lệnh khác trong ngôn ngữ đó làm cho rất khó duy trì bất kỳ
+nguyên tắc mạch lạc nào về ý nghĩa của ``các thứ bằng nhau có thể được thay thế
+cho nhau.'' Ví dụ, nếu chúng ta biết rằng ngôi sao buổi tối là ngôi sao buổi
+sáng, thì từ câu lệnh ``ngôi sao buổi tối là Sao Kim'' chúng ta có thể suy ra
+``ngôi sao buổi sáng là Sao Kim.'' Tuy nhiên, từ câu ``John biết rằng ngôi sao
+buổi tối là Sao Kim'' chúng ta không thể suy ra rằng ``John biết rằng ngôi sao
+buổi sáng là Sao Kim.''}
+
+Chúng ta có thể tuân theo thông lệ tương tự để xác định các danh sách và ký hiệu
+được coi là các đối tượng dữ liệu chứ không phải là các biểu thức cần được định
+giá. Tuy nhiên, định dạng trích dẫn của chúng ta khác với ngôn ngữ tự nhiên ở
+chỗ chúng ta đặt dấu ngoặc kép (theo truyền thống, ký hiệu trích dẫn đơn
+@w{@code{'})} chỉ ở đầu đối tượng cần trích dẫn. Chúng ta có thể làm điều này
+trong cú pháp Scheme vì chúng ta dựa vào khoảng trắng và dấu ngoặc đơn để phân
+tách các đối tượng. Do đó, ý nghĩa của ký tự trích dẫn đơn là trích dẫn đối
+tượng tiếp theo.@footnote{Trích dẫn đơn khác với dấu ngoặc kép mà chúng ta đã
+dùng để bao quanh các chuỗi ký tự cần in. Trong khi trích dẫn đơn có thể dùng
+để biểu thị các danh sách hoặc ký hiệu, dấu ngoặc kép chỉ được dùng với các
+chuỗi ký tự. Trong cuốn sách này, chuỗi ký tự chỉ được dùng như các mục cần
+in.}
+
+Bây giờ chúng ta có thể phân biệt giữa các ký hiệu và giá trị của chúng:
+
+@lisp
+(define a 1)
+(define b 2)
+
+(list a b)
+@i{(1 2)}
+
+(list 'a 'b)
+@i{(a b)}
+
+(list 'a b)
+@i{(a 2)}
+@end lisp
+
+@noindent
+Trích dẫn cũng cho phép chúng ta nhập các đối tượng phức hợp, sử dụng ký hiệu
+in thông thường cho các danh sách:@footnote{Nghiêm ngặt mà nói, việc chúng ta
+sử dụng dấu ngoặc kép vi phạm quy tắc chung rằng tất cả các biểu thức phức hợp
+trong ngôn ngữ của chúng ta phải được phân tách bởi dấu ngoặc đơn và trông giống
+như danh sách. Chúng ta có thể khôi phục tính nhất quán này bằng cách giới thiệu
+một dạng đặc biệt @code{quote}, phục vụ cùng mục đích như dấu ngoặc kép. Vì vậy,
+chúng ta sẽ gõ @code{(quote a)} thay vì @code{'a}, và chúng ta sẽ gõ
+@code{(quote (a b c))} thay vì @code{'(a b c)}. Đây chính xác là cách trình
+thông dịch hoạt động. Dấu ngoặc kép chỉ là viết tắt một ký tự cho việc bọc biểu
+thức hoàn chỉnh tiếp theo với @code{quote} để tạo thành
+@code{(quote ⟨@var{biểu-thức}⟩)}. Điều này quan trọng vì nó duy trì nguyên tắc
+rằng bất kỳ biểu thức nào được trình thông dịch nhìn thấy đều có thể được thao
+tác như một đối tượng dữ liệu. Ví dụ, chúng ta có thể xây dựng biểu thức
+@code{(car '(a b c))}, tương đương với @code{(car (quote (a b c)))}, bằng cách
+định giá @code{(list 'car (list 'quote '(a b c)))}.}
+
+@lisp
+(car '(a b c))
+@i{a}
+
+(cdr '(a b c))
+@i{(b c)}
+@end lisp
+
+@noindent
+Phù hợp với điều này, chúng ta có thể thu được danh sách rỗng bằng cách định giá
+@code{'()}, và do đó không cần đến biến @code{nil}.
+
+Một thao tác nguyên thủy bổ sung được dùng để thao tác ký hiệu là @code{eq?},
+nhận hai ký hiệu làm đối số và kiểm tra xem chúng có giống nhau không.@footnote{Chúng ta có thể coi hai ký hiệu là ``giống nhau'' nếu chúng bao gồm cùng
+các ký tự theo cùng thứ tự. Định nghĩa như vậy né tránh một vấn đề sâu xa mà
+chúng ta chưa sẵn sàng giải quyết: ý nghĩa của ``sự đồng nhất'' trong một ngôn
+ngữ lập trình. Chúng ta sẽ quay lại điều này trong @ref{Chapter 3}
+(@ref{3.1.3}).}
+Sử dụng @code{eq?}, chúng ta có thể cài đặt một thủ tục hữu ích gọi là
+@code{memq}. Thủ tục này nhận hai đối số, một ký hiệu và một danh sách. Nếu
+ký hiệu không có trong danh sách (tức là không @code{eq?} với bất kỳ phần tử
+nào trong danh sách), thì @code{memq} trả về false. Nếu không, nó trả về danh
+sách con của danh sách bắt đầu từ lần xuất hiện đầu tiên của ký hiệu:
+
+@lisp
+(define (memq item x)
+  (cond ((null? x) false)
+        ((eq? item (car x)) x)
+        (else (memq item (cdr x)))))
+@end lisp
+
+@noindent
+Ví dụ, giá trị của
+
+@lisp
+(memq 'apple '(pear banana prune))
+@end lisp
+
+@noindent
+là false, trong khi giá trị của
+
+@lisp
+(memq 'apple '(x (apple sauce) y apple pear))
+@end lisp
+
+@noindent
+là @code{(apple pear)}.
+
+@quotation
+@strong{@anchor{Exercise 2.53}Bài tập 2.53:} Trình thông dịch sẽ in gì khi
+định giá từng biểu thức sau đây?
+
+@lisp
+(list 'a 'b 'c)
+(list (list 'george))
+(cdr '((x1 x2) (y1 y2)))
+(cadr '((x1 x2) (y1 y2)))
+(pair? (car '(a short list)))
+(memq 'red '((red shoes) (blue socks)))
+(memq 'red '(red shoes blue socks))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.54}Bài tập 2.54:} Hai danh sách được gọi là
+@code{equal?} nếu chúng chứa các phần tử bằng nhau sắp xếp theo cùng thứ tự.
+Ví dụ,
+
+@lisp
+(equal? '(this is a list)
+        '(this is a list))
+@end lisp
+
+@noindent
+là true, nhưng
+
+@lisp
+(equal? '(this is a list)
+        '(this (is a) list))
+@end lisp
+
+@noindent
+là false. Để chính xác hơn, chúng ta có thể định nghĩa @code{equal?} theo cách
+đệ quy dựa trên tính bằng nhau cơ bản @code{eq?} của các ký hiệu bằng cách nói
+rằng @code{a} và @code{b} là @code{equal?} nếu chúng đều là ký hiệu và các ký
+hiệu là @code{eq?}, hoặc nếu chúng đều là danh sách sao cho @code{(car a)} là
+@code{equal?} với @code{(car b)} và @code{(cdr a)} là @code{equal?} với
+@code{(cdr b)}. Sử dụng ý tưởng này, hãy cài đặt @code{equal?} như một thủ
+tục.@footnote{Trong thực tế, các lập trình viên sử dụng @code{equal?} để so
+sánh các danh sách chứa cả số lẫn ký hiệu. Số không được coi là ký hiệu. Câu
+hỏi liệu hai số bằng nhau về mặt số học (được kiểm tra bởi @code{=}) có cũng
+là @code{eq?} hay không phụ thuộc rất nhiều vào cài đặt. Định nghĩa tốt hơn
+của @code{equal?} (chẳng hạn như định nghĩa có sẵn như nguyên thủy trong
+Scheme) cũng sẽ quy định rằng nếu @code{a} và @code{b} đều là số, thì @code{a}
+và @code{b} là @code{equal?} nếu chúng bằng nhau về mặt số học.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.55}Bài tập 2.55:} Eva Lu Ator gõ vào trình thông
+dịch biểu thức
+
+@lisp
+(car ''abracadabra)
+@end lisp
+
+Thật bất ngờ, trình thông dịch in lại @code{quote}. Hãy giải thích.
+@end quotation

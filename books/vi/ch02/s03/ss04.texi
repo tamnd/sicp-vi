@@ -1,0 +1,453 @@
+@node	2.3.4, 2.4, 2.2, 2.3
+@subsection Ví Dụ: Cây Mã Huffman
+
+Phần này cung cấp thực hành trong việc sử dụng cấu trúc danh sách và trừu tượng
+dữ liệu để thao tác các tập hợp và cây. Ứng dụng là các phương pháp biểu diễn
+dữ liệu dưới dạng chuỗi số không và số một (bit). Ví dụ, mã chuẩn ASCII được
+dùng để biểu diễn văn bản trong máy tính mã hóa mỗi ký tự như một chuỗi bảy
+bit. Dùng bảy bit cho phép chúng ta phân biệt @math{2^7}, hay 128, các ký tự
+khác nhau có thể có. Nói chung, nếu chúng ta muốn phân biệt @math{n} ký hiệu
+khác nhau, chúng ta sẽ cần dùng @math{{\log_2n}} bit trên mỗi ký hiệu. Nếu
+tất cả các thông điệp của chúng ta được tạo thành từ tám ký hiệu A, B, C, D,
+E, F, G, và H, chúng ta có thể chọn mã với ba bit trên mỗi ký tự, ví dụ
+
+@example
+A 000  C 010  E 100  G 110
+B 001  D 011  F 101  H 111
+@end example
+
+@noindent
+Với mã này, thông điệp
+
+@example
+BACADAEAFABBAAAGAH
+@end example
+
+@noindent
+được mã hóa như chuỗi 54 bit
+
+@example
+001000010000011000100000101
+000001001000000000110000111
+@end example
+
+@noindent
+Các mã như ASCII và mã từ A đến H ở trên được gọi là mã @newterm{độ dài cố định},
+vì chúng biểu diễn mỗi ký hiệu trong thông điệp bằng cùng số bit. Đôi khi có
+lợi khi dùng mã @newterm{độ dài biến đổi}, trong đó các ký hiệu khác nhau có
+thể được biểu diễn bởi số lượng bit khác nhau. Ví dụ, mã Morse không dùng cùng
+số chấm và gạch ngang cho mỗi chữ cái trong bảng chữ cái. Đặc biệt, E, chữ cái
+thường gặp nhất, được biểu diễn bởi một chấm duy nhất. Nói chung, nếu các thông
+điệp của chúng ta là những thông điệp trong đó một số ký hiệu xuất hiện rất
+thường xuyên và một số rất hiếm, chúng ta có thể mã hóa dữ liệu hiệu quả hơn
+(tức là, dùng ít bit hơn trên mỗi thông điệp) nếu chúng ta gán mã ngắn hơn cho
+các ký hiệu thường gặp. Hãy xem xét mã thay thế sau đây cho các chữ cái từ A
+đến H:
+
+@example
+A 0    C 1010  E 1100  G 1110
+B 100  D 1011  F 1101  H 1111
+@end example
+
+@noindent
+Với mã này, cùng thông điệp như ở trên được mã hóa như chuỗi
+
+@example
+100010100101101100011
+010100100000111001111
+@end example
+
+@noindent
+Chuỗi này chứa 42 bit, vì vậy nó tiết kiệm hơn 20% không gian so với mã độ
+dài cố định được hiển thị ở trên.
+
+Một trong những khó khăn khi sử dụng mã độ dài biến đổi là biết khi nào bạn
+đã đến cuối một ký hiệu khi đọc một chuỗi số không và số một. Mã Morse giải
+quyết vấn đề này bằng cách dùng @newterm{mã phân tách} đặc biệt (trong trường
+hợp này là khoảng dừng) sau chuỗi chấm và gạch ngang cho mỗi chữ cái. Một
+giải pháp khác là thiết kế mã theo cách không có mã đầy đủ nào cho bất kỳ ký
+hiệu nào là phần đầu (hay @newterm{tiền tố}) của mã cho ký hiệu khác. Mã như
+vậy được gọi là @newterm{mã tiền tố}. Trong ví dụ trên, A được mã hóa bởi 0
+và B được mã hóa bởi 100, vì vậy không có ký hiệu nào khác có thể có mã bắt
+đầu bằng 0 hoặc 100.
+
+Nói chung, chúng ta có thể đạt được tiết kiệm đáng kể nếu sử dụng mã tiền tố
+độ dài biến đổi tận dụng tần suất tương đối của các ký hiệu trong các thông
+điệp cần mã hóa. Một sơ đồ cụ thể để làm điều này được gọi là phương pháp mã
+hóa Huffman, theo tên người phát minh ra nó, David Huffman. Mã Huffman có thể
+được biểu diễn như cây nhị phân mà các lá là các ký hiệu được mã hóa. Tại mỗi
+nút không phải lá của cây có một tập hợp chứa tất cả các ký hiệu trong các lá
+nằm dưới nút. Ngoài ra, mỗi ký hiệu tại lá được gán một trọng số (là tần suất
+tương đối của nó), và mỗi nút không phải lá chứa trọng số là tổng của tất cả
+các trọng số của các lá nằm dưới nó. Các trọng số không được dùng trong quá
+trình mã hóa hoặc giải mã. Chúng ta sẽ thấy bên dưới cách chúng được dùng để
+giúp xây dựng cây.
+
+@ref{Figure 2.18} cho thấy cây Huffman cho mã từ A đến H được nêu ở trên. Các
+trọng số tại các lá cho biết cây được thiết kế cho các thông điệp trong đó A
+xuất hiện với tần suất tương đối 8, B với tần suất tương đối 3, và các chữ cái
+khác mỗi chữ với tần suất tương đối 1.
+
+@float
+@anchor{Figure 2.18}
+@ifinfo
+@strong{Figure 2.18:} A Huffman encoding tree.
+
+@example
+           @{A B C D E F G H@} 17
+                    *
+                   / \
+                  /   \
+                A 8    * @{B C D E F G H@} 9
+            __________/ \_____________
+           /                          \
+@{B C D@} 5 *                            * @{E F G H@} 4
+         / \                       ___/ \___
+        /   \                     /         \
+      B 3    * @{C D@} 2   @{E F@} 2 *           * @{G H@} 2
+            / \                 / \         / \
+           /   \               /   \       /   \
+         C 1   D 1           E 1   F 1   G 1   H 1
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.18a,135mm,,,.std.svg}
+@caption{@strong{Figure 2.18:} A Huffman encoding tree.}
+@end iftex
+@end float
+
+Cho một cây Huffman, chúng ta có thể tìm mã hóa của bất kỳ ký hiệu nào bằng
+cách bắt đầu tại gốc và di chuyển xuống cho đến khi đến lá chứa ký hiệu. Mỗi
+lần chúng ta di chuyển xuống nhánh trái, chúng ta thêm 0 vào mã, và mỗi lần
+chúng ta di chuyển xuống nhánh phải, chúng ta thêm 1. (Chúng ta quyết định
+theo nhánh nào bằng cách kiểm tra xem nhánh nào là nút lá cho ký hiệu hoặc
+chứa ký hiệu trong tập hợp của nó.) Ví dụ, bắt đầu từ gốc của cây trong
+@ref{Figure 2.18}, chúng ta đến lá cho D bằng cách theo nhánh phải, sau đó
+nhánh trái, rồi nhánh phải, rồi nhánh phải; vì vậy, mã cho D là 1011.
+
+@noindent
+Để giải mã một chuỗi bit sử dụng cây Huffman, chúng ta bắt đầu tại gốc và
+dùng các số không và số một liên tiếp của chuỗi bit để xác định xem có di
+chuyển xuống nhánh trái hay nhánh phải không. Mỗi khi chúng ta đến một lá,
+chúng ta đã tạo ra một ký hiệu mới trong thông điệp, tại đó chúng ta bắt đầu
+lại từ gốc của cây để tìm ký hiệu tiếp theo. Ví dụ, giả sử chúng ta được cho
+cây ở trên và chuỗi 10001010. Bắt đầu tại gốc, chúng ta di chuyển xuống nhánh
+phải (vì bit đầu tiên của chuỗi là 1), sau đó xuống nhánh trái (vì bit thứ
+hai là 0), rồi xuống nhánh trái (vì bit thứ ba cũng là 0). Điều này đưa chúng
+ta đến lá cho B, vì vậy ký hiệu đầu tiên của thông điệp giải mã là B. Bây giờ
+chúng ta bắt đầu lại tại gốc, và chúng ta di chuyển trái vì bit tiếp theo trong
+chuỗi là 0. Điều này đưa chúng ta đến lá cho A. Sau đó chúng ta bắt đầu lại tại
+gốc với phần còn lại của chuỗi 1010, vì vậy chúng ta di chuyển phải, trái, phải,
+trái và đến C. Vì vậy, toàn bộ thông điệp là BAC.
+
+@subsubheading Tạo cây Huffman
+
+Cho một ``bảng chữ cái'' gồm các ký hiệu và tần suất tương đối của chúng, làm
+thế nào chúng ta xây dựng mã ``tốt nhất''? (Nói cách khác, cây nào sẽ mã hóa
+các thông điệp với ít bit nhất?) Huffman đã đưa ra một thuật toán để làm điều
+này và chỉ ra rằng mã kết quả thực sự là mã độ dài biến đổi tốt nhất cho các
+thông điệp mà tần suất tương đối của các ký hiệu khớp với tần suất mà mã được
+xây dựng. Chúng ta sẽ không chứng minh tính tối ưu này của mã Huffman ở đây,
+nhưng chúng ta sẽ chỉ ra cách xây dựng cây Huffman.@footnote{Xem @ref{Hamming 1980}
+để thảo luận về các thuộc tính toán học của mã Huffman.}
+
+Thuật toán tạo cây Huffman rất đơn giản. Ý tưởng là sắp xếp cây sao cho các
+ký hiệu có tần suất thấp nhất xuất hiện xa nhất khỏi gốc. Bắt đầu với tập hợp
+các nút lá, chứa các ký hiệu và tần suất của chúng, được xác định bởi dữ liệu
+ban đầu từ đó mã được xây dựng. Bây giờ tìm hai lá có trọng số thấp nhất và
+gộp chúng lại để tạo ra một nút có hai nút này là nhánh trái và nhánh phải.
+Trọng số của nút mới là tổng của hai trọng số. Loại bỏ hai lá khỏi tập hợp ban
+đầu và thay thế chúng bằng nút mới này. Bây giờ tiếp tục quá trình này. Tại mỗi
+bước, gộp hai nút có trọng số nhỏ nhất, loại bỏ chúng khỏi tập hợp và thay thế
+chúng bằng một nút có hai nút này là nhánh trái và nhánh phải. Quá trình dừng
+khi chỉ còn một nút, là gốc của toàn bộ cây. Đây là cách cây Huffman của
+@ref{Figure 2.18} được tạo ra:
+
+@example
+Lá ban đầu  @{(A 8) (B 3) (C 1) (D 1)
+             (E 1) (F 1) (G 1) (H 1)@}
+
+Gộp   @{(A 8) (B 3) (@{C D@} 2)
+       (E 1) (F 1) (G 1) (H 1)@}
+
+Gộp   @{(A 8) (B 3) (@{C D@} 2)
+       (@{E F@} 2) (G 1) (H 1)@}
+
+Gộp   @{(A 8) (B 3) (@{C D@} 2)
+       (@{E F@} 2) (@{G H@} 2)@}
+
+Gộp   @{(A 8) (B 3) (@{C D@} 2)
+       (@{E F G H@} 4)@}
+
+Gộp   @{(A 8) (@{B C D@} 5)
+       (@{E F G H@} 4)@}
+
+Gộp   @{(A 8) (@{B C D E F G H@} 9)@}
+
+Gộp   @{(@{A B C D E F G H@} 17)@}
+cuối
+@end example
+
+@noindent
+Thuật toán không phải lúc nào cũng chỉ định cây duy nhất, vì có thể không có
+các nút trọng số nhỏ nhất duy nhất ở mỗi bước. Ngoài ra, lựa chọn thứ tự mà
+hai nút được gộp (tức là nút nào sẽ là nhánh phải và nhánh trái) là tùy ý.
+
+@subsubheading Biểu diễn cây Huffman
+
+Trong các bài tập dưới đây, chúng ta sẽ làm việc với hệ thống sử dụng cây
+Huffman để mã hóa và giải mã thông điệp và tạo cây Huffman theo thuật toán
+được phác thảo ở trên. Chúng ta sẽ bắt đầu bằng cách thảo luận về cách các
+cây được biểu diễn.
+
+Các lá của cây được biểu diễn bởi một danh sách gồm ký hiệu @code{leaf}, ký
+hiệu tại lá, và trọng số:
+
+@lisp
+(define (make-leaf symbol weight)
+  (list 'leaf symbol weight))
+(define (leaf? object)
+  (eq? (car object) 'leaf))
+(define (symbol-leaf x) (cadr x))
+(define (weight-leaf x) (caddr x))
+@end lisp
+
+@noindent
+Cây tổng quát sẽ là danh sách gồm nhánh trái, nhánh phải, một tập hợp các ký
+hiệu, và một trọng số. Tập hợp các ký hiệu sẽ đơn giản là danh sách các ký
+hiệu, thay vì biểu diễn tập hợp tinh tế hơn. Khi chúng ta tạo cây bằng cách
+gộp hai nút, chúng ta thu được trọng số của cây như tổng các trọng số của các
+nút, và tập hợp các ký hiệu như hợp của các tập hợp ký hiệu cho các nút. Vì
+các tập hợp ký hiệu của chúng ta được biểu diễn như danh sách, chúng ta có thể
+tạo hợp bằng cách dùng thủ tục @code{append} mà chúng ta đã định nghĩa trong
+@ref{2.2.1}:
+
+@lisp
+(define (make-code-tree left right)
+  (list left
+        right
+        (append (symbols left)
+                (symbols right))
+        (+ (weight left) (weight right))))
+@end lisp
+
+@noindent
+Nếu chúng ta tạo cây theo cách này, chúng ta có các bộ chọn sau:
+
+@lisp
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+@end lisp
+
+@noindent
+Các thủ tục @code{symbols} và @code{weight} phải làm điều gì đó hơi khác tùy
+thuộc vào chúng được gọi với lá hay cây tổng quát. Đây là những ví dụ đơn giản
+của @newterm{thủ tục tổng quát} (các thủ tục có thể xử lý nhiều hơn một loại
+dữ liệu), mà chúng ta sẽ nói nhiều hơn trong @ref{2.4} và @ref{2.5}.
+
+@subsubheading Thủ tục giải mã
+
+Thủ tục sau đây cài đặt thuật toán giải mã. Nó nhận làm đối số một danh sách
+các số không và số một, cùng với một cây Huffman.
+
+@lisp
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch
+                (car bits)
+                current-branch)))
+          (if (leaf? next-branch)
+              (cons
+               (symbol-leaf next-branch)
+               (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits)
+                        next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit:
+               CHOOSE-BRANCH" bit))))
+@end lisp
+
+@noindent
+Thủ tục @code{decode-1} nhận hai đối số: danh sách các bit còn lại và vị trí
+hiện tại trong cây. Nó tiếp tục di chuyển ``xuống'' cây, chọn nhánh trái hay
+nhánh phải tùy theo bit tiếp theo trong danh sách là số không hay số một. (Điều
+này được thực hiện với thủ tục @code{choose-branch}.) Khi đến lá, nó trả về ký
+hiệu tại lá đó là ký hiệu tiếp theo trong thông điệp bằng cách @code{cons} nó
+lên kết quả giải mã phần còn lại của thông điệp, bắt đầu tại gốc của cây. Lưu
+ý việc kiểm tra lỗi trong mệnh đề cuối cùng của @code{choose-branch}, phàn nàn
+nếu thủ tục tìm thấy thứ gì đó khác số không hay số một trong dữ liệu đầu vào.
+
+@subsubheading Tập hợp các phần tử có trọng số
+
+Trong biểu diễn cây của chúng ta, mỗi nút không phải lá chứa một tập hợp các
+ký hiệu, mà chúng ta đã biểu diễn như danh sách đơn giản. Tuy nhiên, thuật
+toán tạo cây được thảo luận ở trên yêu cầu chúng ta cũng làm việc với các tập
+hợp lá và cây, liên tiếp gộp hai phần tử nhỏ nhất. Vì chúng ta sẽ phải tìm
+phần tử nhỏ nhất trong tập hợp nhiều lần, sẽ tiện hơn nếu dùng biểu diễn có
+thứ tự cho loại tập hợp này.
+
+Chúng ta sẽ biểu diễn tập hợp các lá và cây như danh sách các phần tử, được
+sắp xếp theo thứ tự trọng số tăng dần. Thủ tục @code{adjoin-set} sau đây để
+xây dựng tập hợp tương tự như thủ tục được mô tả trong @ref{Exercise 2.61};
+tuy nhiên, các phần tử được so sánh bằng trọng số của chúng, và phần tử được
+thêm vào tập hợp chưa bao giờ có trong đó.
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set)))
+         (cons x set))
+        (else
+         (cons (car set)
+               (adjoin-set x (cdr set))))))
+@end lisp
+
+@noindent
+Thủ tục sau đây nhận danh sách các cặp ký hiệu-tần suất như
+@code{((A 4) (B 2) (C 1) (D 1))} và xây dựng tập hợp có thứ tự ban đầu của
+các lá, sẵn sàng để gộp theo thuật toán Huffman:
+
+@lisp
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set
+         (make-leaf (car pair)    @r{; ký hiệu}
+                    (cadr pair))  @r{; tần suất}
+         (make-leaf-set (cdr pairs))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.67}Bài tập 2.67:} Định nghĩa một cây mã hóa và
+một thông điệp mẫu:
+
+@lisp
+(define sample-tree
+  (make-code-tree
+   (make-leaf 'A 4)
+   (make-code-tree
+    (make-leaf 'B 2)
+    (make-code-tree
+     (make-leaf 'D 1)
+     (make-leaf 'C 1)))))
+
+(define sample-message
+  '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+@end lisp
+
+Dùng thủ tục @code{decode} để giải mã thông điệp, và cho biết kết quả.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.68}Bài tập 2.68:} Thủ tục @code{encode} nhận làm
+đối số một thông điệp và cây và tạo ra danh sách các bit cho thông điệp đã
+mã hóa.
+
+@lisp
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append
+       (encode-symbol (car message)
+                      tree)
+       (encode (cdr message) tree))))
+@end lisp
+
+@code{Encode-symbol} là thủ tục, mà bạn phải viết, trả về danh sách các bit
+mã hóa ký hiệu cho trước theo cây cho trước. Bạn nên thiết kế @code{encode-symbol}
+sao cho nó báo lỗi nếu ký hiệu không có trong cây. Kiểm tra thủ tục của bạn
+bằng cách mã hóa kết quả bạn thu được trong @ref{Exercise 2.67} với cây mẫu
+và xem liệu nó có giống với thông điệp mẫu ban đầu không.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.69}Bài tập 2.69:} Thủ tục sau đây nhận làm đối số
+danh sách các cặp ký hiệu-tần suất (trong đó không có ký hiệu nào xuất hiện
+trong nhiều hơn một cặp) và tạo cây mã hóa Huffman theo thuật toán Huffman.
+
+@lisp
+(define (generate-huffman-tree pairs)
+  (successive-merge
+   (make-leaf-set pairs)))
+@end lisp
+
+@code{Make-leaf-set} là thủ tục đã nêu ở trên biến đổi danh sách các cặp
+thành tập hợp có thứ tự của các lá. @code{Successive-merge} là thủ tục bạn
+phải viết, sử dụng @code{make-code-tree} để liên tiếp gộp các phần tử có
+trọng số nhỏ nhất của tập hợp cho đến khi chỉ còn một phần tử, là cây Huffman
+mong muốn. (Thủ tục này hơi khéo léo, nhưng không thực sự phức tạp. Nếu bạn
+thấy mình đang thiết kế một thủ tục phức tạp, thì hầu như chắc chắn bạn đang
+làm gì đó sai. Bạn có thể tận dụng đáng kể thực tế rằng chúng ta đang sử dụng
+biểu diễn tập hợp có thứ tự.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.70}Bài tập 2.70:} Bảng chữ cái tám ký hiệu sau
+đây với tần suất tương đối liên kết được thiết kế để mã hóa hiệu quả lời bài
+hát nhạc rock thập niên 1950. (Lưu ý rằng các ``ký hiệu'' của một ``bảng chữ
+cái'' không nhất thiết phải là các chữ cái riêng lẻ.)
+
+@example
+
+A    2    NA  16
+BOOM 1    SHA  3
+GET  2    YIP  9
+JOB  2    WAH  1
+@end example
+
+Dùng @code{generate-huffman-tree} (@ref{Exercise 2.69}) để tạo cây Huffman
+tương ứng, và dùng @code{encode} (@ref{Exercise 2.68}) để mã hóa thông điệp
+sau:
+
+@example
+Get a job
+Sha na na na na na na na na
+
+Get a job
+Sha na na na na na na na na
+
+Wah yip yip yip yip
+yip yip yip yip yip
+Sha boom
+@end example
+
+Cần bao nhiêu bit để mã hóa? Số bit nhỏ nhất cần thiết để mã hóa bài hát này
+là bao nhiêu nếu chúng ta dùng mã độ dài cố định cho bảng chữ cái tám ký hiệu?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.71}Bài tập 2.71:} Giả sử chúng ta có cây Huffman
+cho bảng chữ cái gồm @math{n} ký hiệu, và tần suất tương đối của các ký hiệu
+là @math{{1, 2, 4, \dots, 2^{n-1}}}. Phác thảo cây cho @math{{n=5}}; cho
+@math{{n=10}}. Trong cây như vậy (với @math{n} tổng quát) cần bao nhiêu bit
+để mã hóa ký hiệu thường gặp nhất? Ký hiệu ít gặp nhất?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.72}Bài tập 2.72:} Hãy xem xét thủ tục mã hóa bạn
+đã thiết kế trong @ref{Exercise 2.68}. Bậc tăng trưởng về số bước cần thiết
+để mã hóa một ký hiệu là gì? Hãy chắc chắn bao gồm số bước cần thiết để tìm
+kiếm danh sách ký hiệu tại mỗi nút gặp phải. Trả lời câu hỏi này trong trường
+hợp tổng quát là khó. Hãy xem xét trường hợp đặc biệt khi tần suất tương đối
+của @math{n} ký hiệu như được mô tả trong @ref{Exercise 2.71}, và cho biết
+bậc tăng trưởng (như hàm của @math{n}) của số bước cần thiết để mã hóa ký
+hiệu thường gặp nhất và ít gặp nhất trong bảng chữ cái.
+@end quotation
