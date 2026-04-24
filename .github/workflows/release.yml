@@ -18,11 +18,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            texinfo \
-            texlive-latex-recommended \
-            texlive-fonts-recommended \
+            latexmk \
+            texlive-xetex \
             texlive-latex-extra \
+            texlive-fonts-extra \
+            fonts-linuxlibertine \
+            fonts-inconsolata \
             inkscape \
+            perl \
             ruby \
             zip
           gem install nokogiri
