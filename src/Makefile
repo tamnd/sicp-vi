@@ -96,10 +96,11 @@ $(NEXUS): $(SRC) $(CONV) $(MATH)
 	 OUT_ABS=$$(pwd)/$(DIR); \
 	 rm -rf $$STAGE && mkdir -p $$OUT_ABS; \
 	 ./stage-texi.pl $$SRC_ABS $$STAGE; \
-	 ln -s $$(pwd)/en_US/fig $$STAGE/fig; \
+	 ln -s ../en_US/fig $$STAGE/fig; \
 	 (cd $$STAGE && texi2any \
 	   --no-warn --html --split=section --no-headers --iftex \
 	   --force --output $$OUT_ABS $(notdir $(SRC))) || true
+	@rm -rf build-$(LANG)
 	@test -f $(NEXUS) || { echo "texi2any failed to produce $(NEXUS)"; exit 1; }
 	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f -- || true
 	@echo "Replacing LaTeX with MathML..."
