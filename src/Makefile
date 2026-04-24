@@ -80,8 +80,12 @@ endif
 
 $(NEXUS): $(SRC) $(CONV) $(MATH)
 	@echo "Converting Texinfo to HTML (LANG=$(LANG))..."
+	@# --force lets texi2any write output even when a translation has @ref
+	@# to a node that hasn't been translated yet. We still inspect the
+	@# result: the build fails only if $(NEXUS) was not produced.
 	@./texi2any --no-warn --html --split=section --no-headers --iftex \
-	  --force --output $(DIR) $(SRC)
+	  --force --output $(DIR) $(SRC) 2>/dev/null || true
+	@test -f $(NEXUS) || { echo "texi2any failed to produce $(NEXUS)"; exit 1; }
 	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f -- || true
 	@echo "Replacing LaTeX with MathML..."
 	@./get-math.js db-$(LANG).json $(HTML)
