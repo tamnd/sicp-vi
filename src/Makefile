@@ -100,12 +100,14 @@ else
 	  --output $(DIR) $(DIR)sicp-flat.texi
 	@rm -f $(DIR)sicp-flat.texi
 endif
-	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f --
+	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f -- || true
+ifeq ($(LANG),en_US)
 	@echo "Replacing LaTeX with MathML..."
 	@./get-math.js db.json $(HTML)
 	@./put-math.js db.json $(HTML)
 	@echo "Syntax highlighting Scheme code..."
 	@./batch-prettify.js $(HTML)
+endif
 	@for file in $(HTML); do \
 	  perl -0p -i -e \
 	    's/^<!DOC/<?xml version="1.0" encoding="utf-8"?>\n<!DOC/' \
