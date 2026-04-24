@@ -21,7 +21,16 @@ FIG    = $(DIR)fig/*/*.svg
 CSS    = $(DIR)css/*.css
 FONT   = $(DIR)css/fonts/*
 JS     = $(DIR)js/*.js
-CONV   = texi2any lib/Texinfo/Convert/HTML.pm
+# en_US uses the custom ./texi2any wrapper + local HTML.pm (Texinfo 5.x-compatible).
+# Other languages use system texi2any directly to avoid prototype mismatches in Texinfo 7.x.
+ifeq ($(LANG),en_US)
+TEXI2ANY_CMD = ./texi2any --no-warn --html --split=section --no-headers --iftex
+CONV         = texi2any lib/Texinfo/Convert/HTML.pm
+else
+TEXI2ANY_CMD = texi2any --no-warn --html --split=section --no-headers --iftex \
+               --set-customization-variable EXTENSION=xhtml
+CONV         =
+endif
 MATH   = get-math.js put-math.js mathcell.xhtml
 HIGHL  = en_US/js/highlight/
 PRETTY = $(HIGHL)prettify.js $(HIGHL)lang-lisp.js batch-prettify.js
@@ -80,8 +89,7 @@ endif
 
 $(NEXUS): $(SRC) $(CONV) $(MATH)
 	@echo "Converting Texinfo to HTML (LANG=$(LANG))..."
-	@./texi2any --no-warn --html --split=section --no-headers --iftex \
-	  --output $(DIR) $(SRC)
+	@$(TEXI2ANY_CMD) --output $(DIR) $(SRC)
 	@grep -lZ 'This file redirects' $(HTML) | xargs -0 rm -f --
 	@echo "Replacing LaTeX with MathML..."
 	@./get-math.js db.json $(HTML)
