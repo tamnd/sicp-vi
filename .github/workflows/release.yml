@@ -27,8 +27,8 @@ jobs:
             inkscape \
             perl \
             ruby \
+            ruby-nokogiri \
             zip
-          gem install nokogiri
 
       - name: Build PDF
         run: make -C src/pdf
