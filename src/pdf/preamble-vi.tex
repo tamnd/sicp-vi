@@ -46,9 +46,9 @@
 
 % MathJax-style \lt and \gt aliases (the book chapter texis use them
 % directly; the en_US PDF dodges this because it builds from a separate
-% src/pdf/sicp.texi that has < and >).
-\providecommand{\lt}{<}
-\providecommand{\gt}{>}
+% src/pdf/sicp.texi that has < and >). Use \AtBeginDocument so we win
+% against any redefinition pulled in by newtxmath/polyglossia.
+\AtBeginDocument{\def\lt{<}\def\gt{>}}
 
 % To use Libertine letters and numbers,
 % but tx-style operators in math environment:
