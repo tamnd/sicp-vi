@@ -437,6 +437,7 @@ sub transform { # expects a string and an environment
     $in =~ s/(?<=\S)-(?=\S)/\\-\//g;  # assist line break after dash
     $in =~ s/\^/\\textasciicircum{}/g;
     $in =~ s/_/\\_/g;
+    $in =~ s/(?<!\\)#/\\#/g;           # escape Scheme's #t / #f literals
     $in =~ s/&/\\&/g;                  # escape HTML-entity ampersands
     $in =~ s|<u>(.*?)</u>|\\underline{$1}|gs;  # <u> → LaTeX underline
     $in =~ s|<[^>]+>||g;               # strip any remaining HTML tags
