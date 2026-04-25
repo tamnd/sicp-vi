@@ -26,11 +26,14 @@ $text =~ s/\\gt\b/>/g;
 
 # Escape stray & in prose (e.g. "Harper & Row") outside @tex...@end tex
 # blocks, where & is the alignment-tab character and must be left alone.
+# Skip HTML entities like &gt; / &lt; — texi-to-latex.pl's code-env handler
+# already escapes the & inside @code{...}, so pre-escaping would double up
+# into \\& (line break + alignment tab) and crash xelatex.
 {
     my @parts = split /(\@tex\b.*?\@end\s+tex\b)/s, $text;
     for (my $i = 0; $i < @parts; $i++) {
         next if $i % 2;  # odd indexes are the @tex blocks themselves
-        $parts[$i] =~ s/(?<!\\)&/\\&/g;
+        $parts[$i] =~ s/(?<!\\)&(?![a-zA-Z]+;)/\\&/g;
     }
     $text = join '', @parts;
 }
