@@ -24,6 +24,18 @@ my $text = do { local $/; <STDIN> };
 $text =~ s/\\lt\b/</g;
 $text =~ s/\\gt\b/>/g;
 
+$text =~ s{\@ref\{((?:[^{}]|\{[^{}]*\})*)\}}{
+    my $body = $1;
+    my ($depth, $cut) = (0, -1);
+    for (my $i = 0; $i < length($body); $i++) {
+        my $c = substr($body, $i, 1);
+        if    ($c eq '{') { $depth++ }
+        elsif ($c eq '}') { $depth-- }
+        elsif ($c eq ',' && $depth == 0) { $cut = $i; last }
+    }
+    '@ref{' . ($cut < 0 ? $body : substr($body, 0, $cut)) . '}';
+}ge;
+
 my $self_math = qr/eqnarray\*?|align\*?|gather\*?|multline\*?|equation\*?/;
 $text =~ s{
     \\\[                                        # opening \[
