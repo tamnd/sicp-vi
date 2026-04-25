@@ -8,6 +8,9 @@
 #   1. MathJax aliases  \lt / \gt  ->  < / >
 #   2. Blank lines inside \[ ... \] display math, which TeX reads as \par
 #      and rejects with "Missing $ inserted".
+#   3. \[ \begin{eqnarray} ... \end{eqnarray} \] — MathJax tolerates the
+#      nested math mode, plain LaTeX doesn't. Strip the \[ ... \] wrapper
+#      since eqnarray (and friends) open their own math mode.
 #
 # The en_US src/pdf/sicp.texi was hand-massaged to avoid these so its
 # build pipeline never had to deal with them; the books/<lang>/ tree is
@@ -20,6 +23,14 @@ my $text = do { local $/; <STDIN> };
 
 $text =~ s/\\lt\b/</g;
 $text =~ s/\\gt\b/>/g;
+
+my $self_math = qr/eqnarray\*?|align\*?|gather\*?|multline\*?|equation\*?/;
+$text =~ s{
+    \\\[                                        # opening \[
+    [ \t]* (?:%[^\n]*)? \s*                     # optional inline comment
+    (\\begin\{($self_math)\} .*? \\end\{\2\})  # the math env body
+    \s* \\\]                                    # closing \]
+}{$1}gxs;
 
 $text =~ s{(\\\[)(.*?)(\\\])}{
     my ($open, $body, $close) = ($1, $2, $3);
