@@ -50,6 +50,24 @@ $text =~ s{\@ref\{((?:[^{}]|\{[^{}]*\})*)\}}{
     '@ref{' . ($cut < 0 ? $body : substr($body, 0, $cut)) . '}';
 }ge;
 
+# Convert texinfo @multitable blocks (used in back/exercises.texi and
+# back/figures.texi) into LaTeX tabular. texi-to-latex.pl doesn't handle
+# @multitable / @item / @tab, so without this the .tex output would carry
+# the literal @-commands and xelatex would crash with "Lonely \item" et al.
+$text =~ s{
+    \@multitable \s* \@columnfractions \s+ ([^\n]+) \n
+    (.*?)
+    \@end \s+ multitable
+}{
+    my @fracs = split /\s+/, $1;
+    my $cols  = scalar grep { length } @fracs;
+    my $body  = $2;
+    $body =~ s/\@tab\b/ \& /g;
+    $body =~ s/\@item\b[ \t]*\n?//;        # drop the first @item
+    $body =~ s/\@item\b[ \t]*\n?/\\\\\n/g; # remaining @item start new rows
+    "\\begin{tabular}{" . ('l' x $cols) . "}\n$body\\end{tabular}\n";
+}gxes;
+
 my %plain_tex_env = (matrix => 'matrix', eqalign => 'aligned');
 for my $cmd (keys %plain_tex_env) {
     my $env = $plain_tex_env{$cmd};
