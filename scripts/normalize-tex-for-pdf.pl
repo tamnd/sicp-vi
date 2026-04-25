@@ -36,6 +36,16 @@ $text =~ s{\@ref\{((?:[^{}]|\{[^{}]*\})*)\}}{
     '@ref{' . ($cut < 0 ? $body : substr($body, 0, $cut)) . '}';
 }ge;
 
+my %plain_tex_env = (matrix => 'matrix', eqalign => 'aligned');
+for my $cmd (keys %plain_tex_env) {
+    my $env = $plain_tex_env{$cmd};
+    $text =~ s{\\\Q$cmd\E\{((?:[^{}]|\{[^{}]*\})*)\}}{
+        my $body = $1;
+        $body =~ s/\\cr\b/\\\\/g;
+        "\\begin{$env}$body\\end{$env}";
+    }ge;
+}
+
 my $self_math = qr/eqnarray\*?|align\*?|gather\*?|multline\*?|equation\*?/;
 $text =~ s{
     \\\[                                        # opening \[
