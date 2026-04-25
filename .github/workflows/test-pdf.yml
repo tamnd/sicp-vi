@@ -29,6 +29,17 @@ jobs:
             ${{ env.BUILD_IMAGE }} \
             make -C /workspace/src/pdf LANG=${{ inputs.lang }}
 
+      - name: Upload xelatex log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sicp-${{ inputs.lang }}-tex-debug
+          path: |
+            src/pdf/sicp-${{ inputs.lang }}.log
+            src/pdf/sicp-${{ inputs.lang }}.tex
+            src/pdf/sicp-${{ inputs.lang }}-flat.texi
+          retention-days: 3
+
       - name: Build EPUB
         run: |
           docker run --rm \
