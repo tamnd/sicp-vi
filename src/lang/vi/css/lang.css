@@ -32,3 +32,13 @@ span.r, span.t {
 /* Source Serif runs slightly taller than Libertine; nudge line-height
    so paragraphs don't feel cramped under stacked Vietnamese diacritics. */
 p, li, dd { line-height: 1.55; }
+
+/* The cover subtitle (e.g. "Tái Bản Lần 2") uses <abbr> with the smcp
+   OpenType feature for small caps. The Libertine subset has no
+   Vietnamese glyphs, so the diacritic chars dropped to a fallback font.
+   Source Serif 4 supports smcp and covers Vietnamese. */
+abbr,
+h2 ~ p:first-of-type:first-line {
+  font-family: "Source Serif 4", "Linux Libertine O", serif;
+  font-feature-settings: "onum", "c2sc", "smcp";
+}
