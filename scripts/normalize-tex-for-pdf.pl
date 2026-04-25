@@ -24,6 +24,28 @@ my $text = do { local $/; <STDIN> };
 $text =~ s/\\lt\b/</g;
 $text =~ s/\\gt\b/>/g;
 
+# Flatten nested @quotation blocks. texi-to-latex.pl matches @quotation ...
+# @end quotation non-greedily, so a nested inner pair leaves the outer
+# unbalanced (outer's @quotation goes unmatched, an @end quotation is left
+# orphaned). HTML build via texi2any handles nesting fine, so we only
+# collapse for the PDF pipeline.
+{
+    my @out;
+    my $depth = 0;
+    for my $line (split /^/, $text, -1) {
+        if ($line =~ /^\@quotation\b/) {
+            $depth++;
+            next if $depth > 1;
+        } elsif ($line =~ /^\@end\s+quotation\b/) {
+            my $was = $depth;
+            $depth-- if $depth > 0;
+            next if $was > 1;
+        }
+        push @out, $line;
+    }
+    $text = join '', @out;
+}
+
 # Escape stray & in prose (e.g. "Harper & Row") outside @tex...@end tex
 # blocks, where & is the alignment-tab character and must be left alone.
 # Skip HTML entities like &gt; / &lt; — texi-to-latex.pl's code-env handler

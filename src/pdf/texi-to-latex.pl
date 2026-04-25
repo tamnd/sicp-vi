@@ -328,6 +328,7 @@ my %syntax = (
 
 # Type 3: tags that require arguments, like @acronym{GCD}
 # --------------------------------------------------------
+  '@abbr'           => [ $braces,   glue('acronym') ],
   '@acronym'        => [ $braces,   glue('acronym') ],
   '@anchor'         => [ $braces,   glue('label') ],
   '@b'              => [ $braces,   glue('textbf') ],
@@ -362,7 +363,9 @@ my %syntax = (
   '@cindex'         => [ $space,    bounce('% ') ],
   '@comment'        => [ $void,     bounce('%') ],
   '@c'              => [ $void,     bounce('%') ],
+  '@contents'       => [ $empty,    bounce('\\tableofcontents') ],
   '@dircategory'    => [ $void,     bounce('%') ],
+  '@documentencoding' => [ $void,   bounce('%') ],
   '@endpage'        => [ $empty,    bounce('') ],
   '@everyheading'   => [ $line,     bounce('') ],
   '@finalout'       => [ $empty,    bounce('') ],
@@ -379,6 +382,7 @@ my %syntax = (
   '@section'        => [ $line,     glue('section') ],
   '@setfilename'    => [ $void,     bounce('%') ],
   '@setshortcontentsaftertitlepage' => [ $empty, bounce('') ],
+  '@shortcontents'  => [ $empty,    bounce('') ],
   '@settitle'       => [ $void,     bounce('%') ],
   '@set'            => [ $line,     setvalue() ],
   '@sp'             => [ $line,     glue('vspace', 'em') ],
